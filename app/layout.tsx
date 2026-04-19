@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer'
 import CursorGlow from '@/components/ui/CursorGlow'
 
 export const metadata: Metadata = {
-  title: 'ARC. — Architecture & Design',
+  title: 'Xavier的个人博客',
   description: '以严谨的美学标准构建数字化体验',
 }
 
