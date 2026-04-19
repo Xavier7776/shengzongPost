@@ -27,7 +27,7 @@ export default function ProjectsPage() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <h3 className="text-2xl font-black mb-2">张盛宗</h3>
+              <h3 className="text-2xl font-black mb-2">Xavier</h3>
               <p className="text-gray-500 font-medium mb-6">全栈工程师 / AI Agent开发</p>
               <p className="text-gray-600 leading-relaxed mb-8">
                 专注于构建具有极致性能与美感的 Web 应用。梦想是构建AGI智能系统。
