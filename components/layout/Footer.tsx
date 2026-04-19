@@ -1,4 +1,4 @@
-import { Github, Image as ImageIcon, Mail } from 'lucide-react'
+import { Github, Search, Mail } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -8,12 +8,34 @@ export default function Footer() {
           ARC<span className="text-blue-600">.</span>
         </h2>
         <div className="flex justify-center space-x-6 mb-8">
-          <Github className="w-5 h-5 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors" />
-          <ImageIcon className="w-5 h-5 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors" />
-          <Mail className="w-5 h-5 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors" />
+          <a
+            href="https://github.com/Xavier7776"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-400 hover:text-gray-900 transition-colors"
+            aria-label="GitHub"
+          >
+            <Github className="w-5 h-5" />
+          </a>
+          <a
+            href="https://www.bing.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-400 hover:text-gray-900 transition-colors"
+            aria-label="Bing"
+          >
+            <Search className="w-5 h-5" />
+          </a>
+          <a
+            href="mailto:leonidasholya@gmail.com"
+            className="text-gray-400 hover:text-gray-900 transition-colors"
+            aria-label="Email"
+          >
+            <Mail className="w-5 h-5" />
+          </a>
         </div>
         <p className="text-xs font-bold tracking-[0.2em] text-gray-300 uppercase">
-          © {new Date().getFullYear()} ARC Architecture & Design. Built with Precision.
+          © {new Date().getFullYear()} Xavier. Built with Precision.
         </p>
       </div>
     </footer>

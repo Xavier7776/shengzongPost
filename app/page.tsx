@@ -22,8 +22,8 @@ export default function HomePage() {
             <ChevronRight className="w-5 h-5 ml-1 transform group-hover:translate-x-2 transition-transform duration-300" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {BLOG_POSTS.map((post, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+          {BLOG_POSTS.slice(0, 4).map((post, i) => (
             <BlogCard key={post.id} post={post} index={i} />
           ))}
         </div>
