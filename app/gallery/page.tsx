@@ -1,13 +1,27 @@
+// app/gallery/page.tsx
 import FilmStrip from '@/components/sections/FilmStrip'
-import { GALLERY_IMAGES } from '@/lib/data'
+import { getAllGalleryImages } from '@/lib/db'
 import type { Metadata } from 'next'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export const metadata: Metadata = {
   title: '视觉存档 — ARC.',
   description: '极简主义摄影与视觉创作存档',
 }
 
-export default function GalleryPage() {
+export default async function GalleryPage() {
+  const dbImages = await getAllGalleryImages()
+
+  // 转成 FilmStrip 需要的格式
+  const images = dbImages.map(img => ({
+    id: img.id,
+    url: img.url,
+    category: img.category || 'Photo',
+    title: img.title || '无标题',
+  }))
+
   return (
     <div className="animate-in">
       <div className="max-w-6xl mx-auto px-6 py-24">
@@ -33,7 +47,13 @@ export default function GalleryPage() {
           </p>
         </div>
 
-        <FilmStrip images={GALLERY_IMAGES} />
+        {images.length === 0 ? (
+          <p className="text-center py-24" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            暂无图片
+          </p>
+        ) : (
+          <FilmStrip images={images} />
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,8 @@
+// app/projects/page.tsx
 import { Mail, MapPin, Send, Github } from 'lucide-react'
 import SectionHeading from '@/components/ui/SectionHeading'
 import ProjectItem from '@/components/sections/ProjectItem'
+import ContactForm from '@/components/sections/ContactForm'
 import { PROJECTS } from '@/lib/data'
 import type { Metadata } from 'next'
 
@@ -57,7 +59,7 @@ export default function ProjectsPage() {
             </div>
 
             <a
-              href="mailto:leonidasholya@gmail.com"
+              href="#contact"
               className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-600/20 group"
             >
               <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
@@ -71,6 +73,24 @@ export default function ProjectsPage() {
           {PROJECTS.map((project, i) => (
             <ProjectItem key={project.id} project={project} index={i} />
           ))}
+        </div>
+      </div>
+
+      {/* Contact Form */}
+      <div id="contact" className="mt-32 pt-16 border-t border-gray-100">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-12 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-3">
+              Get In Touch
+            </p>
+            <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-4">
+              开始一段对话
+            </h2>
+            <p className="text-gray-500 leading-relaxed">
+              无论是合作咨询、技术交流，还是只是打个招呼——我都很乐意收到你的消息。
+            </p>
+          </div>
+          <ContactForm />
         </div>
       </div>
     </div>

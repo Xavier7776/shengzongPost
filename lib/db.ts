@@ -121,3 +121,58 @@ export async function updatePost(
 export async function deletePost(slug: string): Promise<void> {
   await sql`DELETE FROM posts WHERE slug = ${slug}`
 }
+
+// ─── Gallery ─────────────────────────────────────────────────────────────────
+
+export interface GalleryImage {
+  id: number
+  url: string
+  public_id: string
+  title: string
+  category: string
+  sort_order: number
+  created_at: string
+}
+
+export async function getAllGalleryImages(): Promise<GalleryImage[]> {
+  const rows = await sql`
+    SELECT * FROM gallery_images ORDER BY sort_order ASC, created_at DESC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as GalleryImage[]
+}
+
+export async function createGalleryImage(data: {
+  url: string
+  public_id: string
+  title: string
+  category: string
+}): Promise<GalleryImage> {
+  const rows = await sql`
+    INSERT INTO gallery_images (url, public_id, title, category)
+    VALUES (${data.url}, ${data.public_id}, ${data.title}, ${data.category})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as GalleryImage
+}
+
+export async function updateGalleryImage(
+  id: number,
+  data: Partial<{ title: string; category: string; sort_order: number }>
+): Promise<GalleryImage> {
+  const rows = await sql`
+    UPDATE gallery_images SET
+      title      = COALESCE(${data.title ?? null}, title),
+      category   = COALESCE(${data.category ?? null}, category),
+      sort_order = COALESCE(${data.sort_order ?? null}, sort_order)
+    WHERE id = ${id}
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as GalleryImage
+}
+
+export async function deleteGalleryImage(id: number): Promise<string> {
+  const rows = await sql`
+    DELETE FROM gallery_images WHERE id = ${id} RETURNING public_id
+  `
+  return (rows[0] as { public_id: string }).public_id
+}

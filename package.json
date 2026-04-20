@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "cloudinary": "^2.9.0",
     "lucide-react": "^0.383.0",
     "next": "14.2.3",
     "next-auth": "^4.24.14",
     "react": "^18",
     "react-dom": "^18",
+    "resend": "^6.12.0",
     "start": "^5.1.0"
   },
   "devDependencies": {
