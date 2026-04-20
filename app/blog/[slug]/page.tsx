@@ -1,17 +1,14 @@
-// app/blog/[slug]/page.tsx  （替换现有 app/blog/[id]/page.tsx，目录名从 [id] 改为 [slug]）
+// app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { getPostBySlug, getAllPosts } from '@/lib/db'
+import { getPostBySlug } from '@/lib/db'
 import type { Metadata } from 'next'
 
-interface PageProps { params: { slug: string } }
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-// 构建时预生成已发布文章的静态路由（可选，去掉则全动态）
-export async function generateStaticParams() {
-  const posts = await getAllPosts()
-  return posts.map(p => ({ slug: p.slug }))
-}
+interface PageProps { params: { slug: string } }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const post = await getPostBySlug(params.slug)
@@ -19,7 +16,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${post.title} — ARC.`, description: post.excerpt }
 }
 
-// ─── 沿用原有的 Markdown 渲染器（完整保留） ─────────────────────────────────
+// ─── Markdown 渲染器 ─────────────────────────────────────────────────────────
 
 function renderInline(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/)
@@ -149,7 +146,7 @@ function renderContent(content: string) {
   return elements
 }
 
-// ─── 页面组件 ────────────────────────────────────────────────────────────────
+// ─── 页面 ────────────────────────────────────────────────────────────────────
 
 export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(params.slug)

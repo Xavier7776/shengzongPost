@@ -1,4 +1,4 @@
-// app/page.tsx （替换现有文件）
+// app/page.tsx
 import Link from 'next/link'
 import { ChevronRight, Github, ExternalLink } from 'lucide-react'
 import Hero from '@/components/sections/Hero'
@@ -8,6 +8,7 @@ import { PROJECTS } from '@/lib/data'
 import { getAllPosts } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function HomePage() {
   const posts = await getAllPosts()
