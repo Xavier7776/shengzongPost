@@ -1,11 +1,17 @@
 'use client'
-
+// components/sections/BlogCard.tsx （替换现有文件）
 import Link from 'next/link'
 import { useScrollReveal } from '@/lib/hooks'
 import Card3D from '@/components/ui/Card3D'
-import type { BLOG_POSTS } from '@/lib/data'
 
-type Post = (typeof BLOG_POSTS)[number]
+interface Post {
+  id: number
+  slug?: string
+  title: string
+  date: string
+  excerpt: string
+  tags: string[]
+}
 
 interface BlogCardProps {
   post: Post
@@ -14,6 +20,7 @@ interface BlogCardProps {
 
 export default function BlogCard({ post, index }: BlogCardProps) {
   const [ref, isVisible] = useScrollReveal()
+  const href = post.slug ? `/blog/${post.slug}` : `/blog/${post.id}`
 
   return (
     <div
@@ -24,7 +31,7 @@ export default function BlogCard({ post, index }: BlogCardProps) {
       style={{ transitionDelay: `${index * 100}ms` }}
     >
       <Card3D className="h-full">
-        <Link href={`/blog/${post.id}`}>
+        <Link href={href}>
           <article className="group cursor-pointer flex flex-col h-full p-8 rounded-2xl bg-white border border-gray-100/80 shadow-sm">
             <time className="text-xs text-gray-400 font-mono mb-4 block">{post.date}</time>
             <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight">
@@ -33,7 +40,7 @@ export default function BlogCard({ post, index }: BlogCardProps) {
             <p className="text-gray-500 text-sm line-clamp-3 mb-6 flex-1 leading-relaxed">
               {post.excerpt}
             </p>
-            <div className="flex space-x-2 mt-auto">
+            <div className="flex space-x-2 mt-auto flex-wrap gap-y-1">
               {post.tags.map(t => (
                 <span
                   key={t}

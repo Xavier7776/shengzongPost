@@ -1,11 +1,17 @@
+// app/page.tsx （替换现有文件）
 import Link from 'next/link'
 import { ChevronRight, Github, ExternalLink } from 'lucide-react'
 import Hero from '@/components/sections/Hero'
 import BlogCard from '@/components/sections/BlogCard'
 import SectionHeading from '@/components/ui/SectionHeading'
-import { BLOG_POSTS, PROJECTS } from '@/lib/data'
+import { PROJECTS } from '@/lib/data'
+import { getAllPosts } from '@/lib/db'
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function HomePage() {
+  const posts = await getAllPosts()
+
   return (
     <div className="animate-in">
       <Hero />
@@ -22,11 +28,19 @@ export default function HomePage() {
             <ChevronRight className="w-5 h-5 ml-1 transform group-hover:translate-x-2 transition-transform duration-300" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-          {BLOG_POSTS.slice(0, 4).map((post, i) => (
-            <BlogCard key={post.id} post={post} index={i} />
-          ))}
-        </div>
+        {posts.length === 0 ? (
+          <p className="text-gray-300 text-lg">暂无文章</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+            {posts.slice(0, 4).map((post, i) => (
+              <BlogCard
+                key={post.slug}
+                post={{ ...post, id: post.id, date: post.created_at.slice(0, 10) }}
+                index={i}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Featured Projects */}
@@ -55,17 +69,11 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div className="flex space-x-8">
-                  <a
-                    href={project.github}
-                    className="flex items-center text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors group/link"
-                  >
+                  <a href={project.github} className="flex items-center text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors group/link">
                     <Github className="w-5 h-5 mr-2 transform group-hover/link:rotate-12 transition-transform" />
                     源码
                   </a>
-                  <a
-                    href={project.demo}
-                    className="flex items-center text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors group/link"
-                  >
+                  <a href={project.demo} className="flex items-center text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors group/link">
                     <ExternalLink className="w-5 h-5 mr-2 transform group-hover/link:rotate-12 transition-transform" />
                     预览
                   </a>
