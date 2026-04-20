@@ -1,25 +1,27 @@
+// app/blog/[slug]/page.tsx  （替换现有 app/blog/[id]/page.tsx，目录名从 [id] 改为 [slug]）
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { BLOG_POSTS } from '@/lib/data'
+import { getPostBySlug, getAllPosts } from '@/lib/db'
 import type { Metadata } from 'next'
 
-interface PageProps {
-  params: { id: string }
-}
+interface PageProps { params: { slug: string } }
 
-export function generateStaticParams() {
-  return BLOG_POSTS.map(p => ({ id: String(p.id) }))
+// 构建时预生成已发布文章的静态路由（可选，去掉则全动态）
+export async function generateStaticParams() {
+  const posts = await getAllPosts()
+  return posts.map(p => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const post = BLOG_POSTS.find(p => p.id === Number(params.id))
+  const post = await getPostBySlug(params.slug)
   if (!post) return { title: '文章不存在 — ARC.' }
   return { title: `${post.title} — ARC.`, description: post.excerpt }
 }
 
+// ─── 沿用原有的 Markdown 渲染器（完整保留） ─────────────────────────────────
+
 function renderInline(text: string) {
-  // **bold**
   const parts = text.split(/(\*\*[^*]+\*\*)/)
   return parts.map((part, i) =>
     part.startsWith('**') && part.endsWith('**')
@@ -37,10 +39,8 @@ function renderContent(content: string) {
     const line = lines[i]
     const trimmed = line.trim()
 
-    // blank
     if (!trimmed) { i++; continue }
 
-    // ## heading
     if (trimmed.startsWith('## ')) {
       elements.push(
         <h2 key={i} className="text-2xl font-black text-gray-900 mt-14 mb-5 tracking-tight border-b border-gray-100 pb-3">
@@ -50,7 +50,6 @@ function renderContent(content: string) {
       i++; continue
     }
 
-    // ### heading
     if (trimmed.startsWith('### ')) {
       elements.push(
         <h3 key={i} className="text-lg font-black text-gray-800 mt-10 mb-3 tracking-tight">
@@ -60,7 +59,6 @@ function renderContent(content: string) {
       i++; continue
     }
 
-    // ![alt](url caption)
     const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
     if (imgMatch) {
       const [, alt, url, caption] = imgMatch
@@ -74,7 +72,6 @@ function renderContent(content: string) {
       i++; continue
     }
 
-    // > blockquote
     if (trimmed.startsWith('> ')) {
       elements.push(
         <blockquote key={i} className="border-l-4 border-blue-400 pl-5 py-1 my-6 bg-blue-50 rounded-r-xl">
@@ -84,7 +81,6 @@ function renderContent(content: string) {
       i++; continue
     }
 
-    // ``` code block
     if (trimmed.startsWith('```')) {
       const lang = trimmed.slice(3).trim()
       const codeLines: string[] = []
@@ -104,7 +100,6 @@ function renderContent(content: string) {
       i++; continue
     }
 
-    // - list item
     if (trimmed.startsWith('- ')) {
       const items: string[] = []
       while (i < lines.length && lines[i].trim().startsWith('- ')) {
@@ -124,7 +119,6 @@ function renderContent(content: string) {
       continue
     }
 
-    // numbered list
     if (trimmed.match(/^\d+\. /)) {
       const items: string[] = []
       while (i < lines.length && lines[i].trim().match(/^\d+\. /)) {
@@ -132,7 +126,7 @@ function renderContent(content: string) {
         i++
       }
       elements.push(
-        <ol key={i} className="my-6 space-y-2 counter-reset-item">
+        <ol key={i} className="my-6 space-y-2">
           {items.map((item, j) => (
             <li key={j} className="flex items-start gap-3 text-gray-600 leading-relaxed">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center mt-0.5">{j + 1}</span>
@@ -144,7 +138,6 @@ function renderContent(content: string) {
       continue
     }
 
-    // plain paragraph
     elements.push(
       <p key={i} className="text-gray-600 leading-[1.9] text-[1.05rem]">
         {renderInline(trimmed)}
@@ -156,8 +149,10 @@ function renderContent(content: string) {
   return elements
 }
 
-export default function BlogPostPage({ params }: PageProps) {
-  const post = BLOG_POSTS.find(p => p.id === Number(params.id))
+// ─── 页面组件 ────────────────────────────────────────────────────────────────
+
+export default async function BlogPostPage({ params }: PageProps) {
+  const post = await getPostBySlug(params.slug)
   if (!post) notFound()
 
   return (
@@ -172,7 +167,7 @@ export default function BlogPostPage({ params }: PageProps) {
 
       <article>
         <header className="mb-14">
-          <time className="text-blue-600 font-mono text-sm mb-4 block">{post.date}</time>
+          <time className="text-blue-600 font-mono text-sm mb-4 block">{post.created_at.slice(0, 10)}</time>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-gray-900 mb-8">
             {post.title}
           </h1>
@@ -185,7 +180,6 @@ export default function BlogPostPage({ params }: PageProps) {
             ))}
           </div>
         </header>
-
         <div className="space-y-5">
           {renderContent(post.content)}
         </div>
