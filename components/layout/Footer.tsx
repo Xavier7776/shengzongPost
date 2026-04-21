@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Github, Search, Mail } from 'lucide-react'
 
 export default function Footer() {
@@ -26,13 +27,13 @@ export default function Footer() {
           >
             <Search className="w-5 h-5" />
           </a>
-          <a
-            href="mailto:leonidasholya@gmail.com"
+          <Link
+            href="/projects#contact"
             className="text-gray-400 hover:text-gray-900 transition-colors"
-            aria-label="Email"
+            aria-label="联系我"
           >
             <Mail className="w-5 h-5" />
-          </a>
+          </Link>
         </div>
         <p className="text-xs font-bold tracking-[0.2em] text-gray-300 uppercase">
           © {new Date().getFullYear()} Xavier. Built with Precision.

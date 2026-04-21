@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Github, Search, Mail } from 'lucide-react'
 
 export default function DarkFooter() {
@@ -36,13 +37,13 @@ export default function DarkFooter() {
           >
             <Search className="w-5 h-5" />
           </a>
-          <a
-            href="mailto:leonidasholya@gmail.com"
+          <Link
+            href="/projects#contact"
             className="dark-footer-icon"
-            aria-label="Email"
+            aria-label="联系我"
           >
             <Mail className="w-5 h-5" />
-          </a>
+          </Link>
         </div>
         <p
           className="text-xs font-bold tracking-[0.2em] uppercase"
