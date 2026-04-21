@@ -3,12 +3,13 @@
 // app/admin/comments/page.tsx
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Check, X, Loader2, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Check, X, Loader2, MessageCircle, Trash2, Shield } from 'lucide-react'
 
 interface Comment {
   id: number
   post_slug: string
   user_name: string
+  user_role: string        // ✅ 新增：用于显示身份标注
   content: string
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
@@ -16,11 +17,27 @@ interface Comment {
 
 type Tab = 'pending' | 'approved' | 'rejected'
 
+// ✅ 新增：管理员/作者身份徽章（与前台 CommentSection 保持一致）
+function RoleBadge({ role }: { role: string }) {
+  if (role === 'admin') return (
+    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-md">
+      <Shield className="w-2.5 h-2.5" />管理员
+    </span>
+  )
+  if (role === 'author') return (
+    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-violet-500 text-white text-[9px] font-black uppercase tracking-widest rounded-md">
+      作者
+    </span>
+  )
+  return null
+}
+
 export default function AdminCommentsPage() {
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('pending')
   const [acting, setActing] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/comments/all')
@@ -38,9 +55,20 @@ export default function AdminCommentsPage() {
     })
     if (res.ok) {
       const updated = await res.json()
-      setComments(prev => prev.map(c => c.id === id ? updated : c))
+      setComments(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c))
     }
     setActing(null)
+  }
+
+  // ✅ 新增：删除评论
+  async function handleDelete(id: number) {
+    if (!confirm('确认删除这条评论？此操作不可撤销。')) return
+    setDeleting(id)
+    const res = await fetch(`/api/comments/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setComments(prev => prev.filter(c => c.id !== id))
+    }
+    setDeleting(null)
   }
 
   const filtered = comments.filter(c => c.status === tab)
@@ -109,7 +137,9 @@ export default function AdminCommentsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      {/* ✅ 用户名 + 身份徽章 */}
                       <span className="text-sm font-black text-gray-900">{c.user_name}</span>
+                      <RoleBadge role={c.user_role} />
                       <Link
                         href={`/blog/${c.post_slug}`}
                         target="_blank"
@@ -122,27 +152,39 @@ export default function AdminCommentsPage() {
                     <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{c.content}</p>
                   </div>
 
-                  {/* 操作按钮（仅待审核显示） */}
-                  {tab === 'pending' && (
-                    <div className="flex gap-2 flex-shrink-0 mt-0.5">
-                      <button
-                        onClick={() => act(c.id, 'approve')}
-                        disabled={acting === c.id}
-                        className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
-                      >
-                        {acting === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                        通过
-                      </button>
-                      <button
-                        onClick={() => act(c.id, 'reject')}
-                        disabled={acting === c.id}
-                        className="flex items-center gap-1 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 text-xs font-bold px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
-                      >
-                        <X className="w-3 h-3" />
-                        拒绝
-                      </button>
-                    </div>
-                  )}
+                  {/* 操作按钮 */}
+                  <div className="flex gap-2 flex-shrink-0 mt-0.5">
+                    {/* 待审核：显示通过/拒绝 */}
+                    {tab === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => act(c.id, 'approve')}
+                          disabled={acting === c.id}
+                          className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          {acting === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                          通过
+                        </button>
+                        <button
+                          onClick={() => act(c.id, 'reject')}
+                          disabled={acting === c.id}
+                          className="flex items-center gap-1 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 text-xs font-bold px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          <X className="w-3 h-3" />
+                          拒绝
+                        </button>
+                      </>
+                    )}
+                    {/* ✅ 所有 tab 均显示删除按钮 */}
+                    <button
+                      onClick={() => handleDelete(c.id)}
+                      disabled={deleting === c.id}
+                      className="flex items-center gap-1 bg-gray-100 hover:bg-red-100 text-gray-400 hover:text-red-500 text-xs font-bold px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+                      title="删除评论"
+                    >
+                      {deleting === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

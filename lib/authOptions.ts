@@ -19,38 +19,48 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
-
         const user = await getUserByEmail(credentials.email)
         if (!user) return null
-
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
-
-        // 邮箱未验证，拒绝登录
         if (!user.verified) return null
-
-        return { id: String(user.id), name: user.name, email: user.email }
+        return {
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+          image: user.avatar ?? undefined,
+          role: user.role,
+        }
       },
     }),
   ],
   callbacks: {
     async signIn({ account, profile }) {
-      // GitHub 登录：只允许管理员
       if (account?.provider === 'github') {
         const githubProfile = profile as { login?: string }
         return githubProfile?.login === process.env.ADMIN_GITHUB_USERNAME
       }
-      // Credentials 登录：普通用户，authorize 已做验证，这里直接放行
       return true
     },
     async session({ session, token }) {
-      if (token?.sub) {
-        (session.user as { id?: string }).id = token.sub
+      // ✅ 修复：先判断 session.user 存在再赋值，避免 TS 报 possibly undefined
+      if (session.user) {
+        if (token?.sub)     (session.user as { id?: string }).id = token.sub
+        if (token?.role)    (session.user as { role?: string }).role = token.role as string
+        if (token?.picture) session.user.image = token.picture as string
       }
       return session
     },
-    async jwt({ token, user }) {
-      if (user) token.sub = user.id
+    async jwt({ token, user, trigger, session: updateSession }) {
+      if (user) {
+        token.sub = user.id
+        token.role = (user as { role?: string }).role ?? 'user'
+      }
+      // 支持 update() 刷新 name 和 image
+      if (trigger === 'update' && updateSession) {
+        if (updateSession.name)  token.name    = updateSession.name
+        if (updateSession.image) token.picture = updateSession.image
+      }
       return token
     },
   },

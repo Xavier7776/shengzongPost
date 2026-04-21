@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
+import PostActions from '@/components/sections/PostActions'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -17,8 +18,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${post.title} — ARC.`, description: post.excerpt }
 }
 
-// ─── Markdown 渲染器 ─────────────────────────────────────────────────────────
-
+// ─── Markdown 渲染器 ──────────────────────────────────────────────────────────
 function renderInline(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/)
   return parts.map((part, i) =>
@@ -36,27 +36,16 @@ function renderContent(content: string) {
   while (i < lines.length) {
     const line = lines[i]
     const trimmed = line.trim()
-
     if (!trimmed) { i++; continue }
 
     if (trimmed.startsWith('## ')) {
-      elements.push(
-        <h2 key={i} className="text-2xl font-black text-gray-900 mt-14 mb-5 tracking-tight border-b border-gray-100 pb-3">
-          {trimmed.slice(3)}
-        </h2>
-      )
+      elements.push(<h2 key={i} className="text-2xl font-black text-gray-900 mt-14 mb-5 tracking-tight border-b border-gray-100 pb-3">{trimmed.slice(3)}</h2>)
       i++; continue
     }
-
     if (trimmed.startsWith('### ')) {
-      elements.push(
-        <h3 key={i} className="text-lg font-black text-gray-800 mt-10 mb-3 tracking-tight">
-          {trimmed.slice(4)}
-        </h3>
-      )
+      elements.push(<h3 key={i} className="text-lg font-black text-gray-800 mt-10 mb-3 tracking-tight">{trimmed.slice(4)}</h3>)
       i++; continue
     }
-
     const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
     if (imgMatch) {
       const [, alt, url, caption] = imgMatch
@@ -69,7 +58,6 @@ function renderContent(content: string) {
       )
       i++; continue
     }
-
     if (trimmed.startsWith('> ')) {
       elements.push(
         <blockquote key={i} className="border-l-4 border-blue-400 pl-5 py-1 my-6 bg-blue-50 rounded-r-xl">
@@ -78,32 +66,22 @@ function renderContent(content: string) {
       )
       i++; continue
     }
-
     if (trimmed.startsWith('```')) {
       const lang = trimmed.slice(3).trim()
       const codeLines: string[] = []
       i++
-      while (i < lines.length && !lines[i].trim().startsWith('```')) {
-        codeLines.push(lines[i])
-        i++
-      }
+      while (i < lines.length && !lines[i].trim().startsWith('```')) { codeLines.push(lines[i]); i++ }
       elements.push(
         <div key={i} className="my-8 rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
           {lang && <div className="bg-gray-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">{lang}</div>}
-          <pre className="bg-gray-950 text-green-400 p-6 overflow-x-auto text-sm leading-relaxed font-mono">
-            <code>{codeLines.join('\n')}</code>
-          </pre>
+          <pre className="bg-gray-950 text-green-400 p-6 overflow-x-auto text-sm leading-relaxed font-mono"><code>{codeLines.join('\n')}</code></pre>
         </div>
       )
       i++; continue
     }
-
     if (trimmed.startsWith('- ')) {
       const items: string[] = []
-      while (i < lines.length && lines[i].trim().startsWith('- ')) {
-        items.push(lines[i].trim().slice(2))
-        i++
-      }
+      while (i < lines.length && lines[i].trim().startsWith('- ')) { items.push(lines[i].trim().slice(2)); i++ }
       elements.push(
         <ul key={i} className="my-6 space-y-2">
           {items.map((item, j) => (
@@ -116,13 +94,9 @@ function renderContent(content: string) {
       )
       continue
     }
-
     if (trimmed.match(/^\d+\. /)) {
       const items: string[] = []
-      while (i < lines.length && lines[i].trim().match(/^\d+\. /)) {
-        items.push(lines[i].trim().replace(/^\d+\. /, ''))
-        i++
-      }
+      while (i < lines.length && lines[i].trim().match(/^\d+\. /)) { items.push(lines[i].trim().replace(/^\d+\. /, '')); i++ }
       elements.push(
         <ol key={i} className="my-6 space-y-2">
           {items.map((item, j) => (
@@ -135,30 +109,20 @@ function renderContent(content: string) {
       )
       continue
     }
-
-    elements.push(
-      <p key={i} className="text-gray-600 leading-[1.9] text-[1.05rem]">
-        {renderInline(trimmed)}
-      </p>
-    )
+    elements.push(<p key={i} className="text-gray-600 leading-[1.9] text-[1.05rem]">{renderInline(trimmed)}</p>)
     i++
   }
-
   return elements
 }
 
-// ─── 页面 ────────────────────────────────────────────────────────────────────
-
+// ─── 页面 ─────────────────────────────────────────────────────────────────────
 export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(params.slug)
   if (!post) notFound()
 
   return (
     <div className="max-w-[780px] mx-auto px-6 py-24 animate-in">
-      <Link
-        href="/blog"
-        className="flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-16 group font-bold uppercase tracking-widest text-xs"
-      >
+      <Link href="/blog" className="flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-16 group font-bold uppercase tracking-widest text-xs">
         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
         返回博客列表
       </Link>
@@ -166,24 +130,22 @@ export default async function BlogPostPage({ params }: PageProps) {
       <article>
         <header className="mb-14">
           <time className="text-blue-600 font-mono text-sm mb-4 block">{post.created_at.slice(0, 10)}</time>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-gray-900 mb-8">
-            {post.title}
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-gray-900 mb-8">{post.title}</h1>
           <p className="text-gray-500 text-lg leading-relaxed mb-8">{post.excerpt}</p>
           <div className="flex gap-3 flex-wrap">
             {post.tags.map(t => (
-              <span key={t} className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-md">
-                {t}
-              </span>
+              <span key={t} className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-md">{t}</span>
             ))}
           </div>
         </header>
-        <div className="space-y-5">
-          {renderContent(post.content)}
-        </div>
+
+        <div className="space-y-5">{renderContent(post.content)}</div>
       </article>
 
-      {/* ─── 评论区 ─── */}
+      {/* 点赞 / 踩 / 收藏 */}
+      <PostActions slug={params.slug} />
+
+      {/* 评论区 */}
       <CommentSection slug={params.slug} />
     </div>
   )

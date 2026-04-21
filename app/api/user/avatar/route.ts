@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { v2 as cloudinary } from 'cloudinary'
+import { sql } from '@/lib/db'
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -36,7 +37,12 @@ export async function POST(req: NextRequest) {
       transformation: [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }],
     })
 
-    return NextResponse.json({ url: result.secure_url })
+    const url = result.secure_url
+
+    // ✅ 修复：上传成功后立即同步写入数据库，避免头像 URL 与 DB 不一致
+    await sql`UPDATE users SET avatar=${url} WHERE id=${userId}`
+
+    return NextResponse.json({ url })
   } catch (err) {
     console.error('[avatar upload]', err)
     return NextResponse.json({ error: '上传失败，请重试' }, { status: 500 })
