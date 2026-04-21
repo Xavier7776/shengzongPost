@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { Loader2, MessageCircle, Send, Reply, ChevronDown, ChevronUp, Shield } from 'lucide-react'
+import { Loader2, MessageCircle, Send, Reply, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import RoleBadge from '@/components/ui/RoleBadge'
 
 interface Comment {
   id: number
@@ -18,25 +19,11 @@ interface Comment {
   replies?: Comment[]
 }
 
-function UserBadge({ role }: { role: string }) {
-  if (role === 'admin') return (
-    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-md">
-      <Shield className="w-2.5 h-2.5" />管理员
-    </span>
-  )
-  if (role === 'author') return (
-    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-violet-500 text-white text-[9px] font-black uppercase tracking-widest rounded-md">
-      作者
-    </span>
-  )
-  return null
-}
-
 function Avatar({ name, avatar, size = 9 }: { name: string; avatar: string | null; size?: number }) {
   const cls = `flex-shrink-0 w-${size} h-${size} rounded-full overflow-hidden`
   if (avatar) return (
     <div className={cls}>
-      <Image src={avatar} alt={name} width={size * 4} height={size * 4} className="w-full h-full object-cover" />
+      <Image src={avatar} alt={name} width={size * 4} height={size * 4} unoptimized className="w-full h-full object-cover" />
     </div>
   )
   return (
@@ -64,11 +51,11 @@ function CommentItem({ comment: c, depth, onReply }: CommentItemProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-sm font-black text-gray-900">{c.user_name}</span>
-            <UserBadge role={c.user_role} />
+            {/* ✅ 使用共享 RoleBadge */}
+            <RoleBadge role={c.user_role} size="sm" />
             <time className="text-xs text-gray-400 font-mono">{c.created_at.slice(0, 10)}</time>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{c.content}</p>
-          {/* 回复按钮 */}
           <button
             onClick={() => onReply(c.id, c.user_name)}
             className="mt-2 flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-all duration-150"
@@ -79,7 +66,6 @@ function CommentItem({ comment: c, depth, onReply }: CommentItemProps) {
         </div>
       </div>
 
-      {/* 嵌套回复 */}
       {hasReplies && (
         <div className="ml-10 mt-2">
           <button
@@ -87,7 +73,7 @@ function CommentItem({ comment: c, depth, onReply }: CommentItemProps) {
             className="flex items-center gap-1 text-xs text-blue-500 font-bold mb-2 hover:text-blue-700"
           >
             {showReplies ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            {showReplies ? '收起' : `展开`} {c.replies!.length} 条回复
+            {showReplies ? '收起' : '展开'} {c.replies!.length} 条回复
           </button>
           {showReplies && (
             <div className="border-l-2 border-gray-100 pl-4 space-y-4">
@@ -113,7 +99,6 @@ export default function CommentSection({ slug }: { slug: string }) {
   const [error, setError] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // ✅ 修复：用 useCallback 稳定函数引用，slug 作为依赖
   const loadComments = useCallback(() => {
     fetch(`/api/comments?slug=${encodeURIComponent(slug)}`)
       .then(r => r.json())
@@ -121,7 +106,6 @@ export default function CommentSection({ slug }: { slug: string }) {
       .catch(() => setLoading(false))
   }, [slug])
 
-  // ✅ 修复：依赖数组改为 [loadComments]，lint 规则满足，且无无限循环风险
   useEffect(() => { loadComments() }, [loadComments])
 
   function handleReply(id: number, name: string) {
@@ -160,7 +144,6 @@ export default function CommentSection({ slug }: { slug: string }) {
         {total > 0 && <span className="text-sm font-bold text-gray-400">({total})</span>}
       </h2>
 
-      {/* 评论列表 */}
       {loading ? (
         <div className="flex items-center gap-2 text-gray-300 py-8">
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -176,7 +159,6 @@ export default function CommentSection({ slug }: { slug: string }) {
         </div>
       )}
 
-      {/* 输入区 */}
       <div className="bg-gray-50 rounded-2xl p-5">
         {status === 'loading' ? null : !session ? (
           <div className="text-center py-4 space-y-3">
@@ -193,13 +175,10 @@ export default function CommentSection({ slug }: { slug: string }) {
           </div>
         ) : (
           <div className="space-y-3">
-            {/* 用户信息行 */}
             <div className="flex items-center gap-2">
               <Avatar name={userName} avatar={userAvatar} size={7} />
               <span className="text-sm font-bold text-gray-700">{userName}</span>
             </div>
-
-            {/* 回复提示 */}
             {replyTo && (
               <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1.5">
                 <Reply className="w-3.5 h-3.5 text-blue-500" />
@@ -207,7 +186,6 @@ export default function CommentSection({ slug }: { slug: string }) {
                 <button onClick={() => setReplyTo(null)} className="ml-auto text-xs text-gray-400 hover:text-gray-600">✕</button>
               </div>
             )}
-
             <textarea
               ref={textareaRef}
               value={content}
