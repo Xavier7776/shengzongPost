@@ -1,13 +1,16 @@
 // app/admin/page.tsx
 import Link from 'next/link'
-import { PenLine, Plus, Trash2, Eye, EyeOff } from 'lucide-react'
+import { PenLine, Plus, Trash2, Eye, EyeOff, MessageCircle } from 'lucide-react'
 import { requireAdmin } from '@/lib/auth'
-import { getAllPostsAdmin } from '@/lib/db'
+import { getAllPostsAdmin, getPendingCommentsCount } from '@/lib/db'
 import AdminActions from '@/components/admin/AdminActions'
 
 export default async function AdminPage() {
   await requireAdmin()
-  const posts = await getAllPostsAdmin()
+  const [posts, pendingComments] = await Promise.all([
+    getAllPostsAdmin(),
+    getPendingCommentsCount(),
+  ])
 
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
@@ -20,6 +23,18 @@ export default async function AdminPage() {
           <p className="text-xs text-gray-400 mt-0.5">{posts.length} 篇文章</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            href="/admin/comments"
+            className="relative flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" />
+            评论审核
+            {pendingComments > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1">
+                {pendingComments}
+              </span>
+            )}
+          </Link>
           <Link
             href="/admin/gallery"
             className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
@@ -67,7 +82,6 @@ export default async function AdminPage() {
                 <p className="text-xs text-gray-400 mt-1 truncate font-mono">/{post.slug}</p>
               </div>
 
-              {/* Actions (client component for delete confirm) */}
               <AdminActions slug={post.slug} published={post.published} />
             </div>
           ))}

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug } from '@/lib/db'
+import CommentSection from '@/components/sections/CommentSection'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -181,6 +182,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           {renderContent(post.content)}
         </div>
       </article>
+
+      {/* ─── 评论区 ─── */}
+      <CommentSection slug={params.slug} />
     </div>
   )
 }

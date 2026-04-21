@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import UserMenu from '@/components/layout/UserMenu'
 
 const NAV_ITEMS = [
   { label: 'home', href: '/' },
@@ -40,7 +41,7 @@ export default function DarkNavbar() {
           ARC<span style={{ color: '#c8a97e' }}>.</span>
         </Link>
 
-        <div className="flex space-x-6 md:space-x-10">
+        <div className="flex items-center space-x-6 md:space-x-10">
           {NAV_ITEMS.map(({ label, href }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
             return (
@@ -48,9 +49,7 @@ export default function DarkNavbar() {
                 key={href}
                 href={href}
                 className="capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2"
-                style={{
-                  color: isActive ? '#e8e8e8' : 'rgba(255,255,255,0.3)',
-                }}
+                style={{ color: isActive ? '#e8e8e8' : 'rgba(255,255,255,0.3)' }}
               >
                 {label}
                 {isActive && (
@@ -62,6 +61,9 @@ export default function DarkNavbar() {
               </Link>
             )
           })}
+
+          {/* 用户菜单 */}
+          <UserMenu dark={true} />
         </div>
       </div>
     </nav>

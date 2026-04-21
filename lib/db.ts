@@ -39,7 +39,7 @@ function serializeRows(rows: Record<string, unknown>[]): Record<string, unknown>
   return rows.map(serializeRow)
 }
 
-// ─── 查询函数 ────────────────────────────────────────────────────────────────
+// ─── Posts ───────────────────────────────────────────────────────────────────
 
 export async function getAllPosts(): Promise<PostMeta[]> {
   const rows = await sql`
@@ -175,4 +175,155 @@ export async function deleteGalleryImage(id: number): Promise<string> {
     DELETE FROM gallery_images WHERE id = ${id} RETURNING public_id
   `
   return (rows[0] as { public_id: string }).public_id
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: number
+  email: string
+  name: string
+  password: string
+  phone: string | null
+  bio: string | null
+  avatar: string | null
+  verified: boolean
+  verify_token: string | null
+  token_expires: string | null
+  created_at: string
+}
+
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const rows = await sql`
+    SELECT * FROM users WHERE email = ${email} LIMIT 1
+  `
+  if (!rows[0]) return null
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as User
+}
+
+export async function getUserById(id: number): Promise<User | null> {
+  const rows = await sql`
+    SELECT * FROM users WHERE id = ${id} LIMIT 1
+  `
+  if (!rows[0]) return null
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as User
+}
+
+export async function createUser(data: {
+  email: string
+  name: string
+  password: string
+}): Promise<User> {
+  const rows = await sql`
+    INSERT INTO users (email, name, password)
+    VALUES (${data.email}, ${data.name}, ${data.password})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as User
+}
+
+export async function updateUserProfile(
+  id: number,
+  data: { name: string; phone?: string | null; bio?: string | null; avatar?: string | null }
+): Promise<void> {
+  await sql`
+    UPDATE users SET
+      name   = ${data.name},
+      phone  = ${data.phone ?? null},
+      bio    = ${data.bio ?? null},
+      avatar = ${data.avatar ?? null}
+    WHERE id = ${id}
+  `
+}
+
+// ─── Comments ────────────────────────────────────────────────────────────────
+
+export interface Comment {
+  id: number
+  post_slug: string
+  user_id: number
+  user_name: string
+  content: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+}
+
+export async function getApprovedComments(postSlug: string): Promise<Comment[]> {
+  const rows = await sql`
+    SELECT * FROM comments
+    WHERE post_slug = ${postSlug} AND status = 'approved'
+    ORDER BY created_at ASC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as Comment[]
+}
+
+export async function getAllCommentsAdmin(): Promise<Comment[]> {
+  const rows = await sql`
+    SELECT * FROM comments ORDER BY created_at DESC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as Comment[]
+}
+
+export async function getPendingCommentsCount(): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*) as count FROM comments WHERE status = 'pending'
+  `
+  return Number((rows[0] as { count: string }).count)
+}
+
+export async function createComment(data: {
+  post_slug: string
+  user_id: number
+  user_name: string
+  content: string
+}): Promise<Comment> {
+  const rows = await sql`
+    INSERT INTO comments (post_slug, user_id, user_name, content)
+    VALUES (${data.post_slug}, ${data.user_id}, ${data.user_name}, ${data.content})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
+}
+
+export async function updateCommentStatus(
+  id: number,
+  status: 'approved' | 'rejected'
+): Promise<Comment> {
+  const rows = await sql`
+    UPDATE comments SET status = ${status} WHERE id = ${id} RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
+}
+
+// ─── Auth tokens ─────────────────────────────────────────────────────────────
+
+export async function setVerifyToken(
+  userId: number,
+  token: string,
+  expires: Date
+): Promise<void> {
+  await sql`
+    UPDATE users
+    SET verify_token = ${token}, token_expires = ${expires.toISOString()}
+    WHERE id = ${userId}
+  `
+}
+
+export async function getUserByVerifyToken(token: string): Promise<User | null> {
+  const rows = await sql`
+    SELECT * FROM users
+    WHERE verify_token = ${token}
+      AND token_expires > NOW()
+    LIMIT 1
+  `
+  if (!rows[0]) return null
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as User
+}
+
+export async function markUserVerified(userId: number): Promise<void> {
+  await sql`
+    UPDATE users
+    SET verified = true, verify_token = NULL, token_expires = NULL
+    WHERE id = ${userId}
+  `
 }

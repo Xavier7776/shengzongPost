@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import UserMenu from '@/components/layout/UserMenu'
 
 const NAV_ITEMS = [
   { label: 'home', href: '/' },
@@ -21,10 +22,6 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handler)
   }, [])
 
-  const textBase = 'text-gray-400 hover:text-gray-900'
-  const activeText = 'text-gray-900'
-  const logoText = 'text-gray-900'
-
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -34,12 +31,12 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
         <Link
           href="/"
-          className={`tracking-tighter text-2xl font-black transition-colors duration-500 ${logoText}`}
+          className="tracking-tighter text-2xl font-black text-gray-900 transition-colors duration-500"
         >
           ARC<span className="text-blue-600">.</span>
         </Link>
 
-        <div className="flex space-x-6 md:space-x-10">
+        <div className="flex items-center space-x-6 md:space-x-10">
           {NAV_ITEMS.map(({ label, href }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
             return (
@@ -47,7 +44,7 @@ export default function Navbar() {
                 key={href}
                 href={href}
                 className={`capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
-                  isActive ? activeText : textBase
+                  isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900'
                 }`}
               >
                 {label}
@@ -57,6 +54,9 @@ export default function Navbar() {
               </Link>
             )
           })}
+
+          {/* 用户菜单 */}
+          <UserMenu dark={false} />
         </div>
       </div>
     </nav>

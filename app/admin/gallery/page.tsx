@@ -15,6 +15,11 @@ interface GalleryImage {
   created_at: string
 }
 
+interface PendingFile {
+  file: File
+  preview: string
+}
+
 // ─── 单张图片卡片 ────────────────────────────────────────────────────────────
 
 function ImageCard({
