@@ -20,11 +20,6 @@ interface PendingFile {
   preview: string
 }
 
-// Cloudinary 缩略图 URL：插入 w_400,c_fill,q_auto,f_auto 变换参数
-function thumbUrl(url: string, w = 400): string {
-  return url.replace(/\/upload\//, `/upload/w_${w},c_fill,q_auto,f_auto/`)
-}
-
 // ─── 单张图片卡片 ────────────────────────────────────────────────────────────
 
 function ImageCard({
@@ -73,10 +68,8 @@ function ImageCard({
       <div className="relative aspect-[4/3] bg-gray-50 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={thumbUrl(image.url, 400)}
+          src={image.url}
           alt={image.title}
-          loading="lazy"
-          decoding="async"
           className="w-full h-full object-cover"
         />
         {/* 悬浮删除按钮 */}
@@ -394,20 +387,11 @@ export default function AdminGalleryPage() {
             <p className="text-xs text-gray-400 mt-0.5">{images.length} 张图片</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1) }}
-            placeholder="搜索标题或分类…"
-            className="w-48 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 transition-colors"
-          />
-          {queue.length > 1 && (
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-              待处理 {queue.length} 张
-            </span>
-          )}
-        </div>
+        {queue.length > 1 && (
+          <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+            待处理 {queue.length} 张
+          </span>
+        )}
       </header>
 
       <main className="max-w-6xl mx-auto px-8 py-10 space-y-8">
@@ -448,7 +432,7 @@ export default function AdminGalleryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {paged.map(img => (
+            {images.map(img => (
               <ImageCard
                 key={img.id}
                 image={img}
@@ -457,31 +441,6 @@ export default function AdminGalleryPage() {
               />
             ))}
           </div>
-          {/* 分页 */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 text-sm font-bold bg-white border border-gray-200 rounded-xl disabled:opacity-40 hover:border-gray-300 transition-colors"
-              >
-                上一页
-              </button>
-              <span className="text-sm text-gray-500 font-mono px-2">
-                {page} / {totalPages}
-              </span>
-              <span className="text-xs text-gray-400">
-                共 {filtered.length} 张
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 text-sm font-bold bg-white border border-gray-200 rounded-xl disabled:opacity-40 hover:border-gray-300 transition-colors"
-              >
-                下一页
-              </button>
-            </div>
-          )}
         )}
       </main>
 
