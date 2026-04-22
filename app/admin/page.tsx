@@ -1,6 +1,6 @@
 // app/admin/page.tsx
 import Link from 'next/link'
-import { PenLine, Plus, Trash2, Eye, EyeOff, MessageCircle } from 'lucide-react'
+import { PenLine, Plus, Trash2, Eye, EyeOff, MessageCircle, Images } from 'lucide-react'
 import { requireAdmin } from '@/lib/auth'
 import { getAllPostsAdmin, getPendingCommentsCount } from '@/lib/db'
 import AdminActions from '@/components/admin/AdminActions'
@@ -40,6 +40,13 @@ export default async function AdminPage() {
             className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
           >
             Gallery 管理
+          </Link>
+          <Link
+            href="/admin/post-images"
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+          >
+            <Images className="w-4 h-4" />
+            博文插图
           </Link>
           <Link
             href="/admin/new"

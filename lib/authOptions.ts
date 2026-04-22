@@ -3,7 +3,7 @@ import GitHub from 'next-auth/providers/github'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import type { NextAuthOptions } from 'next-auth'
 import bcrypt from 'bcryptjs'
-import { getUserByEmail } from '@/lib/db'
+import { getUserByEmail, getUserById } from '@/lib/db'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -43,19 +43,36 @@ export const authOptions: NextAuthOptions = {
       return true
     },
     async session({ session, token }) {
-      // ✅ 修复：先判断 session.user 存在再赋值，避免 TS 报 possibly undefined
       if (session.user) {
-        if (token?.sub)     (session.user as { id?: string }).id = token.sub
+        // 优先用 dbId（数据库真实 id），兜底用 sub
+        const realId = (token.dbId as string | undefined) ?? token.sub
+        if (realId)         (session.user as { id?: string }).id = realId
         if (token?.role)    (session.user as { role?: string }).role = token.role as string
         if (token?.picture) session.user.image = token.picture as string
       }
       return session
     },
-    async jwt({ token, user, trigger, session: updateSession }) {
+    async jwt({ token, user, account, trigger, session: updateSession }) {
       if (user) {
-        token.sub = user.id
+        // Credentials 登录：user.id 就是数据库真实 id
+        token.sub  = user.id
         token.role = (user as { role?: string }).role ?? 'user'
+        token.dbId = user.id   // 冗余存一份，避免 GitHub OAuth 覆盖
       }
+
+      // GitHub OAuth 登录：token.sub 是 GitHub 平台 ID，需要用 email 查数据库拿真实 id
+      if (account?.provider === 'github' && token.email && !token.dbId) {
+        try {
+          const dbUser = await getUserByEmail(token.email as string)
+          if (dbUser) {
+            token.dbId = String(dbUser.id)
+            token.role = dbUser.role ?? 'admin'
+          }
+        } catch (e) {
+          console.error('[jwt] GitHub 用户 db 查询失败', e)
+        }
+      }
+
       // 支持 update() 刷新 name 和 image
       if (trigger === 'update' && updateSession) {
         if (updateSession.name)  token.name    = updateSession.name

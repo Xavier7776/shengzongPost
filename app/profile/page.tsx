@@ -5,9 +5,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Camera, Loader2, Check, ArrowLeft, User, Mail, Phone, FileText } from 'lucide-react'
+import { Camera, Loader2, Check, ArrowLeft, User, Mail, Phone, FileText, Users } from 'lucide-react'
 
 interface ProfileData {
+  id: number
   name: string
   email: string
   phone: string
@@ -15,40 +16,64 @@ interface ProfileData {
   avatar: string
 }
 
+interface FollowCounts {
+  following: number
+  followers: number
+}
+
 export default function ProfilePage() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [form, setForm] = useState<ProfileData>({ name: '', email: '', phone: '', bio: '', avatar: '' })
+  const [form, setForm] = useState<ProfileData>({ id: 0, name: '', email: '', phone: '', bio: '', avatar: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [avatarError, setAvatarError] = useState(false)
+  const [followCounts, setFollowCounts] = useState<FollowCounts>({ following: 0, followers: 0 })
 
-  // 未登录跳转
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login?callbackUrl=/profile')
   }, [status, router])
 
-  // 加载用户数据
   useEffect(() => {
     if (status !== 'authenticated') return
+    const userId = form.id
+
     fetch('/api/user/profile')
       .then(r => r.json())
       .then(data => {
         setForm({
+          id: data.id ?? 0,
           name: data.name ?? '',
           email: data.email ?? '',
           phone: data.phone ?? '',
           bio: data.bio ?? '',
           avatar: data.avatar ?? session?.user?.image ?? '',
         })
+        setAvatarError(false)
         setLoading(false)
       })
       .catch(() => setLoading(false))
+
   }, [status, session])
+
+  // 用 form.id（从API取到后）再加载关注数
+  useEffect(() => {
+    if (form.id > 0) {
+      fetch(`/api/follows?targetId=${form.id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.following !== undefined) {
+            setFollowCounts({ following: d.following, followers: d.followers })
+          }
+        })
+        .catch(() => {})
+    }
+  }, [form.id])
 
   function set(field: keyof ProfileData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -63,6 +88,7 @@ export default function ProfilePage() {
 
     setUploadingAvatar(true)
     setError('')
+    setAvatarError(false)
     try {
       const fd = new FormData()
       fd.append('file', file)
@@ -89,7 +115,6 @@ export default function ProfilePage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? '保存失败'); return }
-      // 更新 session 里的 name & image
       await update({ name: form.name, image: form.avatar })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -109,12 +134,13 @@ export default function ProfilePage() {
   }
 
   const initial = form.name.charAt(0).toUpperCase() || '?'
+  const userId = form.id
+  const showAvatar = form.avatar && !avatarError
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] pt-24 pb-16 px-4">
       <div className="max-w-lg mx-auto">
 
-        {/* 返回 */}
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-xs font-black tracking-widest text-gray-400 hover:text-gray-900 transition-colors mb-8"
@@ -127,17 +153,18 @@ export default function ProfilePage() {
           个人资料
         </h1>
 
-        {/* 头像区域 */}
+        {/* 头像 + 粉丝/关注区域 */}
         <div className="flex items-center gap-6 mb-8 bg-white border border-gray-100 rounded-2xl p-6">
           <div className="relative flex-shrink-0">
             <div className="w-20 h-20 rounded-full overflow-hidden ring-4 ring-gray-100">
-              {form.avatar ? (
+              {showAvatar ? (
                 <Image
                   src={form.avatar}
                   alt={form.name}
                   width={80}
                   height={80}
                   className="w-full h-full object-cover"
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <div className="w-full h-full bg-blue-600 flex items-center justify-center">
@@ -163,17 +190,40 @@ export default function ProfilePage() {
               onChange={handleAvatarChange}
             />
           </div>
-          <div>
-            <p className="font-black text-gray-900">{form.name || '未设置昵称'}</p>
-            <p className="text-sm text-gray-400 mt-0.5">{form.email}</p>
-            <p className="text-xs text-gray-300 mt-2">支持 JPG / PNG / WebP，最大 5MB</p>
+
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-gray-900 truncate">{form.name || '未设置昵称'}</p>
+            <p className="text-sm text-gray-400 mt-0.5 truncate">{form.email}</p>
+            <p className="text-xs text-gray-300 mt-1">支持 JPG / PNG / WebP，最大 5MB</p>
+
+            {userId > 0 && (
+              <div className="flex items-center gap-4 mt-3">
+                <Link
+                  href={`/profile/${userId}?tab=followers`}
+                  className="group flex items-center gap-1.5 hover:opacity-70 transition-opacity"
+                  title="查看粉丝列表"
+                >
+                  <Users className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  <span className="text-sm font-black text-gray-900">{followCounts.followers}</span>
+                  <span className="text-xs text-gray-400">粉丝</span>
+                </Link>
+                <span className="w-px h-4 bg-gray-100" />
+                <Link
+                  href={`/profile/${userId}?tab=following`}
+                  className="group flex items-center gap-1.5 hover:opacity-70 transition-opacity"
+                  title="查看关注列表"
+                >
+                  <span className="text-sm font-black text-gray-900">{followCounts.following}</span>
+                  <span className="text-xs text-gray-400">关注</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
         {/* 表单 */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 space-y-5">
 
-          {/* 昵称 */}
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
               <User className="w-3 h-3" />
@@ -188,7 +238,6 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* 邮箱（只读） */}
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
               <Mail className="w-3 h-3" />
@@ -202,7 +251,6 @@ export default function ProfilePage() {
             <p className="text-xs text-gray-300 mt-1.5">邮箱不可修改</p>
           </div>
 
-          {/* 手机 */}
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
               <Phone className="w-3 h-3" />
@@ -218,7 +266,6 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* 个人简介 */}
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
               <FileText className="w-3 h-3" />
@@ -235,12 +282,10 @@ export default function ProfilePage() {
             <p className="text-xs text-gray-300 mt-1 text-right">{form.bio.length}/200</p>
           </div>
 
-          {/* 错误提示 */}
           {error && (
             <p className="text-red-500 text-xs font-medium bg-red-50 px-3 py-2 rounded-xl">{error}</p>
           )}
 
-          {/* 保存按钮 */}
           <button
             onClick={handleSave}
             disabled={saving}

@@ -3,7 +3,7 @@
 import React from 'react'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, UserCheck, UserPlus, Users, Bookmark, Loader2, RefreshCw } from 'lucide-react'
@@ -59,13 +59,11 @@ export default function UserProfilePage() {
   const { data: session } = useSession()
   const myId = session ? Number((session.user as { id?: string }).id) : null
   const targetId = Number(userId)
-  const isMe = myId === targetId && myId !== null && myId > 0
+  const isMe = myId === targetId
 
   const [user, setUser] = useState<UserInfo | null>(null)
   const [follow, setFollow] = useState<FollowInfo>({ isFollowing: false, isMutual: false, following: 0, followers: 0 })
-  const searchParams = useSearchParams()
-  const initTab = searchParams.get('tab') === 'following' ? 'following' : 'followers'
-  const [tab, setTab] = useState<'following' | 'followers'>(initTab)
+  const [tab, setTab] = useState<'following' | 'followers'>('followers')
   const [list, setList] = useState<FollowUser[]>([])
   const [loadingUser, setLoadingUser] = useState(true)
   const [loadingFollow, setLoadingFollow] = useState(false)
@@ -101,13 +99,6 @@ export default function UserProfilePage() {
     if (res.ok) setFollow(await res.json())
     setLoadingFollow(false)
   }
-
-  if (!targetId || isNaN(targetId)) return (
-    <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center flex-col gap-3">
-      <p className="text-gray-400">用户链接无效</p>
-      <Link href="/" className="text-xs text-blue-500 hover:underline">返回首页</Link>
-    </div>
-  )
 
   if (loadingUser) return (
     <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">

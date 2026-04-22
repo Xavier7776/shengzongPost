@@ -5,7 +5,7 @@
 // 若 OPENROUTER_API_KEY 未配置则静默跳过。
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createApprovedComment, getOrCreateAiBot, getPostBySlug } from '@/lib/db'
+import { createApprovedComment, getOrCreateAiBot, getPostBySlug, deleteAiBotCommentForPost } from '@/lib/db'
 
 // 内部调用鉴权：使用固定的 secret，通过 Authorization header 传递
 const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'
@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
   if (!slug) return NextResponse.json({ error: '缺少 slug' }, { status: 400 })
 
   try {
+    // ── 先删除该文章已有的 AI 评论，避免重复 ──
+    await deleteAiBotCommentForPost(slug)
+
     // ── 取文章内容 ──
     const post = await getPostBySlug(slug)
     if (!post) return NextResponse.json({ error: '文章不存在' }, { status: 404 })

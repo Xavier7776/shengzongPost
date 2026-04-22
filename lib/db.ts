@@ -153,6 +153,15 @@ export async function createApprovedComment(data: { post_slug: string; user_id: 
   const rows = await sql`INSERT INTO comments(post_slug,user_id,user_name,content,parent_id,status) VALUES(${data.post_slug},${data.user_id},${data.user_name},${data.content},NULL,'approved') RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
 }
+
+// 删除某篇文章下 AI bot 发布的所有评论（重新发布时先清理，避免重复）
+export async function deleteAiBotCommentForPost(postSlug: string): Promise<void> {
+  await sql`
+    DELETE FROM comments
+    WHERE post_slug = ${postSlug}
+      AND user_id = (SELECT id FROM users WHERE email = 'ai-bot@system.internal' LIMIT 1)
+  `
+}
 export async function updateCommentStatus(id: number, status: 'approved'|'rejected'): Promise<Comment> {
   const rows = await sql`UPDATE comments SET status=${status} WHERE id=${id} RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
@@ -233,4 +242,50 @@ export async function getFollowCounts(userId: number): Promise<{ following: numb
   const a = await sql`SELECT COUNT(*) as cnt FROM follows WHERE follower_id=${userId}`
   const b = await sql`SELECT COUNT(*) as cnt FROM follows WHERE following_id=${userId}`
   return { following: Number((a[0] as { cnt: string }).cnt), followers: Number((b[0] as { cnt: string }).cnt) }
+}
+
+// ─── Post Images ──────────────────────────────────────────────────────────────
+export interface PostImage {
+  id: number
+  post_slug: string | null   // 关联文章 slug，插入时可为空（先上传后关联）
+  url: string
+  public_id: string          // Cloudinary public_id，用于删除
+  filename: string           // 原始文件名
+  size: number               // 文件大小（bytes）
+  mime_type: string
+  uploaded_by: number        // 上传者 user_id
+  created_at: string
+}
+
+export async function createPostImage(data: {
+  post_slug: string | null
+  url: string
+  public_id: string
+  filename: string
+  size: number
+  mime_type: string
+  uploaded_by: number
+}): Promise<PostImage> {
+  const rows = await sql`
+    INSERT INTO post_images(post_slug, url, public_id, filename, size, mime_type, uploaded_by)
+    VALUES(${data.post_slug}, ${data.url}, ${data.public_id}, ${data.filename}, ${data.size}, ${data.mime_type}, ${data.uploaded_by})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as PostImage
+}
+
+export async function getPostImages(postSlug?: string): Promise<PostImage[]> {
+  const rows = postSlug
+    ? await sql`SELECT * FROM post_images WHERE post_slug=${postSlug} ORDER BY created_at DESC`
+    : await sql`SELECT * FROM post_images ORDER BY created_at DESC`
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PostImage[]
+}
+
+export async function deletePostImage(id: number): Promise<{ public_id: string } | null> {
+  const rows = await sql`DELETE FROM post_images WHERE id=${id} RETURNING public_id`
+  return rows[0] ? { public_id: rows[0].public_id as string } : null
+}
+
+export async function updatePostImageSlug(id: number, postSlug: string): Promise<void> {
+  await sql`UPDATE post_images SET post_slug=${postSlug} WHERE id=${id}`
 }
