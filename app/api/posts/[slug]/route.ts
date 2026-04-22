@@ -23,6 +23,20 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       revalidateTag(`post-${body.slug}`)
     }
 
+    // 若本次操作将文章设为发布状态，异步触发 AI 评论（fire-and-forget）
+    if (body.published === true) {
+      const effectiveSlug = body.slug ?? params.slug
+      const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+      fetch(`${baseUrl}/api/ai/comment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'}`,
+        },
+        body: JSON.stringify({ slug: effectiveSlug }),
+      }).catch(err => console.error('[posts/slug] AI 评论触发失败:', err))
+    }
+
     return NextResponse.json(post)
   } catch (e) {
     console.error(e)

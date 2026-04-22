@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
 import PostActions from '@/components/sections/PostActions'
+import ViewTracker from '@/components/sections/ViewTracker'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -141,6 +142,9 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         <div className="space-y-5">{renderContent(post.content)}</div>
       </article>
+
+      {/* 访问计数（静默，防重复） */}
+      <ViewTracker slug={params.slug} />
 
       {/* 点赞 / 踩 / 收藏 */}
       <PostActions slug={params.slug} />

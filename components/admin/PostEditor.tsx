@@ -1,9 +1,9 @@
-// components/admin/PostEditor.tsx
 'use client'
 
-import { useState } from 'react'
+// components/admin/PostEditor.tsx
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
+import { Save, Eye, EyeOff, Loader2, ArrowLeft, Sparkles, X, ChevronRight, FileText, PenLine, AlignLeft } from 'lucide-react'
 import Link from 'next/link'
 
 interface Props {
@@ -18,6 +18,14 @@ interface Props {
   }
 }
 
+type AiMode = 'draft' | 'continue' | 'excerpt'
+
+const AI_MODES: { key: AiMode; label: string; desc: string; icon: React.ReactNode }[] = [
+  { key: 'draft',    label: '生成草稿', desc: '描述主题，AI 帮你写出完整草稿',  icon: <FileText className="w-4 h-4" /> },
+  { key: 'continue', label: '续写内容', desc: '基于已有内容，AI 接着写后续段落', icon: <PenLine className="w-4 h-4" /> },
+  { key: 'excerpt',  label: '生成摘要', desc: '根据正文，AI 自动生成列表页摘要', icon: <AlignLeft className="w-4 h-4" /> },
+]
+
 export default function PostEditor({ mode, initialData }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
@@ -31,7 +39,15 @@ export default function PostEditor({ mode, initialData }: Props) {
   const [tagsRaw, setTagsRaw] = useState(initialData?.tags?.join(', ') ?? '')
   const [published, setPublished] = useState(initialData?.published ?? false)
 
-  // 自动从标题生成 slug（新建时）
+  // ── AI 助手状态 ──
+  const [aiOpen, setAiOpen]     = useState(false)
+  const [aiMode, setAiMode]     = useState<AiMode>('draft')
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiResult, setAiResult] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError]   = useState('')
+  const abortRef = useRef<AbortController | null>(null)
+
   function handleTitleChange(val: string) {
     setTitle(val)
     if (mode === 'new' && !slug) {
@@ -48,36 +64,85 @@ export default function PostEditor({ mode, initialData }: Props) {
     const finalPublished = pub !== undefined ? pub : published
     setSaving(true)
     setError('')
-
     const body = {
-      slug,
-      title,
-      excerpt,
-      content,
+      slug, title, excerpt, content,
       tags: tagsRaw.split(',').map(t => t.trim()).filter(Boolean),
       published: finalPublished,
     }
-
     const res = await fetch(
       mode === 'new' ? '/api/posts' : `/api/posts/${initialData!.slug}`,
-      {
-        method: mode === 'new' ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      }
+      { method: mode === 'new' ? 'POST' : 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
     )
-
     setSaving(false)
-
-    if (!res.ok) {
-      const data = await res.json()
-      setError(data.error ?? '保存失败')
-      return
-    }
-
-    // 保存成功：跳回后台列表
+    if (!res.ok) { const d = await res.json(); setError(d.error ?? '保存失败'); return }
     router.push('/admin')
     router.refresh()
+  }
+
+  async function handleAiGenerate() {
+    setAiLoading(true)
+    setAiResult('')
+    setAiError('')
+    abortRef.current = new AbortController()
+
+    try {
+      const res = await fetch('/api/ai/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: abortRef.current.signal,
+        body: JSON.stringify({ mode: aiMode, prompt: aiPrompt, content, title }),
+      })
+
+      if (!res.ok) {
+        const d = await res.json()
+        setAiError(d.error ?? 'AI 调用失败')
+        return
+      }
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (data === '[DONE]') break
+          try {
+            const json = JSON.parse(data)
+            const delta = json.choices?.[0]?.delta?.content
+            if (delta) setAiResult(prev => prev + delta)
+          } catch { /* 忽略 */ }
+        }
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') setAiError('生成失败，请重试')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  function handleAiStop() {
+    abortRef.current?.abort()
+    setAiLoading(false)
+  }
+
+  function handleApply() {
+    if (!aiResult) return
+    if (aiMode === 'draft') {
+      setContent(aiResult)
+    } else if (aiMode === 'continue') {
+      setContent(prev => prev + (prev.endsWith('\n') ? '' : '\n') + aiResult)
+    } else if (aiMode === 'excerpt') {
+      setExcerpt(aiResult)
+    }
+    setAiResult('')
   }
 
   return (
@@ -92,6 +157,16 @@ export default function PostEditor({ mode, initialData }: Props) {
         </h1>
 
         <button
+          onClick={() => setAiOpen(v => !v)}
+          className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${
+            aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          AI 助手
+        </button>
+
+        <button
           onClick={() => setPreview(v => !v)}
           className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
@@ -99,7 +174,6 @@ export default function PostEditor({ mode, initialData }: Props) {
           {preview ? '编辑' : '预览'}
         </button>
 
-        {/* 存为草稿 */}
         <button
           onClick={() => handleSave(false)}
           disabled={saving}
@@ -109,7 +183,6 @@ export default function PostEditor({ mode, initialData }: Props) {
           存草稿
         </button>
 
-        {/* 发布 */}
         <button
           onClick={() => handleSave(true)}
           disabled={saving}
@@ -130,59 +203,148 @@ export default function PostEditor({ mode, initialData }: Props) {
       <div className="border-b border-gray-100 bg-white px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">标题</label>
-          <input
-            value={title}
-            onChange={e => handleTitleChange(e.target.value)}
-            placeholder="文章标题"
-            className="w-full text-sm font-bold text-gray-900 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition"
-          />
+          <input value={title} onChange={e => handleTitleChange(e.target.value)} placeholder="文章标题"
+            className="w-full text-sm font-bold text-gray-900 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
         </div>
         <div>
           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">Slug（URL）</label>
-          <input
-            value={slug}
-            onChange={e => setSlug(e.target.value)}
-            placeholder="url-friendly-slug"
-            className="w-full text-sm font-mono text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition"
-          />
+          <input value={slug} onChange={e => setSlug(e.target.value)} placeholder="url-friendly-slug"
+            className="w-full text-sm font-mono text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
         </div>
         <div>
           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">标签（逗号分隔）</label>
-          <input
-            value={tagsRaw}
-            onChange={e => setTagsRaw(e.target.value)}
-            placeholder="Next.js, TypeScript, AI"
-            className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition"
-          />
+          <input value={tagsRaw} onChange={e => setTagsRaw(e.target.value)} placeholder="Next.js, TypeScript, AI"
+            className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
         </div>
         <div className="md:col-span-3">
-          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">摘要</label>
-          <input
-            value={excerpt}
-            onChange={e => setExcerpt(e.target.value)}
-            placeholder="文章摘要，显示在列表页"
-            className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition"
-          />
+          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">
+            摘要
+            {aiMode === 'excerpt' && aiResult && !aiLoading && (
+              <button onClick={handleApply} className="ml-2 text-violet-500 hover:text-violet-700 font-black text-[10px]">← 应用 AI 摘要</button>
+            )}
+          </label>
+          <input value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="文章摘要，显示在列表页"
+            className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
         </div>
       </div>
 
-      {/* Editor / Preview */}
-      <div className="flex-1 flex">
-        {!preview ? (
-          <textarea
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            placeholder="在这里写 Markdown 正文..."
-            className="flex-1 w-full resize-none font-mono text-sm text-gray-700 leading-relaxed bg-[#FAFAF8] px-10 py-8 focus:outline-none"
-            style={{ minHeight: '60vh' }}
-          />
-        ) : (
-          <div className="flex-1 max-w-[780px] mx-auto px-10 py-8 text-gray-700 leading-[1.9]">
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 mb-4">{title || '（无标题）'}</h1>
-            <p className="text-gray-400 text-sm mb-8 font-mono">{slug}</p>
-            {/* 简单预览：保留换行 */}
-            <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed">{content}</pre>
-          </div>
+      {/* Main area */}
+      <div className="flex-1 flex overflow-hidden">
+
+        {/* Editor / Preview */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {!preview ? (
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              placeholder="在这里写 Markdown 正文..."
+              className="flex-1 w-full resize-none font-mono text-sm text-gray-700 leading-relaxed bg-[#FAFAF8] px-10 py-8 focus:outline-none"
+              style={{ minHeight: '60vh' }}
+            />
+          ) : (
+            <div className="flex-1 max-w-[780px] mx-auto px-10 py-8 text-gray-700 leading-[1.9] overflow-y-auto">
+              <h1 className="text-4xl font-black tracking-tighter text-gray-900 mb-4">{title || '（无标题）'}</h1>
+              <p className="text-gray-400 text-sm mb-8 font-mono">{slug}</p>
+              <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed">{content}</pre>
+            </div>
+          )}
+        </div>
+
+        {/* AI 助手侧边栏 */}
+        {aiOpen && (
+          <aside className="w-80 border-l border-gray-100 bg-white flex flex-col overflow-hidden flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2 text-sm font-black text-gray-700">
+                <Sparkles className="w-4 h-4 text-violet-500" />
+                AI 写作助手
+              </div>
+              <button onClick={() => setAiOpen(false)} className="text-gray-300 hover:text-gray-600 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 模式选择 */}
+            <div className="px-4 py-3 border-b border-gray-100 space-y-1.5">
+              {AI_MODES.map(m => (
+                <button
+                  key={m.key}
+                  onClick={() => { setAiMode(m.key); setAiResult(''); setAiError('') }}
+                  className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                    aiMode === m.key ? 'bg-violet-50 text-violet-700' : 'hover:bg-gray-50 text-gray-600'
+                  }`}
+                >
+                  <span className={`mt-0.5 flex-shrink-0 ${aiMode === m.key ? 'text-violet-500' : 'text-gray-400'}`}>{m.icon}</span>
+                  <div>
+                    <p className="text-xs font-black">{m.label}</p>
+                    <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{m.desc}</p>
+                  </div>
+                  {aiMode === m.key && <ChevronRight className="w-3.5 h-3.5 ml-auto self-center text-violet-400 flex-shrink-0" />}
+                </button>
+              ))}
+            </div>
+
+            {/* 输入区 */}
+            <div className="px-4 py-3 flex-shrink-0">
+              {aiMode === 'draft' && (
+                <textarea
+                  value={aiPrompt}
+                  onChange={e => setAiPrompt(e.target.value)}
+                  placeholder="描述你想写的主题和要点..."
+                  rows={4}
+                  className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-violet-400 resize-none transition"
+                />
+              )}
+              {aiMode === 'continue' && (
+                <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将基于编辑器中的现有内容进行续写</p>
+              )}
+              {aiMode === 'excerpt' && (
+                <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将根据文章标题和正文自动生成摘要</p>
+              )}
+
+              {aiError && <p className="text-xs text-red-500 mt-2">{aiError}</p>}
+
+              <div className="flex gap-2 mt-2.5">
+                {aiLoading ? (
+                  <button onClick={handleAiStop}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+                    <X className="w-3.5 h-3.5" /> 停止
+                  </button>
+                ) : (
+                  <button onClick={handleAiGenerate}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black bg-violet-600 hover:bg-violet-700 text-white transition-colors">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {aiResult ? '重新生成' : '开始生成'}
+                  </button>
+                )}
+                {aiResult && !aiLoading && aiMode !== 'excerpt' && (
+                  <button onClick={handleApply}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                    应用
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 生成结果 */}
+            {(aiLoading || aiResult) && (
+              <div className="flex-1 overflow-y-auto px-4 pb-4">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
+                  {aiLoading && <Loader2 className="w-3 h-3 animate-spin text-violet-400" />}
+                  生成结果
+                </div>
+                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-3 min-h-[80px]">
+                  {aiResult}
+                  {aiLoading && <span className="inline-block w-1.5 h-3.5 bg-violet-400 animate-pulse ml-0.5 align-middle" />}
+                </pre>
+                {aiResult && !aiLoading && aiMode === 'excerpt' && (
+                  <button onClick={handleApply}
+                    className="w-full mt-2 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                    应用为摘要
+                  </button>
+                )}
+              </div>
+            )}
+          </aside>
         )}
       </div>
     </div>

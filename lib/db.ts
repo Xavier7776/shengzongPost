@@ -45,6 +45,19 @@ export async function updatePost(slug: string, data: Partial<{ title: string; ex
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
 export async function deletePost(slug: string): Promise<void> { await sql`DELETE FROM posts WHERE slug=${slug}` }
+export async function incrementViewCount(slug: string): Promise<void> {
+  await sql`UPDATE posts SET view_count = COALESCE(view_count, 0) + 1 WHERE slug=${slug}`
+}
+export async function getOrCreateAiBot(): Promise<User> {
+  const existing = await sql`SELECT * FROM users WHERE email='ai-bot@system.internal' LIMIT 1`
+  if (existing[0]) return serializeRow(existing[0] as Record<string, unknown>) as unknown as User
+  const rows = await sql`
+    INSERT INTO users(email, name, password, role, verified)
+    VALUES('ai-bot@system.internal', 'AI 助手', 'DISABLED', 'ai', true)
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as User
+}
 
 // ─── Gallery ─────────────────────────────────────────────────────────────────
 export interface GalleryImage { id: number; url: string; public_id: string; title: string; category: string; sort_order: number; created_at: string }
@@ -134,6 +147,10 @@ export async function getPendingCommentsCount(): Promise<number> {
 }
 export async function createComment(data: { post_slug: string; user_id: number; user_name: string; content: string; parent_id?: number | null }): Promise<Comment> {
   const rows = await sql`INSERT INTO comments(post_slug,user_id,user_name,content,parent_id) VALUES(${data.post_slug},${data.user_id},${data.user_name},${data.content},${data.parent_id??null}) RETURNING *`
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
+}
+export async function createApprovedComment(data: { post_slug: string; user_id: number; user_name: string; content: string }): Promise<Comment> {
+  const rows = await sql`INSERT INTO comments(post_slug,user_id,user_name,content,parent_id,status) VALUES(${data.post_slug},${data.user_id},${data.user_name},${data.content},NULL,'approved') RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
 }
 export async function updateCommentStatus(id: number, status: 'approved'|'rejected'): Promise<Comment> {

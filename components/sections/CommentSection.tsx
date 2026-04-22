@@ -6,6 +6,7 @@ import { Loader2, MessageCircle, Send, Reply, ChevronDown, ChevronUp } from 'luc
 import Link from 'next/link'
 import Image from 'next/image'
 import RoleBadge from '@/components/ui/RoleBadge'
+import UserCard from '@/components/ui/UserCard'
 
 interface Comment {
   id: number
@@ -19,15 +20,24 @@ interface Comment {
   replies?: Comment[]
 }
 
-function Avatar({ name, avatar, size = 9 }: { name: string; avatar: string | null; size?: number }) {
-  const cls = `flex-shrink-0 w-${size} h-${size} rounded-full overflow-hidden`
+// ── 用户卡片状态（全局唯一弹出） ──
+interface CardState {
+  userId: number
+  userName: string
+  userAvatar: string | null
+  userRole: string
+  anchorEl: HTMLElement
+}
+
+function Avatar({ name, avatar, size = 9, onClick }: { name: string; avatar: string | null; size?: number; onClick?: (e: React.MouseEvent<HTMLDivElement>) => void }) {
+  const cls = `flex-shrink-0 w-${size} h-${size} rounded-full overflow-hidden ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 transition-all' : ''}`
   if (avatar) return (
-    <div className={cls}>
+    <div className={cls} onClick={onClick}>
       <Image src={avatar} alt={name} width={size * 4} height={size * 4} unoptimized className="w-full h-full object-cover" />
     </div>
   )
   return (
-    <div className={`${cls} bg-blue-100 flex items-center justify-center`}>
+    <div className={`${cls} bg-blue-100 flex items-center justify-center`} onClick={onClick}>
       <span className="text-blue-600 text-xs font-black">{name.charAt(0).toUpperCase()}</span>
     </div>
   )
@@ -37,9 +47,10 @@ interface CommentItemProps {
   comment: Comment
   depth: number
   onReply: (id: number, name: string) => void
+  onAvatarClick: (e: React.MouseEvent<HTMLDivElement>, c: Comment) => void
 }
 
-function CommentItem({ comment: c, depth, onReply }: CommentItemProps) {
+function CommentItem({ comment: c, depth, onReply, onAvatarClick }: CommentItemProps) {
   const [showReplies, setShowReplies] = useState(true)
   const hasReplies = (c.replies?.length ?? 0) > 0
   const isNested = depth > 0
@@ -47,11 +58,15 @@ function CommentItem({ comment: c, depth, onReply }: CommentItemProps) {
   return (
     <div className={`${isNested ? 'ml-10 mt-3' : ''}`}>
       <div className="flex gap-3 group">
-        <Avatar name={c.user_name} avatar={c.user_avatar} size={isNested ? 7 : 9} />
+        <Avatar
+          name={c.user_name}
+          avatar={c.user_avatar}
+          size={isNested ? 7 : 9}
+          onClick={(e) => onAvatarClick(e, c)}
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-sm font-black text-gray-900">{c.user_name}</span>
-            {/* ✅ 使用共享 RoleBadge */}
             <RoleBadge role={c.user_role} size="sm" />
             <time className="text-xs text-gray-400 font-mono">{c.created_at.slice(0, 10)}</time>
           </div>
@@ -72,13 +87,13 @@ function CommentItem({ comment: c, depth, onReply }: CommentItemProps) {
             onClick={() => setShowReplies(v => !v)}
             className="flex items-center gap-1 text-xs text-blue-500 font-bold mb-2 hover:text-blue-700"
           >
-            {showReplies ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            {showReplies ? <ChevronDown className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {showReplies ? '收起' : '展开'} {c.replies!.length} 条回复
           </button>
           {showReplies && (
             <div className="border-l-2 border-gray-100 pl-4 space-y-4">
               {c.replies!.map(r => (
-                <CommentItem key={r.id} comment={r} depth={depth + 1} onReply={onReply} />
+                <CommentItem key={r.id} comment={r} depth={depth + 1} onReply={onReply} onAvatarClick={onAvatarClick} />
               ))}
             </div>
           )}
@@ -97,6 +112,7 @@ export default function CommentSection({ slug }: { slug: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [card, setCard] = useState<CardState | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const loadComments = useCallback(() => {
@@ -111,6 +127,17 @@ export default function CommentSection({ slug }: { slug: string }) {
   function handleReply(id: number, name: string) {
     setReplyTo({ id, name })
     setTimeout(() => textareaRef.current?.focus(), 50)
+  }
+
+  function handleAvatarClick(e: React.MouseEvent<HTMLDivElement>, c: Comment) {
+    e.stopPropagation()
+    setCard({
+      userId: c.user_id,
+      userName: c.user_name,
+      userAvatar: c.user_avatar,
+      userRole: c.user_role,
+      anchorEl: e.currentTarget,
+    })
   }
 
   async function handleSubmit() {
@@ -138,6 +165,18 @@ export default function CommentSection({ slug }: { slug: string }) {
 
   return (
     <section className="mt-20 pt-12 border-t border-gray-100">
+      {/* 用户信息卡片（全局唯一） */}
+      {card && (
+        <UserCard
+          userId={card.userId}
+          userName={card.userName}
+          userAvatar={card.userAvatar}
+          userRole={card.userRole}
+          anchorEl={card.anchorEl}
+          onClose={() => setCard(null)}
+        />
+      )}
+
       <h2 className="flex items-center gap-2 text-lg font-black tracking-tight text-gray-900 mb-8">
         <MessageCircle className="w-5 h-5 text-blue-500" />
         评论
@@ -154,7 +193,7 @@ export default function CommentSection({ slug }: { slug: string }) {
       ) : (
         <div className="space-y-6 mb-10">
           {comments.map(c => (
-            <CommentItem key={c.id} comment={c} depth={0} onReply={handleReply} />
+            <CommentItem key={c.id} comment={c} depth={0} onReply={handleReply} onAvatarClick={handleAvatarClick} />
           ))}
         </div>
       )}

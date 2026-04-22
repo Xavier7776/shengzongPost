@@ -25,6 +25,19 @@ export async function POST(req: NextRequest) {
     revalidateTag('posts')
     revalidateTag(`post-${slug}`)
 
+    // 若文章直接发布，异步触发 AI 评论（fire-and-forget，不阻塞响应）
+    if (published) {
+      const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+      fetch(`${baseUrl}/api/ai/comment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'}`,
+        },
+        body: JSON.stringify({ slug }),
+      }).catch(err => console.error('[posts] AI 评论触发失败:', err))
+    }
+
     return NextResponse.json(post, { status: 201 })
   } catch (e: any) {
     // slug 唯一约束冲突

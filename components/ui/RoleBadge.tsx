@@ -1,7 +1,7 @@
 // components/ui/RoleBadge.tsx
 // 统一的角色徽章组件，在 UserMenu、CommentSection、AdminCommentsPage 中共用
 
-import { Shield, Heart } from 'lucide-react'
+import { Shield, Heart, Bot } from 'lucide-react'
 
 interface RoleBadgeProps {
   role: string
@@ -12,6 +12,13 @@ export default function RoleBadge({ role, size = 'sm' }: RoleBadgeProps) {
   const base = size === 'md'
     ? 'inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-lg'
     : 'inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md'
+
+  if (role === 'ai') return (
+    <span className={`${base} bg-gradient-to-r from-violet-500 to-indigo-500 text-white`}>
+      <Bot className={size === 'md' ? 'w-3 h-3' : 'w-2.5 h-2.5'} />
+      AI
+    </span>
+  )
 
   if (role === 'admin') return (
     <span className={`${base} bg-blue-600 text-white`}>
@@ -35,7 +42,7 @@ export default function RoleBadge({ role, size = 'sm' }: RoleBadgeProps) {
       }}
     >
       <Heart className={`${size === 'md' ? 'w-3 h-3' : 'w-2.5 h-2.5'} fill-current`} />
-      博主老婆
+      王盈瑞(我老婆)
     </span>
   )
 
