@@ -60,9 +60,13 @@ export async function getOrCreateAiBot(): Promise<User> {
 }
 
 // ─── Gallery ─────────────────────────────────────────────────────────────────
-export interface GalleryImage { id: number; url: string; public_id: string; title: string; category: string; sort_order: number; created_at: string }
+export interface GalleryImage { id: number; url: string; public_id: string | null; title: string; category: string; sort_order: number | null; created_at: string }
 export async function getAllGalleryImages(): Promise<GalleryImage[]> {
-  const rows = await sql`SELECT * FROM gallery_images ORDER BY sort_order ASC, created_at DESC`
+  const rows = await sql`
+    SELECT id, url, public_id, title, category, sort_order, created_at
+    FROM gallery_images
+    ORDER BY sort_order ASC NULLS LAST, created_at DESC NULLS LAST
+  `
   return serializeRows(rows as Record<string, unknown>[]) as unknown as GalleryImage[]
 }
 export async function createGalleryImage(data: { url: string; public_id: string; title: string; category: string }): Promise<GalleryImage> {

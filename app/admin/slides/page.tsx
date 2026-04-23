@@ -1,11 +1,11 @@
 'use client'
 
 // app/admin/slides/page.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Plus, Trash2, Pencil, Check, X,
-  Loader2, GripVertical, Eye, EyeOff, ImageOff, Layers,
+  Loader2, GripVertical, Eye, EyeOff, ImageOff, Layers, Upload,
 } from 'lucide-react'
 
 interface HeroSlide {
@@ -18,6 +18,58 @@ interface HeroSlide {
   created_at: string
 }
 
+// ── 图片上传按钮（复用 gallery 上传逻辑）────────────────────────────────────
+function ImgUploadButton({
+  onUploaded,
+  compact = false,
+}: {
+  onUploaded: (url: string) => void
+  compact?: boolean
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  async function handleFile(file: File | null) {
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res  = await fetch('/api/slides/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) onUploaded(data.url)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={e => handleFile(e.target.files?.[0] ?? null)}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        title="上传图片到 Cloudinary"
+        className={`flex items-center gap-1 shrink-0 border border-gray-200 hover:border-blue-400 hover:text-blue-600 text-gray-400 rounded-lg transition-colors disabled:opacity-50 ${
+          compact ? 'px-2 py-1.5 text-[10px]' : 'px-3 py-2 text-xs font-bold'
+        }`}
+      >
+        {uploading
+          ? <Loader2 className="w-3 h-3 animate-spin" />
+          : <Upload className="w-3 h-3" />}
+        {!compact && '上传'}
+      </button>
+    </>
+  )
+}
+
 // ── 单张幻灯片卡片 ────────────────────────────────────────────────────────────
 function SlideCard({
   slide,
@@ -28,15 +80,15 @@ function SlideCard({
   onDelete: (id: number) => void
   onUpdate: (id: number, data: Partial<HeroSlide>) => void
 }) {
-  const [editing, setEditing] = useState(false)
-  const [img, setImg]         = useState(slide.img)
-  const [title, setTitle]     = useState(slide.title)
-  const [subtitle, setSubtitle] = useState(slide.subtitle)
-  const [order, setOrder]     = useState(String(slide.sort_order ?? ''))
-  const [saving, setSaving]   = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [toggling, setToggling] = useState(false)
-  const [imgError, setImgError] = useState(false)
+  const [editing, setEditing]     = useState(false)
+  const [img, setImg]             = useState(slide.img)
+  const [title, setTitle]         = useState(slide.title)
+  const [subtitle, setSubtitle]   = useState(slide.subtitle)
+  const [order, setOrder]         = useState(String(slide.sort_order ?? ''))
+  const [saving, setSaving]       = useState(false)
+  const [deleting, setDeleting]   = useState(false)
+  const [toggling, setToggling]   = useState(false)
+  const [imgError, setImgError]   = useState(false)
 
   async function handleSave() {
     setSaving(true)
@@ -122,12 +174,19 @@ function SlideCard({
             <div className="space-y-2">
               <div>
                 <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">图片 URL</label>
-                <input
-                  value={img}
-                  onChange={e => { setImg(e.target.value); setImgError(false) }}
-                  placeholder="https://..."
-                  className="w-full mt-0.5 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-gray-700 focus:outline-none focus:border-blue-400"
-                />
+                {/* URL 输入 + 上传按钮同行 */}
+                <div className="flex gap-1.5 mt-0.5">
+                  <input
+                    value={img}
+                    onChange={e => { setImg(e.target.value); setImgError(false) }}
+                    placeholder="https://..."
+                    className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-gray-700 focus:outline-none focus:border-blue-400"
+                  />
+                  <ImgUploadButton
+                    compact
+                    onUploaded={url => { setImg(url); setImgError(false) }}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -227,12 +286,12 @@ function SlideCard({
 
 // ── 新建表单 ──────────────────────────────────────────────────────────────────
 function CreateForm({ onCreated }: { onCreated: (slide: HeroSlide) => void }) {
-  const [open, setOpen] = useState(false)
-  const [img, setImg]       = useState('')
-  const [title, setTitle]   = useState('')
+  const [open, setOpen]         = useState(false)
+  const [img, setImg]           = useState('')
+  const [title, setTitle]       = useState('')
   const [subtitle, setSubtitle] = useState('')
-  const [order, setOrder]   = useState('')
-  const [saving, setSaving] = useState(false)
+  const [order, setOrder]       = useState('')
+  const [saving, setSaving]     = useState(false)
   const [previewErr, setPreviewErr] = useState(false)
 
   async function handleCreate() {
@@ -272,13 +331,19 @@ function CreateForm({ onCreated }: { onCreated: (slide: HeroSlide) => void }) {
           <div className="flex gap-4">
             <div className="flex-1 space-y-2">
               <div>
-                <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">图片 URL *</label>
-                <input
-                  value={img}
-                  onChange={e => { setImg(e.target.value); setPreviewErr(false) }}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full mt-0.5 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-gray-700 focus:outline-none focus:border-blue-400"
-                />
+                <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">图片 *</label>
+                {/* URL 输入 + 上传按钮同行 */}
+                <div className="flex gap-1.5 mt-0.5">
+                  <input
+                    value={img}
+                    onChange={e => { setImg(e.target.value); setPreviewErr(false) }}
+                    placeholder="https://images.unsplash.com/..."
+                    className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-gray-700 focus:outline-none focus:border-blue-400"
+                  />
+                  <ImgUploadButton
+                    onUploaded={url => { setImg(url); setPreviewErr(false) }}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -354,7 +419,7 @@ function CreateForm({ onCreated }: { onCreated: (slide: HeroSlide) => void }) {
 export default function AdminSlidesPage() {
   const [slides, setSlides] = useState<HeroSlide[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError]   = useState('')
 
   useEffect(() => {
     fetch('/api/slides?admin=1')
@@ -410,14 +475,6 @@ export default function AdminSlidesPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-8 py-10 space-y-4">
-        {/* 提示：数据库建表 */}
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 flex items-start gap-3">
-          <Layers className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-amber-700 leading-relaxed">
-            <strong>首次使用：</strong>请先在 Neon 数据库执行建表 SQL（见下方说明），Hero 组件会优先从数据库读取，若无数据则降级到 <code className="font-mono bg-amber-100 px-1 rounded">lib/data.ts</code> 的静态配置。
-          </p>
-        </div>
-
         {loading ? (
           <div className="flex items-center justify-center py-24 text-gray-300">
             <Loader2 className="w-8 h-8 animate-spin" />
