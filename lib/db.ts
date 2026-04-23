@@ -289,3 +289,66 @@ export async function deletePostImage(id: number): Promise<{ public_id: string }
 export async function updatePostImageSlug(id: number, postSlug: string): Promise<void> {
   await sql`UPDATE post_images SET post_slug=${postSlug} WHERE id=${id}`
 }
+
+// ─── Hero Slides ──────────────────────────────────────────────────────────────
+export interface HeroSlide {
+  id: number
+  img: string
+  title: string
+  subtitle: string
+  sort_order: number | null
+  enabled: boolean
+  created_at: string
+}
+
+export async function getAllHeroSlides(): Promise<HeroSlide[]> {
+  const rows = await sql`
+    SELECT * FROM hero_slides
+    ORDER BY sort_order ASC NULLS LAST, created_at ASC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as HeroSlide[]
+}
+
+export async function getEnabledHeroSlides(): Promise<HeroSlide[]> {
+  const rows = await sql`
+    SELECT * FROM hero_slides
+    WHERE enabled = true
+    ORDER BY sort_order ASC NULLS LAST, created_at ASC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as HeroSlide[]
+}
+
+export async function createHeroSlide(data: {
+  img: string
+  title: string
+  subtitle: string
+  sort_order?: number
+}): Promise<HeroSlide> {
+  const rows = await sql`
+    INSERT INTO hero_slides(img, title, subtitle, sort_order)
+    VALUES(${data.img}, ${data.title}, ${data.subtitle}, ${data.sort_order ?? null})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as HeroSlide
+}
+
+export async function updateHeroSlide(
+  id: number,
+  data: Partial<{ img: string; title: string; subtitle: string; sort_order: number; enabled: boolean }>
+): Promise<HeroSlide> {
+  const rows = await sql`
+    UPDATE hero_slides SET
+      img        = COALESCE(${data.img        ?? null}, img),
+      title      = COALESCE(${data.title      ?? null}, title),
+      subtitle   = COALESCE(${data.subtitle   ?? null}, subtitle),
+      sort_order = COALESCE(${data.sort_order ?? null}, sort_order),
+      enabled    = COALESCE(${data.enabled    ?? null}, enabled)
+    WHERE id = ${id}
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as HeroSlide
+}
+
+export async function deleteHeroSlide(id: number): Promise<void> {
+  await sql`DELETE FROM hero_slides WHERE id = ${id}`
+}

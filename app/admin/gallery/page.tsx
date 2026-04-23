@@ -36,6 +36,8 @@ function ImageCard({
   const [category, setCategory] = useState(image.category)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // ✅ 修复：图片加载失败时展示兜底占位，防止一张图出错导致后续渲染中断
+  const [imgError, setImgError] = useState(false)
 
   async function handleSave() {
     setSaving(true)
@@ -66,12 +68,21 @@ function ImageCard({
     <div className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-gray-200 hover:shadow-md transition-all duration-200">
       {/* 图片区 */}
       <div className="relative aspect-[4/3] bg-gray-50 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image.url}
-          alt={image.title}
-          className="w-full h-full object-cover"
-        />
+        {imgError ? (
+          // ✅ 图片加载失败时的占位
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-300">
+            <ImageOff className="w-8 h-8" />
+            <span className="text-[10px] font-mono px-2 text-center break-all">{image.url.split('/').pop()}</span>
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image.url}
+            alt={image.title}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        )}
         {/* 悬浮删除按钮 */}
         <button
           onClick={handleDelete}
@@ -443,8 +454,6 @@ export default function AdminGalleryPage() {
           </div>
         )}
       </main>
-
-
     </div>
   )
 }

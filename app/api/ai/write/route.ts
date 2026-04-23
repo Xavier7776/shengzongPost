@@ -1,12 +1,16 @@
 // app/api/ai/write/route.ts
 // POST /api/ai/write  → 编辑器 AI 写作助手（流式输出）
 // mode: 'draft' | 'continue' | 'excerpt'
+//
+// ✅ 已从 OpenRouter 迁移至 DeepSeek 官方 API
+// 文档：https://platform.deepseek.com/api-docs/
 
 import { NextRequest } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? ''
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-3-haiku'
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY ?? ''
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat'
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/chat/completions'
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   draft: `你是一位专业的技术博客写手。根据用户给出的主题和要点，生成一篇结构清晰、内容有深度的中文博客文章草稿。
@@ -37,8 +41,8 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
 
-  if (!OPENROUTER_API_KEY) {
-    return new Response(JSON.stringify({ error: 'OPENROUTER_API_KEY 未配置' }), { status: 503 })
+  if (!DEEPSEEK_API_KEY) {
+    return new Response(JSON.stringify({ error: 'DEEPSEEK_API_KEY 未配置，请在 .env.local 中添加' }), { status: 503 })
   }
 
   const { mode, prompt, content, title } = await req.json()
@@ -58,17 +62,15 @@ export async function POST(req: NextRequest) {
     userMessage = `文章标题：${title || '（未填写）'}\n\n文章内容：\n${content.slice(0, 3000)}`
   }
 
-  // ── 调用 OpenRouter（流式） ──
-  const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  // ── 调用 DeepSeek 官方 API（流式） ──
+  const upstream = await fetch(DEEPSEEK_BASE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': process.env.NEXTAUTH_URL ?? 'http://localhost:3000',
-      'X-Title': 'ARC Blog AI Writer',
+      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: OPENROUTER_MODEL,
+      model: DEEPSEEK_MODEL,
       max_tokens: 1500,
       stream: true,
       messages: [
@@ -80,11 +82,11 @@ export async function POST(req: NextRequest) {
 
   if (!upstream.ok) {
     const err = await upstream.text()
-    console.error('[ai/write] OpenRouter error:', err)
-    return new Response(JSON.stringify({ error: 'AI 服务调用失败' }), { status: 502 })
+    console.error('[ai/write] DeepSeek error:', err)
+    return new Response(JSON.stringify({ error: 'AI 服务调用失败', detail: err }), { status: 502 })
   }
 
-  // 直接透传 SSE 流给客户端
+  // 直接透传 SSE 流给客户端（格式与 OpenAI 兼容，前端无需改动）
   return new Response(upstream.body, {
     headers: {
       'Content-Type': 'text/event-stream',

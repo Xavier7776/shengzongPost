@@ -2,15 +2,19 @@
 // POST /api/ai/comment  → 异步生成并插入 AI 评论（仅供内部服务调用）
 //
 // 调用方式：fire-and-forget，不等待响应。
-// 若 OPENROUTER_API_KEY 未配置则静默跳过。
+// 若 DEEPSEEK_API_KEY 未配置则静默跳过。
+//
+// ✅ 已从 OpenRouter 迁移至 DeepSeek 官方 API
+// 文档：https://platform.deepseek.com/api-docs/
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createApprovedComment, getOrCreateAiBot, getPostBySlug, deleteAiBotCommentForPost } from '@/lib/db'
 
 // 内部调用鉴权：使用固定的 secret，通过 Authorization header 传递
 const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? ''
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-3-haiku'
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY ?? ''
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat'
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/chat/completions'
 
 export async function POST(req: NextRequest) {
   // ── 鉴权 ──
@@ -19,8 +23,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  if (!OPENROUTER_API_KEY) {
-    console.warn('[ai/comment] OPENROUTER_API_KEY 未配置，跳过')
+  if (!DEEPSEEK_API_KEY) {
+    console.warn('[ai/comment] DEEPSEEK_API_KEY 未配置，跳过')
     return NextResponse.json({ ok: true, skipped: true })
   }
 
@@ -38,17 +42,15 @@ export async function POST(req: NextRequest) {
     // ── 截取前 2000 字防止超限 ──
     const excerpt = post.content.slice(0, 2000)
 
-    // ── 调用 OpenRouter ──
-    const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    // ── 调用 DeepSeek 官方 API ──
+    const resp = await fetch(DEEPSEEK_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': process.env.NEXTAUTH_URL ?? 'http://localhost:3000',
-        'X-Title': 'ARC Blog AI Comment',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        model: DEEPSEEK_MODEL,
         max_tokens: 300,
         messages: [
           {
@@ -71,8 +73,8 @@ export async function POST(req: NextRequest) {
 
     if (!resp.ok) {
       const errText = await resp.text()
-      console.error('[ai/comment] OpenRouter 调用失败:', errText)
-      return NextResponse.json({ error: 'OpenRouter 调用失败' }, { status: 502 })
+      console.error('[ai/comment] DeepSeek 调用失败:', errText)
+      return NextResponse.json({ error: 'DeepSeek 调用失败', detail: errText }, { status: 502 })
     }
 
     const data = await resp.json()

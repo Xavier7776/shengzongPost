@@ -1,6 +1,6 @@
 // app/admin/page.tsx
 import Link from 'next/link'
-import { PenLine, Plus, Trash2, Eye, EyeOff, MessageCircle, Images } from 'lucide-react'
+import { PenLine, Plus, Eye, EyeOff, MessageCircle, Images, Layers } from 'lucide-react'
 import { requireAdmin } from '@/lib/auth'
 import { getAllPostsAdmin, getPendingCommentsCount } from '@/lib/db'
 import AdminActions from '@/components/admin/AdminActions'
@@ -22,7 +22,7 @@ export default async function AdminPage() {
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">{posts.length} 篇文章</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Link
             href="/admin/comments"
             className="relative flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
@@ -34,6 +34,13 @@ export default async function AdminPage() {
                 {pendingComments}
               </span>
             )}
+          </Link>
+          <Link
+            href="/admin/slides"
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+          >
+            <Layers className="w-4 h-4" />
+            轮播管理
           </Link>
           <Link
             href="/admin/gallery"
