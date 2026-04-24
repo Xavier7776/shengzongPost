@@ -1,6 +1,7 @@
 // app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
@@ -116,6 +117,26 @@ function renderContent(content: string) {
   return elements
 }
 
+// ─── 作者卡片 ─────────────────────────────────────────────────────────────────
+function AuthorCard({ name, avatar, bio }: { name: string; avatar: string | null; bio: string | null }) {
+  const initial = name.charAt(0).toUpperCase()
+  return (
+    <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 mb-8">
+      <div className="flex-shrink-0 w-11 h-11 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center ring-2 ring-white shadow-sm">
+        {avatar
+          ? <Image src={avatar} alt={name} width={44} height={44} className="w-full h-full object-cover" unoptimized />
+          : <span className="text-white font-black text-base">{initial}</span>
+        }
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">作者</p>
+        <p className="text-sm font-black text-gray-900">{name}</p>
+        {bio && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{bio}</p>}
+      </div>
+    </div>
+  )
+}
+
 // ─── 页面 ─────────────────────────────────────────────────────────────────────
 export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(params.slug)
@@ -131,7 +152,17 @@ export default async function BlogPostPage({ params }: PageProps) {
       <article>
         <header className="mb-14">
           <time className="text-blue-600 font-mono text-sm mb-4 block">{post.created_at.slice(0, 10)}</time>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-gray-900 mb-8">{post.title}</h1>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-gray-900 mb-6">{post.title}</h1>
+
+          {/* 作者卡片 */}
+          {post.author_name && (
+            <AuthorCard
+              name={post.author_name}
+              avatar={post.author_avatar ?? null}
+              bio={post.author_bio ?? null}
+            />
+          )}
+
           <p className="text-gray-500 text-lg leading-relaxed mb-8">{post.excerpt}</p>
           <div className="flex gap-3 flex-wrap">
             {post.tags.map(t => (

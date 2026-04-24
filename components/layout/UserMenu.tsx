@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogOut, Settings, ChevronDown } from 'lucide-react'
+import { LogOut, Settings, ChevronDown, PenLine } from 'lucide-react'
 import RoleBadge from '@/components/ui/RoleBadge'
 
 interface UserMenuProps {
@@ -100,6 +100,14 @@ export default function UserMenu({ dark = false }: UserMenuProps) {
             >
               <Settings className="w-4 h-4 text-gray-400" />
               个人资料
+            </Link>
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            >
+              <PenLine className="w-4 h-4 text-gray-400" />
+              编辑中心
             </Link>
             <button
               onClick={() => { setOpen(false); signOut({ callbackUrl: '/' }) }}

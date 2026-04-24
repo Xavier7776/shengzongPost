@@ -1,4 +1,3 @@
-// app/page.tsx
 import Link from 'next/link'
 import { ChevronRight, Github, ExternalLink } from 'lucide-react'
 import Hero from '@/components/sections/Hero'
@@ -32,11 +31,17 @@ export default async function HomePage() {
         {posts.length === 0 ? (
           <p className="text-gray-300 text-lg">暂无文章</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {posts.slice(0, 4).map((post, i) => (
               <BlogCard
                 key={post.slug}
-                post={{ ...post, id: post.id, date: post.created_at.slice(0, 10) }}
+                post={{
+                  ...post,
+                  id: post.id,
+                  date: post.created_at.slice(0, 10),
+                  cover_image: post.cover_image ?? null,
+                  author_avatar: post.author_avatar ?? null,
+                }}
                 index={i}
               />
             ))}

@@ -42,7 +42,7 @@ export default function RoleBadge({ role, size = 'sm' }: RoleBadgeProps) {
       }}
     >
       <Heart className={`${size === 'md' ? 'w-3 h-3' : 'w-2.5 h-2.5'} fill-current`} />
-      王盈瑞(我老婆)
+      王盈瑞(wife)
     </span>
   )
 

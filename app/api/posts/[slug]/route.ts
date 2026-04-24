@@ -1,12 +1,28 @@
 // app/api/posts/[slug]/route.ts
-// PATCH /api/posts/:slug → 更新文章
-// DELETE /api/posts/:slug → 删除文章
+// GET    /api/posts/:slug → 读取单篇文章（已登录用户，供 dashboard 编辑用）
+// PATCH  /api/posts/:slug → 更新文章（管理员）
+// DELETE /api/posts/:slug → 删除文章（管理员）
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
-import { updatePost, deletePost } from '@/lib/db'
+import { updatePost, deletePost, getPostBySlugAdmin } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/authOptions'
 
 interface Ctx { params: { slug: string } }
+
+export async function GET(_req: NextRequest, { params }: Ctx) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
+  try {
+    const post = await getPostBySlugAdmin(params.slug)
+    if (!post) return NextResponse.json({ error: '文章不存在' }, { status: 404 })
+    return NextResponse.json(post)
+  } catch (e) {
+    console.error(e)
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 })
+  }
+}
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   const session = await requireAdminApi()

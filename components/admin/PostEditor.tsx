@@ -15,6 +15,7 @@ interface Props {
     content: string
     tags: string[]
     published: boolean
+    cover_image?: string | null
   }
 }
 
@@ -38,6 +39,12 @@ export default function PostEditor({ mode, initialData }: Props) {
   const [content, setContent] = useState(initialData?.content ?? '')
   const [tagsRaw, setTagsRaw] = useState(initialData?.tags?.join(', ') ?? '')
   const [published, setPublished] = useState(initialData?.published ?? false)
+  const [coverImage, setCoverImage] = useState<string>(initialData?.cover_image ?? '')
+
+  // ── 封面图上传 ──
+  const coverFileRef = useRef<HTMLInputElement>(null)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [coverUploadError, setCoverUploadError] = useState('')
 
   // ── AI 助手状态 ──
   const [aiOpen, setAiOpen]     = useState(false)
@@ -74,6 +81,7 @@ export default function PostEditor({ mode, initialData }: Props) {
       slug, title, excerpt, content,
       tags: tagsRaw.split(',').map(t => t.trim()).filter(Boolean),
       published: finalPublished,
+      cover_image: coverImage.trim() || null,
     }
     const res = await fetch(
       mode === 'new' ? '/api/posts' : `/api/posts/${initialData!.slug}`,
@@ -131,6 +139,27 @@ export default function PostEditor({ mode, initialData }: Props) {
       setUploadingImg(false)
       // 清空 input，以便同一文件可重复选择
       if (imgFileRef.current) imgFileRef.current.value = ''
+    }
+  }
+
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setCoverUploadError('图片不能超过 10MB'); return }
+    setUploadingCover(true)
+    setCoverUploadError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/posts/image', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) { setCoverUploadError(data.error ?? '上传失败'); return }
+      setCoverImage(data.url ?? '')
+    } catch {
+      setCoverUploadError('网络错误，请重试')
+    } finally {
+      setUploadingCover(false)
+      if (coverFileRef.current) coverFileRef.current.value = ''
     }
   }
 
@@ -292,7 +321,7 @@ export default function PostEditor({ mode, initialData }: Props) {
           <input value={tagsRaw} onChange={e => setTagsRaw(e.target.value)} placeholder="Next.js, TypeScript, AI"
             className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
         </div>
-        <div className="md:col-span-3">
+        <div className="md:col-span-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">
             摘要
             {aiMode === 'excerpt' && aiResult && !aiLoading && (
@@ -301,6 +330,52 @@ export default function PostEditor({ mode, initialData }: Props) {
           </label>
           <input value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="文章摘要，显示在列表页"
             className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
+        </div>
+
+        {/* 封面图 */}
+        <div className="md:col-span-1">
+          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">封面图</label>
+          <div className="flex gap-2 items-start">
+            {/* 预览缩略图 */}
+            {coverImage ? (
+              <div className="relative flex-shrink-0 w-16 h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={coverImage} alt="封面" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setCoverImage('')}
+                  className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs font-black"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex-shrink-0 w-16 h-10 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
+                <ImagePlus className="w-4 h-4 text-gray-300" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0 space-y-1">
+              <button
+                type="button"
+                onClick={() => { setCoverUploadError(''); coverFileRef.current?.click() }}
+                disabled={uploadingCover}
+                className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 bg-gray-50 hover:bg-blue-50 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {uploadingCover ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImagePlus className="w-3 h-3" />}
+                {uploadingCover ? '上传中…' : '上传封面'}
+              </button>
+              {coverUploadError && (
+                <p className="text-[10px] text-red-500">{coverUploadError}</p>
+              )}
+            </div>
+            <input
+              ref={coverFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleCoverUpload}
+            />
+          </div>
         </div>
       </div>
 

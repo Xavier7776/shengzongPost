@@ -1,15 +1,16 @@
 // app/admin/page.tsx
 import Link from 'next/link'
-import { PenLine, Plus, Eye, EyeOff, MessageCircle, Images, Layers } from 'lucide-react'
+import { PenLine, Plus, Eye, EyeOff, MessageCircle, Images, Layers, ClipboardCheck } from 'lucide-react'
 import { requireAdmin } from '@/lib/auth'
-import { getAllPostsAdmin, getPendingCommentsCount } from '@/lib/db'
+import { getAllPostsAdmin, getPendingCommentsCount, getPendingEditRequestsCount } from '@/lib/db'
 import AdminActions from '@/components/admin/AdminActions'
 
 export default async function AdminPage() {
   await requireAdmin()
-  const [posts, pendingComments] = await Promise.all([
+  const [posts, pendingComments, pendingEdits] = await Promise.all([
     getAllPostsAdmin(),
     getPendingCommentsCount(),
+    getPendingEditRequestsCount(),
   ])
 
   return (
@@ -23,6 +24,18 @@ export default async function AdminPage() {
           <p className="text-xs text-gray-400 mt-0.5">{posts.length} 篇文章</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <Link
+            href="/admin/reviews"
+            className="relative flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+          >
+            <ClipboardCheck className="w-4 h-4" />
+            编辑审核
+            {pendingEdits > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1">
+                {pendingEdits}
+              </span>
+            )}
+          </Link>
           <Link
             href="/admin/comments"
             className="relative flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
@@ -91,6 +104,9 @@ export default async function AdminPage() {
                     {post.published ? '已发布' : '草稿'}
                   </span>
                   <time className="text-xs text-gray-400 font-mono">{post.created_at.slice(0, 10)}</time>
+                  {post.author_name && (
+                    <span className="text-xs text-gray-400 truncate">✍ {post.author_name}</span>
+                  )}
                 </div>
                 <h2 className="font-bold text-gray-900 truncate">{post.title}</h2>
                 <p className="text-xs text-gray-400 mt-1 truncate font-mono">/{post.slug}</p>

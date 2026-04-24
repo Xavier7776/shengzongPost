@@ -1,5 +1,5 @@
 'use client'
-// components/layout/SiteShell.tsx （替换现有文件）
+// components/layout/SiteShell.tsx
 import { usePathname } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -10,9 +10,12 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isDark = pathname.startsWith('/gallery')
   const isAdmin = pathname.startsWith('/admin')
+  // dashboard 编辑器页面自带 toolbar，不套全局导航
+  const isDashboardEditor =
+    pathname.startsWith('/dashboard/new') ||
+    pathname.startsWith('/dashboard/edit')
 
-  // admin 路由不套导航和页脚，直接渲染
-  if (isAdmin) {
+  if (isAdmin || isDashboardEditor) {
     return <>{children}</>
   }
 

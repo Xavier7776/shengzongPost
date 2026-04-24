@@ -16,32 +16,49 @@ function serializeRows(rows: Record<string, unknown>[]) { return rows.map(serial
 // ─── Posts ────────────────────────────────────────────────────────────────────
 export interface Post {
   id: number; slug: string; title: string; excerpt: string; content: string
-  tags: string[]; published: boolean; created_at: string; updated_at: string
+  tags: string[]; published: boolean; created_at: string; updated_at: string; cover_image: string | null
+  author_id?: number | null
+  author_name?: string | null
+  author_avatar?: string | null
+  author_bio?: string | null
 }
 export type PostMeta = Omit<Post, 'content'>
 
 export async function getAllPosts(): Promise<PostMeta[]> {
-  const rows = await sql`SELECT id,slug,title,excerpt,tags,published,created_at,updated_at FROM posts WHERE published=true ORDER BY created_at DESC`
+  const rows = await sql`
+    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,
+           p.author_id,u.name as author_name,u.avatar as author_avatar
+    FROM posts p LEFT JOIN users u ON u.id = p.author_id
+    WHERE p.published=true ORDER BY p.created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
 }
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  const rows = await sql`SELECT * FROM posts WHERE slug=${slug} AND published=true LIMIT 1`
+  const rows = await sql`
+    SELECT p.*,u.name as author_name,u.avatar as author_avatar,u.bio as author_bio
+    FROM posts p LEFT JOIN users u ON u.id = p.author_id
+    WHERE p.slug=${slug} AND p.published=true LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as Post : null
 }
 export async function getAllPostsAdmin(): Promise<PostMeta[]> {
-  const rows = await sql`SELECT id,slug,title,excerpt,tags,published,created_at,updated_at FROM posts ORDER BY created_at DESC`
+  const rows = await sql`
+    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,u.name as author_name
+    FROM posts p LEFT JOIN users u ON u.id = p.author_id
+    ORDER BY p.created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
 }
 export async function getPostBySlugAdmin(slug: string): Promise<Post | null> {
-  const rows = await sql`SELECT * FROM posts WHERE slug=${slug} LIMIT 1`
+  const rows = await sql`
+    SELECT p.*,u.name as author_name
+    FROM posts p LEFT JOIN users u ON u.id = p.author_id
+    WHERE p.slug=${slug} LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as Post : null
 }
-export async function createPost(data: { slug: string; title: string; excerpt: string; content: string; tags: string[]; published: boolean }): Promise<Post> {
-  const rows = await sql`INSERT INTO posts(slug,title,excerpt,content,tags,published) VALUES(${data.slug},${data.title},${data.excerpt},${data.content},${data.tags},${data.published}) RETURNING *`
+export async function createPost(data: { slug: string; title: string; excerpt: string; content: string; tags: string[]; published: boolean; cover_image?: string | null }): Promise<Post> {
+  const rows = await sql`INSERT INTO posts(slug,title,excerpt,content,tags,published,cover_image) VALUES(${data.slug},${data.title},${data.excerpt},${data.content},${data.tags},${data.published},${data.cover_image ?? null}) RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
-export async function updatePost(slug: string, data: Partial<{ title: string; excerpt: string; content: string; tags: string[]; published: boolean; slug: string }>): Promise<Post> {
-  const rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content??null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),updated_at=NOW() WHERE slug=${slug} RETURNING *`
+export async function updatePost(slug: string, data: Partial<{ title: string; excerpt: string; content: string; tags: string[]; published: boolean; slug: string; cover_image: string }>): Promise<Post> {
+  const rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content??null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),updated_at=NOW() WHERE slug=${slug} RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
 export async function deletePost(slug: string): Promise<void> { await sql`DELETE FROM posts WHERE slug=${slug}` }
@@ -60,13 +77,9 @@ export async function getOrCreateAiBot(): Promise<User> {
 }
 
 // ─── Gallery ─────────────────────────────────────────────────────────────────
-export interface GalleryImage { id: number; url: string; public_id: string | null; title: string; category: string; sort_order: number | null; created_at: string }
+export interface GalleryImage { id: number; url: string; public_id: string; title: string; category: string; sort_order: number; created_at: string }
 export async function getAllGalleryImages(): Promise<GalleryImage[]> {
-  const rows = await sql`
-    SELECT id, url, public_id, title, category, sort_order, created_at
-    FROM gallery_images
-    ORDER BY sort_order ASC NULLS LAST, created_at DESC NULLS LAST
-  `
+  const rows = await sql`SELECT * FROM gallery_images ORDER BY sort_order ASC, created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as GalleryImage[]
 }
 export async function createGalleryImage(data: { url: string; public_id: string; title: string; category: string }): Promise<GalleryImage> {
@@ -355,4 +368,108 @@ export async function updateHeroSlide(
 
 export async function deleteHeroSlide(id: number): Promise<void> {
   await sql`DELETE FROM hero_slides WHERE id = ${id}`
+}
+// ─── Post Edit Requests ───────────────────────────────────────────────────────
+export interface PostEditRequest {
+  id: number
+  post_slug: string
+  user_id: number
+  title: string
+  excerpt: string
+  content: string
+  tags: string[]
+  cover_image: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  admin_note: string | null
+  created_at: string
+  reviewed_at: string | null
+}
+
+export interface PostEditRequestWithUser extends PostEditRequest {
+  user_name: string
+  user_avatar: string | null
+  post_title: string
+}
+
+export async function createEditRequest(data: {
+  post_slug: string
+  user_id: number
+  title: string
+  excerpt: string
+  content: string
+  tags: string[]
+  cover_image?: string | null
+}): Promise<PostEditRequest> {
+  const rows = await sql`
+    INSERT INTO post_edit_requests(post_slug, user_id, title, excerpt, content, tags, cover_image)
+    VALUES(${data.post_slug}, ${data.user_id}, ${data.title}, ${data.excerpt}, ${data.content}, ${data.tags}, ${data.cover_image ?? null})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as PostEditRequest
+}
+
+export async function getEditRequestsByUser(userId: number): Promise<PostEditRequestWithUser[]> {
+  const rows = await sql`
+    SELECT r.*, u.name as user_name, u.avatar as user_avatar, COALESCE(p.title, r.title) as post_title
+    FROM post_edit_requests r
+    JOIN users u ON u.id = r.user_id
+    LEFT JOIN posts p ON p.slug = r.post_slug AND r.post_slug != '__new__'
+    WHERE r.user_id = ${userId}
+    ORDER BY r.created_at DESC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PostEditRequestWithUser[]
+}
+
+export async function getAllEditRequests(): Promise<PostEditRequestWithUser[]> {
+  const rows = await sql`
+    SELECT r.*, u.name as user_name, u.avatar as user_avatar, COALESCE(p.title, r.title) as post_title
+    FROM post_edit_requests r
+    JOIN users u ON u.id = r.user_id
+    LEFT JOIN posts p ON p.slug = r.post_slug AND r.post_slug != '__new__'
+    ORDER BY
+      CASE r.status WHEN 'pending' THEN 0 ELSE 1 END,
+      r.created_at DESC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PostEditRequestWithUser[]
+}
+
+export async function getEditRequestById(id: number): Promise<PostEditRequestWithUser | null> {
+  const rows = await sql`
+    SELECT r.*, u.name as user_name, u.avatar as user_avatar, COALESCE(p.title, r.title) as post_title
+    FROM post_edit_requests r
+    JOIN users u ON u.id = r.user_id
+    LEFT JOIN posts p ON p.slug = r.post_slug AND r.post_slug != '__new__'
+    WHERE r.id = ${id}
+    LIMIT 1
+  `
+  return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as PostEditRequestWithUser : null
+}
+
+export async function reviewEditRequest(
+  id: number,
+  status: 'approved' | 'rejected',
+  adminNote?: string
+): Promise<PostEditRequest> {
+  const rows = await sql`
+    UPDATE post_edit_requests
+    SET status = ${status}, admin_note = ${adminNote ?? null}, reviewed_at = now()
+    WHERE id = ${id}
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as PostEditRequest
+}
+
+
+export async function getPendingEditRequestsCount(): Promise<number> {
+  const rows = await sql`SELECT COUNT(*) as cnt FROM post_edit_requests WHERE status='pending'`
+  return Number((rows[0] as { cnt: string }).cnt)
+}
+
+export async function deleteEditRequest(id: number, userId: number): Promise<boolean> {
+  const rows = await sql`
+    DELETE FROM post_edit_requests
+    WHERE id = ${id} AND user_id = ${userId}
+    RETURNING id
+  `
+  return rows.length > 0
 }
