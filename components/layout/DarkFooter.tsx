@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Github, Search, Mail } from 'lucide-react'
 
@@ -12,12 +13,12 @@ export default function DarkFooter() {
         .dark-footer-icon:hover { color: #c8a97e; }
       `}</style>
       <div className="max-w-6xl mx-auto px-6">
-        <h2
-          className="text-2xl font-black tracking-tighter mb-8"
-          style={{ color: '#e8e8e8' }}
-        >
-          ARC<span style={{ color: '#c8a97e' }}>.</span>
-        </h2>
+        <div className="flex items-center justify-center gap-2.5 mb-8">
+          <Image src="/logo.png" alt="MindStack" width={32} height={32} className="w-8 h-8 rounded-full" />
+          <h2 className="text-2xl font-black tracking-tighter" style={{ color: '#e8e8e8' }}>
+            Mind<span style={{ color: '#c8a97e' }}>Stack</span>
+          </h2>
+        </div>
         <div className="flex justify-center space-x-6 mb-8">
           <a
             href="https://github.com/Xavier7776"
@@ -49,7 +50,7 @@ export default function DarkFooter() {
           className="text-xs font-bold tracking-[0.2em] uppercase"
           style={{ color: 'rgba(255,255,255,0.12)' }}
         >
-          © {new Date().getFullYear()} Xavier. Built with Precision.
+          © {new Date().getFullYear()} MindStack. Built with Precision.
         </p>
       </div>
     </footer>

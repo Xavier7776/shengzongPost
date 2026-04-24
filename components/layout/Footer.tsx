@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Github, Search, Mail } from 'lucide-react'
 
@@ -5,9 +6,12 @@ export default function Footer() {
   return (
     <footer className="py-20 text-center z-10 relative border-t border-gray-100">
       <div className="max-w-6xl mx-auto px-6">
-        <h2 className="text-2xl font-black tracking-tighter mb-8">
-          ARC<span className="text-blue-600">.</span>
-        </h2>
+        <div className="flex items-center justify-center gap-2.5 mb-8">
+          <Image src="/logo.png" alt="MindStack" width={32} height={32} className="w-8 h-8 rounded-full" />
+          <h2 className="text-2xl font-black tracking-tighter">
+            Mind<span className="text-blue-600">Stack</span>
+          </h2>
+        </div>
         <div className="flex justify-center space-x-6 mb-8">
           <a
             href="https://github.com/Xavier7776"
@@ -36,7 +40,7 @@ export default function Footer() {
           </Link>
         </div>
         <p className="text-xs font-bold tracking-[0.2em] text-gray-300 uppercase">
-          © {new Date().getFullYear()} Xavier. Built with Precision.
+          © {new Date().getFullYear()} MindStack. Built with Precision.
         </p>
       </div>
     </footer>

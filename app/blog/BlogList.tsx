@@ -3,6 +3,7 @@
 // app/blog/BlogList.tsx — 带标题搜索的博客列表
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ChevronRight, Search, X } from 'lucide-react'
 import SectionHeading from '@/components/ui/SectionHeading'
 
@@ -12,6 +13,8 @@ interface PostMeta {
   excerpt: string
   tags: string[]
   created_at: string
+  author_name?: string | null
+  author_avatar?: string | null
 }
 
 export default function BlogList({ posts }: { posts: PostMeta[] }) {
@@ -110,6 +113,19 @@ export default function BlogList({ posts }: { posts: PostMeta[] }) {
               阅读全文
               <ChevronRight className="w-4 h-4 ml-1" />
             </span>
+
+            {/* 作者信息 */}
+            {post.author_name && (
+              <div className="flex items-center gap-2 mt-4">
+                <div className="w-6 h-6 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  {post.author_avatar
+                    ? <Image src={post.author_avatar} alt={post.author_name} width={24} height={24} unoptimized className="w-full h-full object-cover" />
+                    : <span className="text-blue-600 text-[10px] font-black">{post.author_name.charAt(0).toUpperCase()}</span>
+                  }
+                </div>
+                <span className="text-xs text-gray-400 font-medium">{post.author_name}</span>
+              </div>
+            )}
             {i < filtered.length - 1 && <div className="h-px bg-gray-100 w-full mt-16" />}
           </Link>
         ))}

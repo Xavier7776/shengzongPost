@@ -7,7 +7,7 @@ import { PROJECTS } from '@/lib/data'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: '个人主页',
+  title: '个人主页 - MindStack',
   description: '全栈工程师 / AI Agent开发，专注于构建AGI智能系统。',
 }
 

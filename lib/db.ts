@@ -126,6 +126,18 @@ export async function getUserByVerifyToken(token: string): Promise<User | null> 
 export async function markUserVerified(userId: number): Promise<void> {
   await sql`UPDATE users SET verified=true,verify_token=NULL,token_expires=NULL WHERE id=${userId}`
 }
+export async function updateUserPassword(userId: number, hashedPassword: string): Promise<void> {
+  await sql`UPDATE users SET password=${hashedPassword},verify_token=NULL,token_expires=NULL WHERE id=${userId}`
+}
+export async function getPostsByAuthor(authorId: number): Promise<PostMeta[]> {
+  const rows = await sql`
+    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,
+           p.author_id,u.name as author_name,u.avatar as author_avatar
+    FROM posts p LEFT JOIN users u ON u.id = p.author_id
+    WHERE p.author_id=${authorId} AND p.published=true
+    ORDER BY p.created_at DESC`
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
+}
 
 // ─── Comments ────────────────────────────────────────────────────────────────
 export interface Comment {
@@ -220,6 +232,17 @@ export async function toggleBookmark(slug: string, userId: number): Promise<bool
 }
 export async function getUserBookmarks(userId: number): Promise<PostMeta[]> {
   const rows = await sql`SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at FROM bookmarks b JOIN posts p ON p.slug=b.post_slug WHERE b.user_id=${userId} ORDER BY b.created_at DESC`
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
+}
+export async function getUserLikedPosts(userId: number): Promise<PostMeta[]> {
+  const rows = await sql`
+    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,
+           p.author_id,u.name as author_name
+    FROM post_reactions r
+    JOIN posts p ON p.slug = r.post_slug
+    LEFT JOIN users u ON u.id = p.author_id
+    WHERE r.user_id=${userId} AND r.type='like' AND p.published=true
+    ORDER BY r.created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
 }
 

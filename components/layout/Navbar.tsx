@@ -1,4 +1,6 @@
 'use client'
+import Image from 'next/image'
+
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -29,11 +31,11 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-        <Link
-          href="/"
-          className="tracking-tighter text-2xl font-black text-gray-900 transition-colors duration-500"
-        >
-          ARC<span className="text-blue-600">.</span>
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image src="/logo.png" alt="MindStack" width={32} height={32} className="w-8 h-8 rounded-full" />
+          <span className="tracking-tighter text-2xl font-black text-gray-900">
+            Mind<span className="text-blue-600">Stack</span>
+          </span>
         </Link>
 
         <div className="flex items-center space-x-6 md:space-x-10">

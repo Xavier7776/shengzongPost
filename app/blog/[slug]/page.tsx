@@ -7,6 +7,7 @@ import { getPostBySlug } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
 import PostActions from '@/components/sections/PostActions'
 import ViewTracker from '@/components/sections/ViewTracker'
+import AuthorCard from '@/components/sections/AuthorCard'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -53,7 +54,6 @@ function renderContent(content: string) {
       const [, alt, url, caption] = imgMatch
       elements.push(
         <figure key={i} className="my-10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt={alt} className="w-full rounded-2xl object-cover shadow-md" style={{ maxHeight: 420 }} />
           {caption && <figcaption className="text-center text-xs text-gray-400 mt-3 font-medium tracking-wide">{caption}</figcaption>}
         </figure>
@@ -117,26 +117,6 @@ function renderContent(content: string) {
   return elements
 }
 
-// ─── 作者卡片 ─────────────────────────────────────────────────────────────────
-function AuthorCard({ name, avatar, bio }: { name: string; avatar: string | null; bio: string | null }) {
-  const initial = name.charAt(0).toUpperCase()
-  return (
-    <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 mb-8">
-      <div className="flex-shrink-0 w-11 h-11 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center ring-2 ring-white shadow-sm">
-        {avatar
-          ? <Image src={avatar} alt={name} width={44} height={44} className="w-full h-full object-cover" unoptimized />
-          : <span className="text-white font-black text-base">{initial}</span>
-        }
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">作者</p>
-        <p className="text-sm font-black text-gray-900">{name}</p>
-        {bio && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{bio}</p>}
-      </div>
-    </div>
-  )
-}
-
 // ─── 页面 ─────────────────────────────────────────────────────────────────────
 export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(params.slug)
@@ -154,12 +134,13 @@ export default async function BlogPostPage({ params }: PageProps) {
           <time className="text-blue-600 font-mono text-sm mb-4 block">{post.created_at.slice(0, 10)}</time>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-gray-900 mb-6">{post.title}</h1>
 
-          {/* 作者卡片 */}
+          {/* 作者卡片 — 独立客户端组件，支持关注按钮 & 点击进主页 */}
           {post.author_name && (
             <AuthorCard
               name={post.author_name}
               avatar={post.author_avatar ?? null}
               bio={post.author_bio ?? null}
+              authorId={post.author_id ?? null}
             />
           )}
 
@@ -174,13 +155,8 @@ export default async function BlogPostPage({ params }: PageProps) {
         <div className="space-y-5">{renderContent(post.content)}</div>
       </article>
 
-      {/* 访问计数（静默，防重复） */}
       <ViewTracker slug={params.slug} />
-
-      {/* 点赞 / 踩 / 收藏 */}
       <PostActions slug={params.slug} />
-
-      {/* 评论区 */}
       <CommentSection slug={params.slug} />
     </div>
   )

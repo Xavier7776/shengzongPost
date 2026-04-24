@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Camera, Loader2, Check, ArrowLeft, User, Mail, Phone, FileText, Users } from 'lucide-react'
+import { Camera, Loader2, Check, ArrowLeft, User, Mail, Phone, FileText, Users, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 
 interface ProfileData {
   id: number
@@ -35,13 +35,21 @@ export default function ProfilePage() {
   const [avatarError, setAvatarError] = useState(false)
   const [followCounts, setFollowCounts] = useState<FollowCounts>({ following: 0, followers: 0 })
 
+  // 修改密码状态
+  const [pwStep, setPwStep]         = useState<'idle'|'sending'|'code'|'changing'|'done'>('idle')
+  const [pwCode, setPwCode]         = useState('')
+  const [pwNew, setPwNew]           = useState('')
+  const [pwConfirm, setPwConfirm]   = useState('')
+  const [pwError, setPwError]       = useState('')
+  const [pwMasked, setPwMasked]     = useState('')  // 脱敏邮箱提示
+  const [showPw, setShowPw]         = useState(false)
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login?callbackUrl=/profile')
   }, [status, router])
 
   useEffect(() => {
     if (status !== 'authenticated') return
-    const userId = form.id
 
     fetch('/api/user/profile')
       .then(r => r.json())
@@ -100,6 +108,43 @@ export default function ProfilePage() {
       setError('网络错误，请重试')
     } finally {
       setUploadingAvatar(false)
+    }
+  }
+
+  async function handleSendCode() {
+    setPwError('')
+    setPwStep('sending')
+    try {
+      const res = await fetch('/api/user/password', { method: 'POST' })
+      const d   = await res.json()
+      if (!res.ok) { setPwError(d.error ?? '发送失败'); setPwStep('idle'); return }
+      setPwMasked(d.email)
+      setPwStep('code')
+    } catch {
+      setPwError('网络错误，请重试')
+      setPwStep('idle')
+    }
+  }
+
+  async function handleChangePassword() {
+    setPwError('')
+    if (!pwCode.trim())         { setPwError('请输入验证码'); return }
+    if (pwNew.length < 8)       { setPwError('新密码至少 8 位'); return }
+    if (pwNew !== pwConfirm)    { setPwError('两次密码不一致'); return }
+    setPwStep('changing')
+    try {
+      const res = await fetch('/api/user/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: pwCode, newPassword: pwNew }),
+      })
+      const d = await res.json()
+      if (!res.ok) { setPwError(d.error ?? '修改失败'); setPwStep('code'); return }
+      setPwStep('done')
+      setTimeout(() => { setPwStep('idle'); setPwCode(''); setPwNew(''); setPwConfirm('') }, 3000)
+    } catch {
+      setPwError('网络错误，请重试')
+      setPwStep('code')
     }
   }
 
@@ -298,6 +343,106 @@ export default function ProfilePage() {
               : '保存修改'
             }
           </button>
+        </div>
+
+        {/* 修改密码 */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 mt-4">
+          <h2 className="flex items-center gap-2 text-sm font-black text-gray-900 mb-4">
+            <Lock className="w-4 h-4 text-gray-400" />修改密码
+          </h2>
+
+          {pwStep === 'idle' && (
+            <div>
+              <p className="text-xs text-gray-400 mb-4">点击下方按钮，我们将向你的注册邮箱发送一个 6 位验证码</p>
+              <button
+                onClick={handleSendCode}
+                className="w-full flex items-center justify-center gap-2 border border-gray-200 hover:border-blue-400 text-gray-700 hover:text-blue-600 font-black text-sm py-3 rounded-xl transition-colors"
+              >
+                <ShieldCheck className="w-4 h-4" />发送验证码
+              </button>
+            </div>
+          )}
+
+          {pwStep === 'sending' && (
+            <div className="flex items-center justify-center py-4 gap-2 text-sm text-gray-400">
+              <Loader2 className="w-4 h-4 animate-spin" />正在发送…
+            </div>
+          )}
+
+          {(pwStep === 'code' || pwStep === 'changing') && (
+            <div className="space-y-4">
+              <p className="text-xs text-gray-400">验证码已发送至 <span className="font-bold text-gray-600">{pwMasked}</span>，10 分钟内有效</p>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">验证码</label>
+                <input
+                  value={pwCode}
+                  onChange={e => { setPwCode(e.target.value); setPwError('') }}
+                  maxLength={6}
+                  placeholder="6 位数字"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-blue-400 transition-colors tracking-[.3em] font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">新密码</label>
+                <div className="relative">
+                  <input
+                    value={pwNew}
+                    onChange={e => { setPwNew(e.target.value); setPwError('') }}
+                    type={showPw ? 'text' : 'password'}
+                    minLength={8}
+                    placeholder="至少 8 位"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-10 text-sm text-gray-900 focus:outline-none focus:border-blue-400 transition-colors"
+                  />
+                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">确认新密码</label>
+                <input
+                  value={pwConfirm}
+                  onChange={e => { setPwConfirm(e.target.value); setPwError('') }}
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="再输入一次"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-blue-400 transition-colors"
+                />
+              </div>
+
+              {pwError && <p className="text-red-500 text-xs font-medium bg-red-50 px-3 py-2 rounded-xl">{pwError}</p>}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setPwStep('idle'); setPwCode(''); setPwNew(''); setPwConfirm(''); setPwError('') }}
+                  className="flex-1 border border-gray-200 text-gray-500 font-black text-sm py-3 rounded-xl hover:border-gray-300 transition-colors"
+                >取消</button>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={pwStep === 'changing'}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm py-3 rounded-xl transition-colors disabled:opacity-60"
+                >
+                  {pwStep === 'changing' ? <><Loader2 className="w-4 h-4 animate-spin" />修改中…</> : '确认修改'}
+                </button>
+              </div>
+
+              <button onClick={handleSendCode} disabled={pwStep === 'changing'} className="w-full text-xs text-gray-400 hover:text-blue-600 transition-colors py-1">
+                没收到？重新发送
+              </button>
+            </div>
+          )}
+
+          {pwStep === 'done' && (
+            <div className="flex flex-col items-center gap-2 py-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-5 h-5 text-green-600" />
+              </div>
+              <p className="text-sm font-black text-gray-900">密码已修改</p>
+              <p className="text-xs text-gray-400">下次登录请使用新密码</p>
+            </div>
+          )}
         </div>
 
       </div>

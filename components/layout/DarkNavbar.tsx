@@ -1,5 +1,8 @@
 'use client'
 
+import Image from 'next/image'
+
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -33,12 +36,11 @@ export default function DarkNavbar() {
       }}
     >
       <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-        <Link
-          href="/"
-          className="tracking-tighter text-2xl font-black transition-colors duration-300"
-          style={{ color: '#e8e8e8' }}
-        >
-          ARC<span style={{ color: '#c8a97e' }}>.</span>
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image src="/logo.png" alt="MindStack" width={32} height={32} className="w-8 h-8 rounded-full" />
+          <span className="tracking-tighter text-2xl font-black" style={{ color: '#e8e8e8' }}>
+            Mind<span style={{ color: '#c8a97e' }}>Stack</span>
+          </span>
         </Link>
 
         <div className="flex items-center space-x-6 md:space-x-10">

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export const metadata: Metadata = {
-  title: '视觉存档 — ARC.',
+  title: '视觉存档 — MindStack.',
   description: '极简主义摄影与视觉创作存档',
 }
 
