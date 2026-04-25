@@ -6,7 +6,6 @@ import { Loader2, MessageCircle, Send, Reply, ChevronDown, ChevronUp } from 'luc
 import Link from 'next/link'
 import Image from 'next/image'
 import RoleBadge from '@/components/ui/RoleBadge'
-import UserCard from '@/components/ui/UserCard'
 
 interface Comment {
   id: number
@@ -18,15 +17,6 @@ interface Comment {
   created_at: string
   parent_id: number | null
   replies?: Comment[]
-}
-
-// ── 用户卡片状态（全局唯一弹出） ──
-interface CardState {
-  userId: number
-  userName: string
-  userAvatar: string | null
-  userRole: string
-  anchorEl: HTMLElement
 }
 
 function Avatar({ name, avatar, size = 9, onClick }: { name: string; avatar: string | null; size?: number; onClick?: (e: React.MouseEvent<HTMLDivElement>) => void }) {
@@ -47,7 +37,7 @@ interface CommentItemProps {
   comment: Comment
   depth: number
   onReply: (id: number, name: string) => void
-  onAvatarClick: (e: React.MouseEvent<HTMLDivElement>, c: Comment) => void
+  onAvatarClick: (userId: number) => void
 }
 
 function CommentItem({ comment: c, depth, onReply, onAvatarClick }: CommentItemProps) {
@@ -62,7 +52,7 @@ function CommentItem({ comment: c, depth, onReply, onAvatarClick }: CommentItemP
           name={c.user_name}
           avatar={c.user_avatar}
           size={isNested ? 7 : 9}
-          onClick={(e) => onAvatarClick(e, c)}
+          onClick={() => onAvatarClick(c.user_id)}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -112,8 +102,11 @@ export default function CommentSection({ slug }: { slug: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
-  const [card, setCard] = useState<CardState | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  function handleAvatarClick(userId: number) {
+    window.location.href = `/profile/${userId}`
+  }
 
   const loadComments = useCallback(() => {
     fetch(`/api/comments?slug=${encodeURIComponent(slug)}`)
@@ -127,17 +120,6 @@ export default function CommentSection({ slug }: { slug: string }) {
   function handleReply(id: number, name: string) {
     setReplyTo({ id, name })
     setTimeout(() => textareaRef.current?.focus(), 50)
-  }
-
-  function handleAvatarClick(e: React.MouseEvent<HTMLDivElement>, c: Comment) {
-    e.stopPropagation()
-    setCard({
-      userId: c.user_id,
-      userName: c.user_name,
-      userAvatar: c.user_avatar,
-      userRole: c.user_role,
-      anchorEl: e.currentTarget,
-    })
   }
 
   async function handleSubmit() {
@@ -166,17 +148,6 @@ export default function CommentSection({ slug }: { slug: string }) {
   return (
     <section className="mt-20 pt-12 border-t border-gray-100">
       {/* 用户信息卡片（全局唯一） */}
-      {card && (
-        <UserCard
-          userId={card.userId}
-          userName={card.userName}
-          userAvatar={card.userAvatar}
-          userRole={card.userRole}
-          anchorEl={card.anchorEl}
-          onClose={() => setCard(null)}
-        />
-      )}
-
       <h2 className="flex items-center gap-2 text-lg font-black tracking-tight text-gray-900 mb-8">
         <MessageCircle className="w-5 h-5 text-blue-500" />
         评论

@@ -1,7 +1,6 @@
-// app/blog/[slug]/page.tsx
+// 路径：app/blog/[slug]/page.tsx  ← 完整替换，删掉原来的内联 AuthorCard 函数
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
@@ -21,7 +20,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${post.title} — ARC.`, description: post.excerpt }
 }
 
-// ─── Markdown 渲染器 ──────────────────────────────────────────────────────────
 function renderInline(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/)
   return parts.map((part, i) =>
@@ -35,12 +33,10 @@ function renderContent(content: string) {
   const lines = content.split('\n')
   const elements: React.ReactNode[] = []
   let i = 0
-
   while (i < lines.length) {
     const line = lines[i]
     const trimmed = line.trim()
     if (!trimmed) { i++; continue }
-
     if (trimmed.startsWith('## ')) {
       elements.push(<h2 key={i} className="text-2xl font-black text-gray-900 mt-14 mb-5 tracking-tight border-b border-gray-100 pb-3">{trimmed.slice(3)}</h2>)
       i++; continue
@@ -54,6 +50,7 @@ function renderContent(content: string) {
       const [, alt, url, caption] = imgMatch
       elements.push(
         <figure key={i} className="my-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt={alt} className="w-full rounded-2xl object-cover shadow-md" style={{ maxHeight: 420 }} />
           {caption && <figcaption className="text-center text-xs text-gray-400 mt-3 font-medium tracking-wide">{caption}</figcaption>}
         </figure>
@@ -117,7 +114,6 @@ function renderContent(content: string) {
   return elements
 }
 
-// ─── 页面 ─────────────────────────────────────────────────────────────────────
 export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(params.slug)
   if (!post) notFound()
@@ -128,13 +124,10 @@ export default async function BlogPostPage({ params }: PageProps) {
         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
         返回博客列表
       </Link>
-
       <article>
         <header className="mb-14">
           <time className="text-blue-600 font-mono text-sm mb-4 block">{post.created_at.slice(0, 10)}</time>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-gray-900 mb-6">{post.title}</h1>
-
-          {/* 作者卡片 — 独立客户端组件，支持关注按钮 & 点击进主页 */}
           {post.author_name && (
             <AuthorCard
               name={post.author_name}
@@ -143,7 +136,6 @@ export default async function BlogPostPage({ params }: PageProps) {
               authorId={post.author_id ?? null}
             />
           )}
-
           <p className="text-gray-500 text-lg leading-relaxed mb-8">{post.excerpt}</p>
           <div className="flex gap-3 flex-wrap">
             {post.tags.map(t => (
@@ -151,10 +143,8 @@ export default async function BlogPostPage({ params }: PageProps) {
             ))}
           </div>
         </header>
-
         <div className="space-y-5">{renderContent(post.content)}</div>
       </article>
-
       <ViewTracker slug={params.slug} />
       <PostActions slug={params.slug} />
       <CommentSection slug={params.slug} />
