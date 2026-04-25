@@ -9,6 +9,22 @@ import { Menu, X, LogOut, User, PenLine, ChevronRight } from 'lucide-react'
 import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
 
+// Logo 摇摆动画样式（注入全局，只执行一次）
+const SWING_STYLE = `
+@keyframes logo-swing {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(12deg); }
+  35%  { transform: rotate(-8deg); }
+  55%  { transform: rotate(5deg); }
+  70%  { transform: rotate(-3deg); }
+  85%  { transform: rotate(1.5deg); }
+  100% { transform: rotate(0deg); }
+}
+.logo-swing {
+  animation: logo-swing 0.7s ease-out;
+  transform-origin: 50% 85%;
+}`
+
 const NAV_ITEMS = [
   { label: 'Home',     href: '/' },
   { label: 'Blog',     href: '/blog' },
@@ -20,9 +36,19 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [menuOpen,   setMenuOpen]   = useState(false)
   const [visible,    setVisible]    = useState(false)
+  const [swinging,   setSwinging]   = useState(false)
   const pathname  = usePathname()
   const drawerRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
+
+  // 注入摇摆动画 CSS
+  useEffect(() => {
+    if (document.getElementById('logo-swing-style')) return
+    const style = document.createElement('style')
+    style.id = 'logo-swing-style'
+    style.textContent = SWING_STYLE
+    document.head.appendChild(style)
+  }, [])
 
   useEffect(() => {
     const handler = () => setIsScrolled(window.scrollY > 20)
@@ -30,7 +56,15 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handler)
   }, [])
 
-  useEffect(() => { handleClose() }, [pathname])
+  // 路由变化时触发 Logo 摇摆
+  useEffect(() => {
+    setSwinging(false)
+    requestAnimationFrame(() => setSwinging(true))
+    const t = setTimeout(() => setSwinging(false), 700)
+    handleClose()
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose() }
@@ -69,7 +103,13 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="MindStack" width={32} height={32} className="w-8 h-8 rounded-full" />
+            <Image
+              src="/logo.png"
+              alt="MindStack"
+              width={32}
+              height={32}
+              className={`w-8 h-8 rounded-full${swinging ? ' logo-swing' : ''}`}
+            />
             <span className="tracking-tighter text-2xl font-black text-gray-900">
               Mind<span className="text-blue-600">Stack</span>
             </span>

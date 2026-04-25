@@ -35,13 +35,6 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
     <section className="relative bg-[#FAFAF8] pt-24 pb-16">
       {/* ── 顶部文字区 ── */}
       <div className="max-w-6xl mx-auto px-6 mb-8">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-          <span className="text-xs font-black tracking-widest uppercase text-blue-600">
-            Available for work
-          </span>
-        </div>
-
         <div
           className={`transition-all duration-700 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'

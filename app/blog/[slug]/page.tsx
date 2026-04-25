@@ -7,6 +7,7 @@ import CommentSection from '@/components/sections/CommentSection'
 import PostActions from '@/components/sections/PostActions'
 import ViewTracker from '@/components/sections/ViewTracker'
 import AuthorCard from '@/components/sections/AuthorCard'
+import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -119,6 +120,8 @@ export default async function BlogPostPage({ params }: PageProps) {
   if (!post) notFound()
 
   return (
+    <>
+    <ReadingProgressBar />
     <div className="max-w-[780px] mx-auto px-6 py-24 animate-in">
       <Link href="/blog" className="flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-16 group font-bold uppercase tracking-widest text-xs">
         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
@@ -149,5 +152,6 @@ export default async function BlogPostPage({ params }: PageProps) {
       <PostActions slug={params.slug} />
       <CommentSection slug={params.slug} />
     </div>
+    </>
   )
 }
