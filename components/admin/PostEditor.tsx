@@ -1,86 +1,162 @@
 'use client'
 
-// components/admin/PostEditor.tsx
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, Eye, EyeOff, Loader2, ArrowLeft, Sparkles, X, ChevronRight, FileText, PenLine, AlignLeft, ImagePlus } from 'lucide-react'
+import {
+  Save, Eye, EyeOff, Loader2, ArrowLeft, Sparkles, X,
+  ChevronRight, FileText, PenLine, AlignLeft, ImagePlus,
+  Bold, Italic, Heading2, Heading3, List, ListOrdered,
+  Quote, Code, Minus, Link as LinkIcon, Undo, Redo, Code2,
+  Table, Youtube, Clock
+} from 'lucide-react'
 import Link from 'next/link'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Image from '@tiptap/extension-image'
+import LinkExtension from '@tiptap/extension-link'
+import Placeholder from '@tiptap/extension-placeholder'
+import { Table as TableExtension, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
+import CharacterCount from '@tiptap/extension-character-count'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { common, createLowlight } from 'lowlight'
+import { Node, mergeAttributes } from '@tiptap/core'
+
+const lowlight = createLowlight(common)
+
+// ── 视频嵌入自定义 Node ────────────────────────────────────────────
+const VideoEmbed = Node.create({
+  name: 'videoEmbed',
+  group: 'block',
+  atom: true,
+  marks: '',          // 禁止任何 mark（包括 Link）附着到此节点
+  addAttributes() {
+    return {
+      src: { default: null },
+      provider: { default: 'youtube' },
+    }
+  },
+  parseHTML() { return [{ tag: 'div[data-video-embed]' }] },
+  renderHTML({ HTMLAttributes }) {
+    const { src, provider } = HTMLAttributes
+    const raw = src ?? ''
+    let iframeSrc = raw
+    if (provider === 'bilibili') {
+      const bvMatch = raw.match(/BV[\w]+/)
+      iframeSrc = bvMatch ? `https://player.bilibili.com/player.html?bvid=${bvMatch[0]}&autoplay=0` : raw
+    } else {
+      const ytMatch = raw.match(/(?:v=|youtu\.be\/)([\w-]{11})/)
+      iframeSrc = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : raw
+    }
+    return ['div', mergeAttributes({ 'data-video-embed': '' }, { 'data-src': src, 'data-provider': provider }, {
+      class: 'video-embed-wrapper'
+    }),
+      ['iframe', { src: iframeSrc, allowfullscreen: 'true', frameborder: '0', allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' }]
+    ]
+  },
+})
 
 interface Props {
   mode: 'new' | 'edit'
   initialData?: {
-    slug: string
-    title: string
-    excerpt: string
-    content: string
-    tags: string[]
-    published: boolean
-    cover_image?: string | null
+    slug: string; title: string; excerpt: string; content: string
+    tags: string[]; published: boolean; cover_image?: string | null
   }
 }
-
 type AiMode = 'draft' | 'continue' | 'excerpt'
 
 const AI_MODES: { key: AiMode; label: string; desc: string; icon: React.ReactNode }[] = [
   { key: 'draft',    label: '生成草稿', desc: '描述主题，AI 帮你写出完整草稿',  icon: <FileText className="w-4 h-4" /> },
-  { key: 'continue', label: '续写内容', desc: '基于已有内容，AI 接着写后续段落', icon: <PenLine className="w-4 h-4" /> },
+  { key: 'continue', label: '续写内容', desc: '基于已有内容，AI 接着写后续段落', icon: <PenLine  className="w-4 h-4" /> },
   { key: 'excerpt',  label: '生成摘要', desc: '根据正文，AI 自动生成列表页摘要', icon: <AlignLeft className="w-4 h-4" /> },
 ]
 
+function mdToHtml(md: string): string {
+  if (!md || md.trim().startsWith('<')) return md
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^> (.+)$/gm, '<blockquote><p>$1</p></blockquote>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+    .replace(/```[\w]*\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />').replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/^(?!<[hupboa]|<li|<pre|<block)(.+)$/gm, '<p>$1</p>').replace(/\n{2,}/g, '')
+}
+
 export default function PostEditor({ mode, initialData }: Props) {
   const router = useRouter()
-  const [saving, setSaving] = useState(false)
-  const [preview, setPreview] = useState(false)
-  const [error, setError] = useState('')
-
-  const [slug, setSlug]       = useState(initialData?.slug ?? '')
-  const [title, setTitle]     = useState(initialData?.title ?? '')
-  const [excerpt, setExcerpt] = useState(initialData?.excerpt ?? '')
-  const [content, setContent] = useState(initialData?.content ?? '')
-  const [tagsRaw, setTagsRaw] = useState(initialData?.tags?.join(', ') ?? '')
-  const [published, setPublished] = useState(initialData?.published ?? false)
+  const [saving, setSaving]       = useState(false)
+  const [preview, setPreview]     = useState(false)
+  const [error, setError]         = useState('')
+  const [slug, setSlug]           = useState(initialData?.slug ?? '')
+  const [title, setTitle]         = useState(initialData?.title ?? '')
+  const [excerpt, setExcerpt]     = useState(initialData?.excerpt ?? '')
+  const [tagsRaw, setTagsRaw]     = useState(initialData?.tags?.join(', ') ?? '')
   const [coverImage, setCoverImage] = useState<string>(initialData?.cover_image ?? '')
+  // 实时同步 HTML 用于分屏预览
+  const [previewHtml, setPreviewHtml] = useState('')
 
-  // ── 封面图上传 ──
   const coverFileRef = useRef<HTMLInputElement>(null)
-  const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadingCover, setUploadingCover]     = useState(false)
   const [coverUploadError, setCoverUploadError] = useState('')
-
-  // ── AI 助手状态 ──
-  const [aiOpen, setAiOpen]     = useState(false)
-  const [aiMode, setAiMode]     = useState<AiMode>('draft')
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [aiResult, setAiResult] = useState('')
+  const [aiOpen, setAiOpen]       = useState(false)
+  const [aiMode, setAiMode]       = useState<AiMode>('draft')
+  const [aiPrompt, setAiPrompt]   = useState('')
+  const [aiResult, setAiResult]   = useState('')
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError]   = useState('')
-  const abortRef = useRef<AbortController | null>(null)
-
-  // ── 图片上传插入 ──
+  const [aiError, setAiError]     = useState('')
+  const abortRef  = useRef<AbortController | null>(null)
   const imgFileRef = useRef<HTMLInputElement>(null)
-  const contentTextareaRef = useRef<HTMLTextAreaElement>(null)
-  const [uploadingImg, setUploadingImg] = useState(false)
+  const [uploadingImg, setUploadingImg]     = useState(false)
   const [imgUploadError, setImgUploadError] = useState('')
+
+  // ── 内联弹窗 state ──────────────────────────────────────────────
+  const [linkOpen, setLinkOpen]   = useState(false)
+  const [linkUrl, setLinkUrl]     = useState('')
+  const [linkText, setLinkText]   = useState('')
+
+  const [tableOpen, setTableOpen] = useState(false)
+  const [tableRows, setTableRows] = useState(3)
+  const [tableCols, setTableCols] = useState(3)
+  const [tableHeader, setTableHeader] = useState(true)
+
+  const [imgUrlOpen, setImgUrlOpen] = useState(false)
+  const [imgUrl, setImgUrl]         = useState('')
+  const [imgAlt, setImgAlt]         = useState('')
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({ heading: { levels: [2, 3] }, codeBlock: false }),
+      Image.configure({ HTMLAttributes: { class: 'rounded-2xl max-w-full shadow-md my-6' } }),
+      LinkExtension.configure({ openOnClick: false, HTMLAttributes: { class: 'text-blue-600 underline underline-offset-2' } }),
+      Placeholder.configure({ placeholder: '开始写作……，输入 / 可唤出快捷菜单' }),
+      TableExtension.configure({ resizable: false }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      CharacterCount,
+      CodeBlockLowlight.configure({ lowlight }),
+      VideoEmbed,
+    ],
+    content: mdToHtml(initialData?.content ?? ''),
+    editorProps: { attributes: { class: 'focus:outline-none min-h-[60vh] px-10 py-8' } },
+    // ← 关键：每次内容变化都同步 HTML 到 state，触发预览重渲染
+    onUpdate: ({ editor }) => { setPreviewHtml(editor.getHTML()) },
+    onCreate: ({ editor }) => { setPreviewHtml(editor.getHTML()) },
+  })
 
   function handleTitleChange(val: string) {
     setTitle(val)
-    if (mode === 'new' && !slug) {
-      setSlug(
-        val.toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w-]/g, '')
-          .slice(0, 80)
-      )
-    }
+    if (mode === 'new' && !slug)
+      setSlug(val.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '').slice(0, 80))
   }
 
   async function handleSave(pub?: boolean) {
-    const finalPublished = pub !== undefined ? pub : published
-    setSaving(true)
-    setError('')
+    setSaving(true); setError('')
     const body = {
-      slug, title, excerpt, content,
+      slug, title, excerpt, content: editor?.getHTML() ?? '',
       tags: tagsRaw.split(',').map(t => t.trim()).filter(Boolean),
-      published: finalPublished,
+      published: pub !== undefined ? pub : false,
       cover_image: coverImage.trim() || null,
     }
     const res = await fetch(
@@ -89,149 +165,117 @@ export default function PostEditor({ mode, initialData }: Props) {
     )
     setSaving(false)
     if (!res.ok) { const d = await res.json(); setError(d.error ?? '保存失败'); return }
-    router.push('/admin')
-    router.refresh()
-  }
-
-  // 插入文本到 textarea 光标位置
-  function insertAtCursor(text: string) {
-    const ta = contentTextareaRef.current
-    if (!ta) {
-      setContent(prev => prev + '\n' + text)
-      return
-    }
-    const start = ta.selectionStart ?? content.length
-    const end   = ta.selectionEnd   ?? content.length
-    const before = content.slice(0, start)
-    const after  = content.slice(end)
-    const newContent = before + (before && !before.endsWith('\n') ? '\n' : '') + text + '\n' + after
-    setContent(newContent)
-    // 移动光标到插入内容之后
-    requestAnimationFrame(() => {
-      const pos = (before + (before && !before.endsWith('\n') ? '\n' : '') + text + '\n').length
-      ta.setSelectionRange(pos, pos)
-      ta.focus()
-    })
+    router.push('/admin'); router.refresh()
   }
 
   async function handleImgUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0]; if (!file) return
     if (file.size > 10 * 1024 * 1024) { setImgUploadError('图片不能超过 10MB'); return }
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    if (!allowed.includes(file.type)) { setImgUploadError('仅支持 JPG/PNG/WebP/GIF'); return }
-
-    setUploadingImg(true)
-    setImgUploadError('')
+    if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) { setImgUploadError('仅支持 JPG/PNG/WebP/GIF'); return }
+    setUploadingImg(true); setImgUploadError('')
     try {
-      const fd = new FormData()
-      fd.append('file', file)
+      const fd = new FormData(); fd.append('file', file)
       const res = await fetch('/api/posts/image', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) { setImgUploadError(data.error ?? '上传失败'); return }
-      const url: string = data.url ?? ''
-      if (!url) { setImgUploadError('未获取到图片地址'); return }
-      const altName = file.name.replace(/\.[^.]+$/, '')
-      insertAtCursor(`![${altName}](${url})`)
-    } catch {
-      setImgUploadError('网络错误，请重试')
-    } finally {
-      setUploadingImg(false)
-      // 清空 input，以便同一文件可重复选择
-      if (imgFileRef.current) imgFileRef.current.value = ''
-    }
+      editor?.chain().focus().setImage({ src: data.url, alt: file.name.replace(/\.[^.]+$/, '') }).run()
+    } catch { setImgUploadError('网络错误，请重试') }
+    finally { setUploadingImg(false); if (imgFileRef.current) imgFileRef.current.value = '' }
   }
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setCoverUploadError('图片不能超过 10MB'); return }
-    setUploadingCover(true)
-    setCoverUploadError('')
+    const file = e.target.files?.[0]; if (!file) return
+    setUploadingCover(true); setCoverUploadError('')
     try {
-      const fd = new FormData()
-      fd.append('file', file)
+      const fd = new FormData(); fd.append('file', file)
       const res = await fetch('/api/posts/image', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) { setCoverUploadError(data.error ?? '上传失败'); return }
       setCoverImage(data.url ?? '')
-    } catch {
-      setCoverUploadError('网络错误，请重试')
-    } finally {
-      setUploadingCover(false)
-      if (coverFileRef.current) coverFileRef.current.value = ''
-    }
+    } catch { setCoverUploadError('网络错误，请重试') }
+    finally { setUploadingCover(false); if (coverFileRef.current) coverFileRef.current.value = '' }
   }
+
+  // 打开链接弹窗时预填当前选区文字
+  const openLinkPopup = useCallback(() => {
+    const { from, to, empty } = editor?.state.selection ?? { from:0, to:0, empty:true }
+    setLinkText(empty ? '' : editor?.state.doc.textBetween(from, to) ?? '')
+    setLinkUrl(editor?.getAttributes('link').href ?? '')
+    setLinkOpen(true)
+  }, [editor])
+
+  const applyLink = useCallback(() => {
+    if (!linkUrl) { editor?.chain().focus().unsetLink().run(); setLinkOpen(false); return }
+    let chain = editor?.chain().focus()
+    if (linkText) chain = chain?.insertContent(`<a href="${linkUrl}">${linkText}</a>`)
+    else chain = chain?.setLink({ href: linkUrl })
+    chain?.run()
+    setLinkOpen(false); setLinkUrl(''); setLinkText('')
+  }, [editor, linkUrl, linkText])
+
+  const applyTable = useCallback(() => {
+    editor?.chain().focus().insertTable({ rows: tableRows, cols: tableCols, withHeaderRow: tableHeader }).run()
+    setTableOpen(false)
+  }, [editor, tableRows, tableCols, tableHeader])
+
+  const applyImgUrl = useCallback(() => {
+    if (!imgUrl) { setImgUrlOpen(false); return }
+    editor?.chain().focus().setImage({ src: imgUrl, alt: imgAlt || undefined }).run()
+    setImgUrlOpen(false); setImgUrl(''); setImgAlt('')
+  }, [editor, imgUrl, imgAlt])
+
+  const handleInsertVideo = useCallback(() => {
+    const url = window.prompt('粘贴 YouTube 或 Bilibili 链接')
+    if (!url) return
+    const provider = url.includes('bilibili') ? 'bilibili' : 'youtube'
+    // 先清除当前光标处可能存在的 link mark，再插入，防止 URL 被自动包裹成 <a>
+    editor?.chain().focus().unsetLink().insertContent({ type: 'videoEmbed', attrs: { src: url, provider } }).run()
+  }, [editor])
 
   async function handleAiGenerate() {
-    setAiLoading(true)
-    setAiResult('')
-    setAiError('')
+    setAiLoading(true); setAiResult(''); setAiError('')
     abortRef.current = new AbortController()
-
     try {
       const res = await fetch('/api/ai/write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         signal: abortRef.current.signal,
-        body: JSON.stringify({ mode: aiMode, prompt: aiPrompt, content, title }),
+        body: JSON.stringify({ mode: aiMode, prompt: aiPrompt, content: editor?.getHTML() ?? '', title }),
       })
-
-      if (!res.ok) {
-        const d = await res.json()
-        setAiError(d.error ?? 'AI 调用失败')
-        return
-      }
-
-      const reader = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
+      if (!res.ok) { const d = await res.json(); setAiError(d.error ?? 'AI 调用失败'); return }
+      const reader = res.body!.getReader(); const decoder = new TextDecoder(); let buffer = ''
       while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+        const { done, value } = await reader.read(); if (done) break
         buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
+        const lines = buffer.split('\n'); buffer = lines.pop() ?? ''
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') break
-          try {
-            const json = JSON.parse(data)
-            const delta = json.choices?.[0]?.delta?.content
-            if (delta) setAiResult(prev => prev + delta)
-          } catch { /* 忽略 */ }
+          const data = line.slice(6).trim(); if (data === '[DONE]') break
+          try { const delta = JSON.parse(data).choices?.[0]?.delta?.content; if (delta) setAiResult(p => p + delta) } catch {}
         }
       }
-    } catch (e: any) {
-      if (e.name !== 'AbortError') setAiError('生成失败，请重试')
-    } finally {
-      setAiLoading(false)
-    }
-  }
-
-  function handleAiStop() {
-    abortRef.current?.abort()
-    setAiLoading(false)
+    } catch (e: any) { if (e.name !== 'AbortError') setAiError('生成失败，请重试') }
+    finally { setAiLoading(false) }
   }
 
   function handleApply() {
     if (!aiResult) return
-    if (aiMode === 'draft') {
-      setContent(aiResult)
-    } else if (aiMode === 'continue') {
-      setContent(prev => prev + (prev.endsWith('\n') ? '' : '\n') + aiResult)
-    } else if (aiMode === 'excerpt') {
-      setExcerpt(aiResult)
-    }
+    if (aiMode === 'draft') editor?.commands.setContent(aiResult)
+    else if (aiMode === 'continue') editor?.commands.insertContentAt(editor.state.doc.content.size, aiResult)
+    else if (aiMode === 'excerpt') setExcerpt(aiResult)
     setAiResult('')
   }
 
+  const TB = ({ onClick, active, disabled, title, children }: {
+    onClick: () => void; active?: boolean; disabled?: boolean; title: string; children: React.ReactNode
+  }) => (
+    <button type="button" onMouseDown={e => { e.preventDefault(); onClick() }} disabled={disabled} title={title}
+      className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} disabled:opacity-30`}>
+      {children}
+    </button>
+  )
+
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
-      {/* Toolbar */}
       <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center gap-4">
         <Link href="/admin" className="p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
           <ArrowLeft className="w-4 h-4" />
@@ -239,72 +283,31 @@ export default function PostEditor({ mode, initialData }: Props) {
         <h1 className="text-sm font-black text-gray-600 tracking-widest uppercase flex-1">
           {mode === 'new' ? '新建文章' : '编辑文章'}
         </h1>
-
-        <button
-          onClick={() => setAiOpen(v => !v)}
-          className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${
-            aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'
-          }`}
-        >
-          <Sparkles className="w-4 h-4" />
-          AI 助手
+        <button onClick={() => setAiOpen(v => !v)}
+          className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'}`}>
+          <Sparkles className="w-4 h-4" />AI 助手
         </button>
-
-        {/* 图片上传插入按钮 */}
-        <button
-          onClick={() => { setImgUploadError(''); imgFileRef.current?.click() }}
-          disabled={uploadingImg}
-          title="上传图片并插入 Markdown"
-          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
-        >
-          {uploadingImg
-            ? <Loader2 className="w-4 h-4 animate-spin" />
-            : <ImagePlus className="w-4 h-4" />
-          }
-          插图
+        <button onClick={() => { setImgUploadError(''); imgFileRef.current?.click() }} disabled={uploadingImg}
+          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
+          {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
         </button>
-        <input
-          ref={imgFileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={handleImgUpload}
-        />
-
-        <button
-          onClick={() => setPreview(v => !v)}
-          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          {preview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          {preview ? '编辑' : '预览'}
+        <input ref={imgFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleImgUpload} />
+        <button onClick={() => setPreview(v => !v)}
+          className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${preview ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}>
+          {preview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}{preview ? '关闭预览' : '分屏预览'}
         </button>
-
-        <button
-          onClick={() => handleSave(false)}
-          disabled={saving}
-          className="flex items-center gap-2 text-xs font-bold text-gray-600 border border-gray-200 px-4 py-2 rounded-xl hover:border-gray-400 transition-colors disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          存草稿
+        <button onClick={() => handleSave(false)} disabled={saving}
+          className="flex items-center gap-2 text-xs font-bold text-gray-600 border border-gray-200 px-4 py-2 rounded-xl hover:border-gray-400 transition-colors disabled:opacity-50">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}存草稿
         </button>
-
-        <button
-          onClick={() => handleSave(true)}
-          disabled={saving}
-          className="flex items-center gap-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          发布
+        <button onClick={() => handleSave(true)} disabled={saving}
+          className="flex items-center gap-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50">
+          {saving && <Loader2 className="w-4 h-4 animate-spin" />}发布
         </button>
       </header>
 
-      {error && (
-        <div className="bg-red-50 border-b border-red-100 px-6 py-3 text-sm text-red-600 font-medium">
-          ⚠ {error}
-        </div>
-      )}
+      {error && <div className="bg-red-50 border-b border-red-100 px-6 py-3 text-sm text-red-600 font-medium">⚠ {error}</div>}
 
-      {/* Meta fields */}
       <div className="border-b border-gray-100 bg-white px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">标题</label>
@@ -331,21 +334,15 @@ export default function PostEditor({ mode, initialData }: Props) {
           <input value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="文章摘要，显示在列表页"
             className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
         </div>
-
-        {/* 封面图 */}
-        <div className="md:col-span-1">
+        <div>
           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">封面图</label>
           <div className="flex gap-2 items-start">
-            {/* 预览缩略图 */}
             {coverImage ? (
-              <div className="relative flex-shrink-0 w-16 h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 group">
+              <div className="relative flex-shrink-0 w-16 h-10 rounded-lg overflow-hidden border border-gray-200 group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={coverImage} alt="封面" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setCoverImage('')}
-                  className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs font-black"
-                >
+                <button type="button" onClick={() => setCoverImage('')}
+                  className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -355,63 +352,161 @@ export default function PostEditor({ mode, initialData }: Props) {
               </div>
             )}
             <div className="flex-1 min-w-0 space-y-1">
-              <button
-                type="button"
-                onClick={() => { setCoverUploadError(''); coverFileRef.current?.click() }}
-                disabled={uploadingCover}
-                className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 bg-gray-50 hover:bg-blue-50 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-              >
+              <button type="button" onClick={() => { setCoverUploadError(''); coverFileRef.current?.click() }} disabled={uploadingCover}
+                className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 bg-gray-50 hover:bg-blue-50 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                 {uploadingCover ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImagePlus className="w-3 h-3" />}
                 {uploadingCover ? '上传中…' : '上传封面'}
               </button>
-              {coverUploadError && (
-                <p className="text-[10px] text-red-500">{coverUploadError}</p>
-              )}
+              {coverUploadError && <p className="text-[10px] text-red-500">{coverUploadError}</p>}
             </div>
-            <input
-              ref={coverFileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleCoverUpload}
-            />
+            <input ref={coverFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCoverUpload} />
           </div>
         </div>
       </div>
 
-      {/* Main area */}
       <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden">
+          {/* 编辑器列 */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* ── 工具栏 ── */}
+            <div className="relative bg-white border-b border-gray-100 px-6 py-2 flex items-center gap-0.5 flex-wrap">
+              <TB onClick={() => editor?.chain().focus().undo().run()} title="撤销 Ctrl+Z" disabled={!editor?.can().undo()}><Undo className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().redo().run()} title="重做 Ctrl+Y" disabled={!editor?.can().redo()}><Redo className="w-4 h-4" /></TB>
+              <div className="w-px h-5 bg-gray-200 mx-1.5" />
+              <TB onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} title="二级标题" active={editor?.isActive('heading', { level: 2 })}><Heading2 className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} title="三级标题" active={editor?.isActive('heading', { level: 3 })}><Heading3 className="w-4 h-4" /></TB>
+              <div className="w-px h-5 bg-gray-200 mx-1.5" />
+              <TB onClick={() => editor?.chain().focus().toggleBold().run()} title="加粗 Ctrl+B" active={editor?.isActive('bold')}><Bold className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().toggleItalic().run()} title="斜体 Ctrl+I" active={editor?.isActive('italic')}><Italic className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().toggleCode().run()} title="行内代码" active={editor?.isActive('code')}><Code className="w-4 h-4" /></TB>
+              <div className="w-px h-5 bg-gray-200 mx-1.5" />
+              <TB onClick={() => editor?.chain().focus().toggleBulletList().run()} title="无序列表" active={editor?.isActive('bulletList')}><List className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().toggleOrderedList().run()} title="有序列表" active={editor?.isActive('orderedList')}><ListOrdered className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().toggleBlockquote().run()} title="引用块" active={editor?.isActive('blockquote')}><Quote className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().toggleCodeBlock().run()} title="代码块" active={editor?.isActive('codeBlock')}><Code2 className="w-4 h-4" /></TB>
+              <div className="w-px h-5 bg-gray-200 mx-1.5" />
+              <TB onClick={openLinkPopup} title="插入链接" active={editor?.isActive('link')}><LinkIcon className="w-4 h-4" /></TB>
+              <TB onClick={() => editor?.chain().focus().setHorizontalRule().run()} title="水平分隔线"><Minus className="w-4 h-4" /></TB>
+              <div className="w-px h-5 bg-gray-200 mx-1.5" />
+              <TB onClick={() => setTableOpen(v => !v)} title="插入表格" active={editor?.isActive('table') || tableOpen}><Table className="w-4 h-4" /></TB>
+              <TB onClick={() => setImgUrlOpen(v => !v)} title="插入图片 URL"><ImagePlus className="w-4 h-4" /></TB>
+              <TB onClick={handleInsertVideo} title="嵌入视频 (YouTube / Bilibili)"><Youtube className="w-4 h-4" /></TB>
 
-        {/* Editor / Preview */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {!preview ? (
-            <>
-              <textarea
-                ref={contentTextareaRef}
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="在这里写 Markdown 正文..."
-                className="flex-1 w-full resize-none font-mono text-sm text-gray-700 leading-relaxed bg-[#FAFAF8] px-10 py-8 focus:outline-none"
-                style={{ minHeight: '60vh' }}
-              />
-              {imgUploadError && (
-                <div className="flex items-center gap-2 px-10 py-2 bg-red-50 border-t border-red-100 text-xs text-red-500">
-                  <span>⚠ {imgUploadError}</span>
-                  <button onClick={() => setImgUploadError('')} className="ml-auto text-red-400 hover:text-red-600">✕</button>
+              {/* ── 链接弹窗 ── */}
+              {linkOpen && (
+                <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 w-80"
+                  onKeyDown={e => { if (e.key === 'Enter') applyLink(); if (e.key === 'Escape') setLinkOpen(false) }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">插入链接</p>
+                  <input autoFocus value={linkUrl} onChange={e => setLinkUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
+                  <input value={linkText} onChange={e => setLinkText(e.target.value)}
+                    placeholder="显示文字（留空则包裹选区）"
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-3 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
+                  <div className="flex gap-2">
+                    <button onClick={applyLink}
+                      className="flex-1 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition">确认</button>
+                    {editor?.isActive('link') && (
+                      <button onClick={() => { editor.chain().focus().unsetLink().run(); setLinkOpen(false) }}
+                        className="text-xs font-black text-red-500 hover:text-red-700 px-3 py-2 rounded-xl hover:bg-red-50 transition">移除</button>
+                    )}
+                    <button onClick={() => setLinkOpen(false)}
+                      className="text-xs font-black text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-100 transition">取消</button>
+                  </div>
                 </div>
               )}
-              {uploadingImg && (
-                <div className="flex items-center gap-2 px-10 py-2 bg-emerald-50 border-t border-emerald-100 text-xs text-emerald-600">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  图片上传中，请稍候…
+
+              {/* ── 表格弹窗 ── */}
+              {tableOpen && (
+                <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 w-64"
+                  onKeyDown={e => { if (e.key === 'Enter') applyTable(); if (e.key === 'Escape') setTableOpen(false) }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">插入表格</p>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="text-[10px] text-gray-400 font-bold block mb-1">行数</label>
+                      <input type="number" min={1} max={20} value={tableRows} onChange={e => setTableRows(Number(e.target.value))}
+                        className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-400 font-bold block mb-1">列数</label>
+                      <input type="number" min={1} max={10} value={tableCols} onChange={e => setTableCols(Number(e.target.value))}
+                        className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-gray-600 mb-3 cursor-pointer">
+                    <input type="checkbox" checked={tableHeader} onChange={e => setTableHeader(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-blue-600" />
+                    包含表头行
+                  </label>
+                  <div className="flex gap-2">
+                    <button onClick={applyTable}
+                      className="flex-1 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition">插入</button>
+                    <button onClick={() => setTableOpen(false)}
+                      className="text-xs font-black text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-100 transition">取消</button>
+                  </div>
                 </div>
               )}
-            </>
-          ) : (
-            <div className="flex-1 max-w-[780px] mx-auto px-10 py-8 text-gray-700 leading-[1.9] overflow-y-auto">
-              <h1 className="text-4xl font-black tracking-tighter text-gray-900 mb-4">{title || '（无标题）'}</h1>
-              <p className="text-gray-400 text-sm mb-8 font-mono">{slug}</p>
-              <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed">{content}</pre>
+
+              {/* ── 图片 URL 弹窗 ── */}
+              {imgUrlOpen && (
+                <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 w-80"
+                  onKeyDown={e => { if (e.key === 'Enter') applyImgUrl(); if (e.key === 'Escape') setImgUrlOpen(false) }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">插入图片</p>
+                  <input autoFocus value={imgUrl} onChange={e => setImgUrl(e.target.value)}
+                    placeholder="图片 URL（https://...）"
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
+                  <input value={imgAlt} onChange={e => setImgAlt(e.target.value)}
+                    placeholder="Alt 描述（可选）"
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-1 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
+                  <p className="text-[10px] text-gray-400 mb-3">或使用顶部「插图」按钮上传本地文件</p>
+                  <div className="flex gap-2">
+                    <button onClick={applyImgUrl}
+                      className="flex-1 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition">插入</button>
+                    <button onClick={() => setImgUrlOpen(false)}
+                      className="text-xs font-black text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-100 transition">取消</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto bg-[#FAFAF8]">
+              <EditorContent editor={editor} />
+            </div>
+            {/* 字数统计栏 */}
+            {editor && (
+              <div className="flex items-center gap-4 px-10 py-2 border-t border-gray-100 bg-white text-[11px] text-gray-400 font-mono">
+                <span>{editor.storage.characterCount.characters()} 字</span>
+                <span className="w-px h-3 bg-gray-200" />
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  约 {Math.max(1, Math.ceil(editor.storage.characterCount.characters() / 300))} 分钟阅读
+                </span>
+              </div>
+            )}
+            {imgUploadError && (
+              <div className="flex items-center gap-2 px-10 py-2 bg-red-50 border-t border-red-100 text-xs text-red-500">
+                <span>⚠ {imgUploadError}</span>
+                <button onClick={() => setImgUploadError('')} className="ml-auto text-red-400 hover:text-red-600">✕</button>
+              </div>
+            )}
+            {uploadingImg && (
+              <div className="flex items-center gap-2 px-10 py-2 bg-emerald-50 border-t border-emerald-100 text-xs text-emerald-600">
+                <Loader2 className="w-3 h-3 animate-spin" />图片上传中，请稍候…
+              </div>
+            )}
+          </div>
+
+          {/* 分屏预览列 — 用 previewHtml state 驱动，实时响应 */}
+          {preview && (
+            <div className="w-[45%] border-l border-gray-100 bg-white flex flex-col overflow-hidden flex-shrink-0">
+              <div className="px-6 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                <Eye className="w-3.5 h-3.5 text-gray-400" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">实时预览</span>
+              </div>
+              <div className="flex-1 overflow-y-auto px-8 py-8">
+                <h1 className="text-3xl font-black tracking-tighter text-gray-900 mb-2">{title || '（无标题）'}</h1>
+                <p className="text-gray-300 text-xs mb-6 font-mono">{slug}</p>
+                <div className="preview-content" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              </div>
             </div>
           )}
         </div>
@@ -421,90 +516,76 @@ export default function PostEditor({ mode, initialData }: Props) {
           <aside className="w-80 border-l border-gray-100 bg-white flex flex-col overflow-hidden flex-shrink-0">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-2 text-sm font-black text-gray-700">
-                <Sparkles className="w-4 h-4 text-violet-500" />
-                AI 写作助手
+                <Sparkles className="w-4 h-4 text-violet-500" />AI 写作助手
               </div>
-              <button onClick={() => setAiOpen(false)} className="text-gray-300 hover:text-gray-600 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={() => setAiOpen(false)} className="text-gray-300 hover:text-gray-600 transition-colors"><X className="w-4 h-4" /></button>
             </div>
-
-            {/* 模式选择 */}
             <div className="px-4 py-3 border-b border-gray-100 space-y-1.5">
               {AI_MODES.map(m => (
-                <button
-                  key={m.key}
-                  onClick={() => { setAiMode(m.key); setAiResult(''); setAiError('') }}
-                  className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                    aiMode === m.key ? 'bg-violet-50 text-violet-700' : 'hover:bg-gray-50 text-gray-600'
-                  }`}
-                >
+                <button key={m.key} onClick={() => { setAiMode(m.key); setAiResult(''); setAiError('') }}
+                  className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${aiMode === m.key ? 'bg-violet-50 text-violet-700' : 'hover:bg-gray-50 text-gray-600'}`}>
                   <span className={`mt-0.5 flex-shrink-0 ${aiMode === m.key ? 'text-violet-500' : 'text-gray-400'}`}>{m.icon}</span>
-                  <div>
-                    <p className="text-xs font-black">{m.label}</p>
-                    <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{m.desc}</p>
-                  </div>
+                  <div><p className="text-xs font-black">{m.label}</p><p className="text-[10px] text-gray-400 leading-tight mt-0.5">{m.desc}</p></div>
                   {aiMode === m.key && <ChevronRight className="w-3.5 h-3.5 ml-auto self-center text-violet-400 flex-shrink-0" />}
                 </button>
               ))}
             </div>
-
-            {/* 输入区 */}
             <div className="px-4 py-3 flex-shrink-0">
               {aiMode === 'draft' && (
-                <textarea
-                  value={aiPrompt}
-                  onChange={e => setAiPrompt(e.target.value)}
-                  placeholder="描述你想写的主题和要点..."
-                  rows={4}
-                  className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-violet-400 resize-none transition"
-                />
+                <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} placeholder="描述你想写的主题和要点..." rows={4}
+                  className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-violet-400 resize-none transition" />
               )}
-              {aiMode === 'continue' && (
-                <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将基于编辑器中的现有内容进行续写</p>
-              )}
-              {aiMode === 'excerpt' && (
-                <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将根据文章标题和正文自动生成摘要</p>
-              )}
-
+              {aiMode === 'continue' && <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将基于编辑器中的现有内容进行续写</p>}
+              {aiMode === 'excerpt'  && <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将根据文章标题和正文自动生成摘要</p>}
               {aiError && <p className="text-xs text-red-500 mt-2">{aiError}</p>}
-
               <div className="flex gap-2 mt-2.5">
                 {aiLoading ? (
-                  <button onClick={handleAiStop}
+                  <button onClick={() => { abortRef.current?.abort(); setAiLoading(false) }}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
-                    <X className="w-3.5 h-3.5" /> 停止
+                    <X className="w-3.5 h-3.5" />停止
                   </button>
                 ) : (
                   <button onClick={handleAiGenerate}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black bg-violet-600 hover:bg-violet-700 text-white transition-colors">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    {aiResult ? '重新生成' : '开始生成'}
+                    <Sparkles className="w-3.5 h-3.5" />{aiResult ? '重新生成' : '开始生成'}
                   </button>
                 )}
                 {aiResult && !aiLoading && aiMode !== 'excerpt' && (
                   <button onClick={handleApply}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                    应用
+                    插入编辑器
                   </button>
                 )}
               </div>
             </div>
-
-            {/* 生成结果 */}
             {(aiLoading || aiResult) && (
-              <div className="flex-1 overflow-y-auto px-4 pb-4">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
+              <div className="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 pt-1">
                   {aiLoading && <Loader2 className="w-3 h-3 animate-spin text-violet-400" />}
-                  生成结果
+                  生成结果 {aiLoading && <span className="text-violet-400 normal-case tracking-normal font-normal">· 生成中…</span>}
                 </div>
-                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-3 min-h-[80px]">
-                  {aiResult}
-                  {aiLoading && <span className="inline-block w-1.5 h-3.5 bg-violet-400 animate-pulse ml-0.5 align-middle" />}
-                </pre>
+                {aiMode !== 'excerpt' ? (
+                  <div className="border border-gray-100 rounded-xl overflow-hidden">
+                    <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-300">渲染预览</span>
+                    </div>
+                    <div className="p-3 max-h-[300px] overflow-y-auto">
+                      <div className="ai-preview text-xs" dangerouslySetInnerHTML={{ __html: aiResult + (aiLoading ? '<span class="ai-cursor"></span>' : '') }} />
+                    </div>
+                  </div>
+                ) : (
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-3 min-h-[60px]">
+                    {aiResult}
+                    {aiLoading && <span className="inline-block w-1.5 h-3.5 bg-violet-400 animate-pulse ml-0.5 align-middle" />}
+                  </pre>
+                )}
+                {aiResult && !aiLoading && aiMode !== 'excerpt' && (
+                  <button onClick={handleApply} className="w-full py-2.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                    插入到编辑器
+                  </button>
+                )}
                 {aiResult && !aiLoading && aiMode === 'excerpt' && (
-                  <button onClick={handleApply}
-                    className="w-full mt-2 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                  <button onClick={handleApply} className="w-full py-2.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-colors">
                     应用为摘要
                   </button>
                 )}
@@ -513,6 +594,7 @@ export default function PostEditor({ mode, initialData }: Props) {
           </aside>
         )}
       </div>
+
     </div>
   )
 }

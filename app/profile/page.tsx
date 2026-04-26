@@ -8,7 +8,7 @@ import Link from 'next/link'
 import {
   Camera, Loader2, Check, User, Mail, Phone, FileText,
   Lock, Eye, EyeOff, ShieldCheck, Bookmark, Heart,
-  Settings, Save, Send, LogOut, Palette, Bell, Globe, Menu
+  Settings, Save, Send, LogOut, Palette, Bell, Globe, Menu, X
 } from 'lucide-react'
 
 interface ProfileData {
@@ -23,6 +23,13 @@ interface ProfileData {
 interface FollowCounts {
   following: number
   followers: number
+}
+
+interface FollowUser {
+  id: number
+  name: string
+  avatar: string | null
+  bio: string | null
 }
 
 const MENU_ITEMS = [
@@ -47,6 +54,9 @@ export default function ProfilePage() {
   const [error, setError]                 = useState('')
   const [avatarError, setAvatarError]     = useState(false)
   const [followCounts, setFollowCounts]   = useState<FollowCounts>({ following: 0, followers: 0 })
+  const [followModal, setFollowModal]     = useState<'followers'|'following'|null>(null)
+  const [followList, setFollowList]       = useState<FollowUser[]>([])
+  const [followListLoading, setFollowListLoading] = useState(false)
 
   // 密码
   const [pwStep, setPwStep]       = useState<'idle'|'sending'|'code'|'changing'|'done'>('idle')
@@ -154,6 +164,18 @@ export default function ProfilePage() {
     } catch { setPwError('网络错误，请重试'); setPwStep('code') }
   }
 
+  async function openFollowModal(type: 'followers' | 'following') {
+    setFollowModal(type)
+    setFollowList([])
+    setFollowListLoading(true)
+    try {
+      const res = await fetch(`/api/follows?userId=${userId}&list=${type}`)
+      const data = await res.json()
+      setFollowList(Array.isArray(data) ? data : [])
+    } catch {}
+    setFollowListLoading(false)
+  }
+
   function savePrefs(next: { showBookmarks: boolean; showLikes: boolean }) {
     localStorage.setItem('arc_prefs', JSON.stringify(next))
   }
@@ -236,15 +258,15 @@ export default function ProfilePage() {
               <p className="text-xs text-slate-300 mt-2">支持 JPG / PNG / WebP，最大 5MB</p>
               {userId > 0 && (
                 <div className="flex items-center gap-4 mt-3 justify-center sm:justify-start">
-                  <Link href={`/profile/${userId}?tab=followers`} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                  <button onClick={() => openFollowModal('followers')} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                     <span className="text-sm font-black text-slate-800">{followCounts.followers}</span>
                     <span className="text-xs text-slate-400">粉丝</span>
-                  </Link>
+                  </button>
                   <span className="w-px h-4 bg-slate-100" />
-                  <Link href={`/profile/${userId}?tab=following`} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                  <button onClick={() => openFollowModal('following')} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                     <span className="text-sm font-black text-slate-800">{followCounts.following}</span>
                     <span className="text-xs text-slate-400">关注</span>
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
@@ -540,6 +562,65 @@ export default function ProfilePage() {
         </nav>
 
       </div>
+
+      {/* 粉丝 / 关注 悬浮弹窗 */}
+      {followModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setFollowModal(null)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+              <h3 className="font-bold text-slate-800 text-base">
+                {followModal === 'followers' ? '粉丝' : '关注'}
+                <span className="ml-2 text-slate-400 font-normal text-sm">
+                  {followModal === 'followers' ? followCounts.followers : followCounts.following}
+                </span>
+              </h3>
+              <button onClick={() => setFollowModal(null)} className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* list */}
+            <div className="max-h-[360px] overflow-y-auto py-2">
+              {followListLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                </div>
+              ) : followList.length === 0 ? (
+                <p className="text-center text-slate-400 text-sm py-10">暂无{followModal === 'followers' ? '粉丝' : '关注'}</p>
+              ) : (
+                followList.map(u => (
+                  <Link
+                    key={u.id}
+                    href={`/profile/${u.id}`}
+                    onClick={() => setFollowModal(null)}
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-2xl overflow-hidden bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                      {u.avatar ? (
+                        <Image src={u.avatar} alt={u.name} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                      ) : (
+                        <span className="text-indigo-500 font-black text-sm">{u.name?.charAt(0).toUpperCase() || '?'}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm truncate">{u.name}</p>
+                      {u.bio && <p className="text-xs text-slate-400 truncate mt-0.5">{u.bio}</p>}
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

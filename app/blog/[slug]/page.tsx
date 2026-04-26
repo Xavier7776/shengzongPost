@@ -1,4 +1,4 @@
-// 路径：app/blog/[slug]/page.tsx  ← 完整替换，删掉原来的内联 AuthorCard 函数
+// 路径：app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -8,6 +8,7 @@ import PostActions from '@/components/sections/PostActions'
 import ViewTracker from '@/components/sections/ViewTracker'
 import AuthorCard from '@/components/sections/AuthorCard'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
+import PostContent from '@/components/sections/PostContent'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${post.title} — ARC.`, description: post.excerpt }
 }
 
+// ── 旧 Markdown 兼容渲染（仅用于历史文章） ────────────────────────
 function renderInline(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/)
   return parts.map((part, i) =>
@@ -30,7 +32,7 @@ function renderInline(text: string) {
   )
 }
 
-function renderContent(content: string) {
+function renderMarkdown(content: string) {
   const lines = content.split('\n')
   const elements: React.ReactNode[] = []
   let i = 0
@@ -119,6 +121,9 @@ export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(params.slug)
   if (!post) notFound()
 
+  // 新文章（Tiptap 存的 HTML）以 < 开头；旧文章是 Markdown
+  const isHtml = post.content.trimStart().startsWith('<')
+
   return (
     <>
     <ReadingProgressBar />
@@ -146,7 +151,14 @@ export default async function BlogPostPage({ params }: PageProps) {
             ))}
           </div>
         </header>
-        <div className="space-y-5">{renderContent(post.content)}</div>
+
+        {isHtml ? (
+          // 新文章：Tiptap 输出的 HTML，由 PostContent 处理视频嵌入
+          <PostContent html={post.content} />
+        ) : (
+          // 旧文章：保留原有 Markdown 解析，不受影响
+          <div className="space-y-5">{renderMarkdown(post.content)}</div>
+        )}
       </article>
       <ViewTracker slug={params.slug} />
       <PostActions slug={params.slug} />
