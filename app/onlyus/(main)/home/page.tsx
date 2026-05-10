@@ -139,7 +139,7 @@ export default function OnlyUsHomePage() {
               letterSpacing: '0.06em',
               margin: 0,
             }}>
-              "In all the world, there is no heart for me like yours."
+              &ldquo;In all the world, there is no heart for me like yours.&rdquo;
             </p>
           </div>
         </div>

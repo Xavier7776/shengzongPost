@@ -166,7 +166,7 @@ function QuestionSection() {
         fontFamily: "'Playfair Display', serif",
         fontStyle: 'italic', marginBottom: 20,
       }}>
-        "{todayQuestion.question_text}"
+        &ldquo;{todayQuestion.question_text}&rdquo;
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
