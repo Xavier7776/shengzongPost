@@ -84,8 +84,8 @@ export default function CalendarPage() {
   const coupleId = coupleInfo?.id ?? ''
 
   useEffect(() => {
-    if (profile?.id && partner?.id) loadEvents(profile.id, partner.id)
-  }, [profile?.id, partner?.id, loadEvents])
+    if (coupleId) loadEvents(coupleId)
+  }, [coupleId, loadEvents])
 
   // 构建当月格子
   const startOfMonth = currentMonth.startOf('month')

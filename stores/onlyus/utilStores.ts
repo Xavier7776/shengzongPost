@@ -7,27 +7,27 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 
 // Calendar
 export interface CalendarEvent {
-  id: string; user_id: string; title: string; event_date: string
-  event_type: string; color: string | null; note: string | null; created_at: string
+  id: string; couple_id: string; created_by: string; title: string
+  date: string; end_date: string; color: string | null; note: string | null; created_at: string
 }
 interface CalendarState {
   events: CalendarEvent[]; isLoading: boolean
-  loadEvents: (u1: string, u2: string) => Promise<void>
+  loadEvents: (coupleId: string) => Promise<void>
   addEvent: (e: Omit<CalendarEvent, 'id' | 'created_at'>) => Promise<void>
   deleteEvent: (id: string) => Promise<void>
 }
 export const useCalendarStore = create<CalendarState>()(persist((set) => ({
   events: [], isLoading: false,
-  loadEvents: async (u1, u2) => {
+  loadEvents: async (coupleId) => {
     set({ isLoading: true })
     const s = getSupabaseClient()
-    const { data } = await s.from('calendar_events').select('*').in('user_id', [u1, u2]).order('event_date', { ascending: true })
+    const { data } = await s.from('calendar_events').select('*').eq('couple_id', coupleId).order('date', { ascending: true })
     set({ events: data || [], isLoading: false })
   },
   addEvent: async (event) => {
     const s = getSupabaseClient()
     const { data, error } = await s.from('calendar_events').insert(event).select().single()
-    if (!error && data) set((st) => ({ events: [...st.events, data].sort((a, b) => a.event_date.localeCompare(b.event_date)) }))
+    if (!error && data) set((st) => ({ events: [...st.events, data].sort((a, b) => a.date.localeCompare(b.date)) }))
   },
   deleteEvent: async (id) => {
     const s = getSupabaseClient()

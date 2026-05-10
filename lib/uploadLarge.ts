@@ -21,7 +21,7 @@ export interface UploadResult {
 
 export async function uploadLarge(
   buffer: Buffer,
-  options: Record<string, unknown> & { resource_type?: string }
+  options: Record<string, unknown> & { resource_type?: 'raw' | 'image' | 'video' | 'auto' }
 ): Promise<UploadResult> {
   const tmpPath = join(tmpdir(), randomUUID())
   await writeFile(tmpPath, buffer)
@@ -31,7 +31,7 @@ export async function uploadLarge(
       cloudinary.uploader.upload_large(
         tmpPath,
         { chunk_size: 6 * 1024 * 1024, ...options },
-        (error: Error | null, result: { secure_url: string; public_id: string } | undefined) => {
+        (error: unknown, result: { secure_url: string; public_id: string } | undefined) => {
           if (error || !result) return reject(error ?? new Error('upload_large 返回空结果'))
           resolve({ secure_url: result.secure_url, public_id: result.public_id })
         }

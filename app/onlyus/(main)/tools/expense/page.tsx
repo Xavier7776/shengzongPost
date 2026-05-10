@@ -75,7 +75,7 @@ function AddExpenseModal({ onClose, coupleId, userId }: { onClose: () => void; c
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {EXPENSE_CATEGORIES.map(cat => (
               <button key={cat.key} onClick={() => setCategory(cat.key)} style={{
-                padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                padding: '6px 12px', borderRadius: 20, cursor: 'pointer',
                 background: category === cat.key ? 'rgba(196,120,90,0.12)' : 'rgba(0,0,0,0.04)',
                 color: category === cat.key ? '#C4785A' : 'rgba(61,35,24,0.5)',
                 fontSize: 12, fontFamily: "'DM Sans', sans-serif",

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf .next)",
+      "Bash(TMPDIR=E:/chromeDownload/arc-portfolio/.tmp npm run build)"
+    ]
+  }
+}

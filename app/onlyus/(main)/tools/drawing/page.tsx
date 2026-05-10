@@ -260,7 +260,7 @@ export default function DrawingPage() {
 
               {/* 橡皮 */}
               <button onClick={() => setTool(tool === 'eraser' ? 'pen' : 'eraser')} style={{
-                padding: '4px 10px', borderRadius: 7, border: 'none',
+                padding: '4px 10px', borderRadius: 7,
                 background: tool === 'eraser' ? 'rgba(196,120,90,0.12)' : 'transparent',
                 color: tool === 'eraser' ? '#C4785A' : 'rgba(61,35,24,0.45)',
                 fontSize: 14, cursor: 'pointer',
