@@ -57,9 +57,22 @@ export async function getPostBySlugAdmin(slug: string): Promise<Post | null> {
   const post = serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
   return post
 }
-export async function createPost(data: { slug: string; title: string; excerpt: string; content: string; tags: string[]; published: boolean; cover_image?: string | null; attachments?: { url: string; filename: string; size: number }[] }): Promise<Post> {
+export async function createPost(data: {
+  slug: string
+  title: string
+  excerpt: string
+  content: string
+  tags: string[]
+  published: boolean
+  cover_image?: string | null
+  attachments?: { url: string; filename: string; size: number }[]
+  author_id?: number | null
+}): Promise<Post> {
   const attachments = JSON.stringify(data.attachments ?? [])
-  const rows = await sql`INSERT INTO posts(slug,title,excerpt,content,tags,published,cover_image,attachments) VALUES(${data.slug},${data.title},${data.excerpt},${data.content},${data.tags},${data.published},${data.cover_image ?? null},${attachments}::jsonb) RETURNING *`
+  const rows = await sql`
+    INSERT INTO posts(slug,title,excerpt,content,tags,published,cover_image,attachments,author_id)
+    VALUES(${data.slug},${data.title},${data.excerpt},${data.content},${data.tags},${data.published},${data.cover_image ?? null},${attachments}::jsonb,${data.author_id ?? null})
+    RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
 export async function updatePost(slug: string, data: Partial<{ title: string; excerpt: string; content: string; tags: string[]; published: boolean; slug: string; cover_image: string; attachments: { url: string; filename: string; size: number }[]; author_id: number | null }>): Promise<Post> {
@@ -175,7 +188,6 @@ export async function getApprovedComments(postSlug: string): Promise<Comment[]> 
     ORDER BY c.created_at ASC
   `
   const all = serializeRows(rows as Record<string, unknown>[]) as unknown as Comment[]
-  // 组装嵌套结构
   const map = new Map<number, Comment>()
   const roots: Comment[] = []
   all.forEach(c => { c.replies = []; map.set(c.id, c) })
@@ -201,8 +213,6 @@ export async function createApprovedComment(data: { post_slug: string; user_id: 
   const rows = await sql`INSERT INTO comments(post_slug,user_id,user_name,content,parent_id,status) VALUES(${data.post_slug},${data.user_id},${data.user_name},${data.content},NULL,'approved') RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
 }
-
-// 删除某篇文章下 AI bot 发布的所有评论（重新发布时先清理，避免重复）
 export async function deleteAiBotCommentForPost(postSlug: string): Promise<void> {
   await sql`
     DELETE FROM comments
@@ -214,7 +224,6 @@ export async function updateCommentStatus(id: number, status: 'approved'|'reject
   const rows = await sql`UPDATE comments SET status=${status} WHERE id=${id} RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
 }
-
 export async function deleteComment(id: number): Promise<void> {
   await sql`DELETE FROM comments WHERE id=${id}`
 }
@@ -306,16 +315,15 @@ export async function getFollowCounts(userId: number): Promise<{ following: numb
 // ─── Post Images ──────────────────────────────────────────────────────────────
 export interface PostImage {
   id: number
-  post_slug: string | null   // 关联文章 slug，插入时可为空（先上传后关联）
+  post_slug: string | null
   url: string
-  public_id: string          // Cloudinary public_id，用于删除
-  filename: string           // 原始文件名
-  size: number               // 文件大小（bytes）
+  public_id: string
+  filename: string
+  size: number
   mime_type: string
-  uploaded_by: number        // 上传者 user_id
+  uploaded_by: number
   created_at: string
 }
-
 export async function createPostImage(data: {
   post_slug: string | null
   url: string
@@ -332,19 +340,16 @@ export async function createPostImage(data: {
   `
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as PostImage
 }
-
 export async function getPostImages(postSlug?: string): Promise<PostImage[]> {
   const rows = postSlug
     ? await sql`SELECT * FROM post_images WHERE post_slug=${postSlug} ORDER BY created_at DESC`
     : await sql`SELECT * FROM post_images ORDER BY created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostImage[]
 }
-
 export async function deletePostImage(id: number): Promise<{ public_id: string } | null> {
   const rows = await sql`DELETE FROM post_images WHERE id=${id} RETURNING public_id`
   return rows[0] ? { public_id: rows[0].public_id as string } : null
 }
-
 export async function updatePostImageSlug(id: number, postSlug: string): Promise<void> {
   await sql`UPDATE post_images SET post_slug=${postSlug} WHERE id=${id}`
 }
@@ -359,7 +364,6 @@ export interface HeroSlide {
   enabled: boolean
   created_at: string
 }
-
 export async function getAllHeroSlides(): Promise<HeroSlide[]> {
   const rows = await sql`
     SELECT * FROM hero_slides
@@ -367,7 +371,6 @@ export async function getAllHeroSlides(): Promise<HeroSlide[]> {
   `
   return serializeRows(rows as Record<string, unknown>[]) as unknown as HeroSlide[]
 }
-
 export async function getEnabledHeroSlides(): Promise<HeroSlide[]> {
   const rows = await sql`
     SELECT * FROM hero_slides
@@ -376,7 +379,6 @@ export async function getEnabledHeroSlides(): Promise<HeroSlide[]> {
   `
   return serializeRows(rows as Record<string, unknown>[]) as unknown as HeroSlide[]
 }
-
 export async function createHeroSlide(data: {
   img: string
   title: string
@@ -390,7 +392,6 @@ export async function createHeroSlide(data: {
   `
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as HeroSlide
 }
-
 export async function updateHeroSlide(
   id: number,
   data: Partial<{ img: string; title: string; subtitle: string; sort_order: number; enabled: boolean }>
@@ -407,10 +408,10 @@ export async function updateHeroSlide(
   `
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as HeroSlide
 }
-
 export async function deleteHeroSlide(id: number): Promise<void> {
   await sql`DELETE FROM hero_slides WHERE id = ${id}`
 }
+
 // ─── Post Edit Requests ───────────────────────────────────────────────────────
 export interface PostEditRequest {
   id: number
@@ -426,13 +427,11 @@ export interface PostEditRequest {
   created_at: string
   reviewed_at: string | null
 }
-
 export interface PostEditRequestWithUser extends PostEditRequest {
   user_name: string
   user_avatar: string | null
   post_title: string
 }
-
 export async function createEditRequest(data: {
   post_slug: string
   user_id: number
@@ -449,7 +448,6 @@ export async function createEditRequest(data: {
   `
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as PostEditRequest
 }
-
 export async function getEditRequestsByUser(userId: number): Promise<PostEditRequestWithUser[]> {
   const rows = await sql`
     SELECT r.*, u.name as user_name, u.avatar as user_avatar, COALESCE(p.title, r.title) as post_title
@@ -461,7 +459,6 @@ export async function getEditRequestsByUser(userId: number): Promise<PostEditReq
   `
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostEditRequestWithUser[]
 }
-
 export async function getAllEditRequests(): Promise<PostEditRequestWithUser[]> {
   const rows = await sql`
     SELECT r.*, u.name as user_name, u.avatar as user_avatar, COALESCE(p.title, r.title) as post_title
@@ -474,7 +471,6 @@ export async function getAllEditRequests(): Promise<PostEditRequestWithUser[]> {
   `
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostEditRequestWithUser[]
 }
-
 export async function getEditRequestById(id: number): Promise<PostEditRequestWithUser | null> {
   const rows = await sql`
     SELECT r.*, u.name as user_name, u.avatar as user_avatar, COALESCE(p.title, r.title) as post_title
@@ -486,7 +482,6 @@ export async function getEditRequestById(id: number): Promise<PostEditRequestWit
   `
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as PostEditRequestWithUser : null
 }
-
 export async function reviewEditRequest(
   id: number,
   status: 'approved' | 'rejected',
@@ -500,13 +495,10 @@ export async function reviewEditRequest(
   `
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as PostEditRequest
 }
-
-
 export async function getPendingEditRequestsCount(): Promise<number> {
   const rows = await sql`SELECT COUNT(*) as cnt FROM post_edit_requests WHERE status='pending'`
   return Number((rows[0] as { cnt: string }).cnt)
 }
-
 export async function deleteEditRequest(id: number, userId: number): Promise<boolean> {
   const rows = await sql`
     DELETE FROM post_edit_requests
@@ -516,11 +508,7 @@ export async function deleteEditRequest(id: number, userId: number): Promise<boo
   return rows.length > 0
 }
 
-// ─── Post 附件 ────────────────────────────────────────────────────────────────
-// ✅ 新增：更新单条附件的 external_url（蓝奏云等第三方链接）
-
-// ── Attachment helpers (读写 posts.attachments JSONB) ──────────────────────
-
+// ─── Post Attachments (存在 posts.attachments JSONB 列) ──────────────────────
 export interface PostAttachment {
   url: string
   filename: string
@@ -528,9 +516,9 @@ export interface PostAttachment {
 }
 
 export async function getPostAttachmentsBySlug(slug: string): Promise<PostAttachment[]> {
-  const rows = await sql`SELECT attachments FROM posts WHERE slug=${slug}`
+  const rows = await sql`SELECT attachments FROM posts WHERE slug=${slug} LIMIT 1`
   if (!rows[0]) return []
-  return (rows[0].attachments as PostAttachment[]) ?? []
+  return ((rows[0] as { attachments: PostAttachment[] | null }).attachments) ?? []
 }
 
 export async function createPostAttachment(
