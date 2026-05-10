@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useIsMobile } from '@/lib/hooks'
 
 const PRESET_OPTIONS = ['火锅', '寿司', '披萨', '饺子', '麻辣烫', '汉堡', '沙拉', '拉面']
 const COLORS = ['#C4785A', '#E8849C', '#F5A623', '#7EB8D4', '#7BB87E', '#9B7EB8', '#D4584A', '#6B9BD2']
 
 export default function RoulettePage() {
+  const isMobile = useIsMobile()
   const [options, setOptions] = useState<string[]>(PRESET_OPTIONS)
   const [newOption, setNewOption] = useState('')
   const [spinning, setSpinning] = useState(false)
@@ -77,13 +79,13 @@ export default function RoulettePage() {
         input:focus { border-color: rgba(196,120,90,0.4) !important; outline: none; }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '36px 40px 60px', maxWidth: 800, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '36px 40px 60px', maxWidth: 800, margin: '0 auto' }}>
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>今天</p>
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 400, color: '#3D2318', margin: 0 }}>转盘决策</h1>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: 20, alignItems: 'start' }}>
 
           {/* 转盘 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -104,6 +106,8 @@ export default function RoulettePage() {
                   transition: spinning ? 'transform 4s cubic-bezier(0.2, 0, 0.1, 1)' : 'none',
                   borderRadius: '50%',
                   boxShadow: '0 8px 32px rgba(196,120,90,0.25), 0 2px 8px rgba(0,0,0,0.08)',
+                  maxWidth: '100%',
+                  height: 'auto',
                 }}
               >
                 {n === 0 ? (

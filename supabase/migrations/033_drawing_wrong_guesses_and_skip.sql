@@ -1,0 +1,3 @@
+-- 增加猜错计数和跳过请求列
+ALTER TABLE drawing_games ADD COLUMN IF NOT EXISTS wrong_guesses INTEGER DEFAULT 0 NOT NULL;
+ALTER TABLE drawing_games ADD COLUMN IF NOT EXISTS skip_requested BOOLEAN DEFAULT FALSE NOT NULL;

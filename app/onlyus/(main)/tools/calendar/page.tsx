@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 import { useCalendarStore, type CalendarEvent } from '@/stores/onlyus/utilStores'
 import dayjs, { type Dayjs } from 'dayjs'
 
@@ -14,6 +15,7 @@ function AddEventModal({ defaultDate, coupleId, userId, onClose, onSave }: {
   onClose: () => void
   onSave: (e: Omit<CalendarEvent, 'id' | 'created_at'>) => Promise<void>
 }) {
+  const isMobile = useIsMobile()
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(defaultDate)
   const [endDate, setEndDate] = useState(defaultDate)
@@ -30,8 +32,8 @@ function AddEventModal({ defaultDate, coupleId, userId, onClose, onSave }: {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(61,35,24,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={onClose}>
-      <div style={{ width: '100%', maxWidth: 420, background: 'rgba(255,252,248,0.97)', borderRadius: 24, padding: '32px 36px', boxShadow: '0 24px 64px rgba(61,35,24,0.18)', border: '1px solid rgba(196,120,90,0.15)' }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(61,35,24,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 12 : 24 }} onClick={onClose}>
+      <div style={{ width: '100%', maxWidth: isMobile ? '100%' : 420, background: 'rgba(255,252,248,0.97)', borderRadius: isMobile ? 16 : 24, padding: isMobile ? '24px 20px' : '32px 36px', boxShadow: '0 24px 64px rgba(61,35,24,0.18)', border: '1px solid rgba(196,120,90,0.15)' }} onClick={e => e.stopPropagation()}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 20, color: '#3D2318', margin: '0 0 20px' }}>添加日程</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
@@ -75,6 +77,7 @@ function AddEventModal({ defaultDate, coupleId, userId, onClose, onSave }: {
 // ── 主页面 ──────────────────────────────────────────────────────────
 export default function CalendarPage() {
   const { profile, partner, coupleInfo } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const { events, isLoading, loadEvents, addEvent, deleteEvent } = useCalendarStore()
   const [currentMonth, setCurrentMonth] = useState(dayjs())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -120,10 +123,10 @@ export default function CalendarPage() {
         .cal-day:hover { background: rgba(196,120,90,0.06) !important; }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '32px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '32px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
 
         {/* 标题 */}
-        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 24, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: isMobile ? 12 : 0 }}>
           <div>
             <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>共享日历</p>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 400, color: '#3D2318', margin: 0 }}>
@@ -139,7 +142,7 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 16, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 260px', gap: 16, alignItems: 'start' }}>
 
           {/* 日历格 */}
           <div style={{
@@ -171,7 +174,7 @@ export default function CalendarPage() {
                     onClick={() => setSelectedDate(ds)}
                     style={{
                       borderRadius: 10, padding: '6px 4px',
-                      minHeight: 64, cursor: 'pointer',
+                      minHeight: isMobile ? 48 : 64, cursor: 'pointer',
                       background: isSelected
                         ? 'rgba(196,120,90,0.1)'
                         : isToday
@@ -187,7 +190,7 @@ export default function CalendarPage() {
                     }}
                   >
                     <div style={{
-                      width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: isMobile ? 20 : 24, height: isMobile ? 20 : 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: isToday ? '#E8849C' : 'transparent',
                       color: isToday ? '#fff' : 'rgba(61,35,24,0.7)',
                       fontSize: 12, fontFamily: "'DM Sans', sans-serif", fontWeight: isToday ? 600 : 400,

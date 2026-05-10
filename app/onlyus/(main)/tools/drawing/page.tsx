@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -27,6 +28,7 @@ const WIDTHS = [2, 4, 8, 14]
 
 export default function DrawingPage() {
   const { profile, partner, coupleInfo } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
   const isDrawingRef = useRef(false)
@@ -198,10 +200,10 @@ export default function DrawingPage() {
         canvas { touch-action: none; }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '32px 36px 48px', maxWidth: 980, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '32px 36px 48px', maxWidth: 980, margin: '0 auto' }}>
 
         {/* 标题 */}
-        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-end', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 8 : 0 }}>
           <div>
             <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>协作画板</p>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 400, color: '#3D2318', margin: 0 }}>画画猜猜</h1>
@@ -214,7 +216,7 @@ export default function DrawingPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 260px', gap: 14, alignItems: 'start' }}>
 
           {/* 画板区 */}
           <div style={{ animation: 'card-rise 0.5s ease 0.04s both' }}>

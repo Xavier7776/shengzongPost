@@ -5,6 +5,7 @@ import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
 import { useLetterStore, type Letter } from '@/stores/onlyus/letterStore'
 import { useDiaryStore, type DiaryEntry, type DiaryVisibility } from '@/stores/onlyus/diaryStore'
 import dayjs from 'dayjs'
+import { useIsMobile } from '@/lib/hooks'
 
 // ── 3D 信封组件 ──────────────────────────────────────────────────────
 function Envelope3D({ letter, onClick }: { letter: Letter; onClick: () => void }) {
@@ -91,6 +92,7 @@ function WriteLetterModal({ onClose, onSend }: { onClose: () => void; onSend: (c
   const [content, setContent] = useState('')
   const [scheduledAt, setScheduledAt] = useState(dayjs().add(7, 'day').format('YYYY-MM-DD'))
   const [sending, setSending] = useState(false)
+  const isMobile = useIsMobile()
 
   const handleSend = async () => {
     if (!content.trim()) return
@@ -106,12 +108,12 @@ function WriteLetterModal({ onClose, onSend }: { onClose: () => void; onSend: (c
       background: 'rgba(61,35,24,0.4)',
       backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 24,
+      padding: isMobile ? 12 : 24,
     }} onClick={onClose}>
       <div style={{
-        width: '100%', maxWidth: 520,
+        width: '100%', maxWidth: isMobile ? '100%' : 520,
         background: 'rgba(255,252,248,0.97)',
-        borderRadius: 24, padding: '36px 40px',
+        borderRadius: isMobile ? 16 : 24, padding: isMobile ? '24px 20px' : '36px 40px',
         boxShadow: '0 24px 64px rgba(61,35,24,0.2)',
         border: '1px solid rgba(196,120,90,0.15)',
       }} onClick={e => e.stopPropagation()}>
@@ -182,16 +184,17 @@ function WriteLetterModal({ onClose, onSend }: { onClose: () => void; onSend: (c
 
 // ── 阅读弹窗 ────────────────────────────────────────────────────────
 function ReadLetterModal({ letter, onClose }: { letter: Letter; onClose: () => void }) {
+  const isMobile = useIsMobile()
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(61,35,24,0.4)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 12 : 24,
     }} onClick={onClose}>
       <div style={{
-        width: '100%', maxWidth: 520,
+        width: '100%', maxWidth: isMobile ? '100%' : 520,
         background: 'linear-gradient(160deg, #FFF8F0, #FFF3E8)',
-        borderRadius: 24, padding: '40px 44px',
+        borderRadius: isMobile ? 16 : 24, padding: isMobile ? '28px 20px' : '40px 44px',
         boxShadow: '0 24px 64px rgba(61,35,24,0.2)',
         border: '1px solid rgba(196,120,90,0.2)',
         position: 'relative',
@@ -272,6 +275,7 @@ function DiaryEntryCard({ entry, isMe, onDelete }: { entry: DiaryEntry; isMe: bo
 // ── 主页面 ──────────────────────────────────────────────────────────
 export default function LettersPage() {
   const { profile, partner } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const { pendingLetters, receivedLetters, isLoading: lettersLoading, loadLetters, scheduleLetter, deleteLetter } = useLetterStore()
   const { myEntries, partnerEntries, isLoading: diaryLoading, loadDiaries, addDiary, deleteDiary } = useDiaryStore()
 
@@ -323,10 +327,10 @@ export default function LettersPage() {
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(196,120,90,0.2); border-radius: 2px; }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '40px 40px 60px', maxWidth: 960, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '40px 40px 60px', maxWidth: 960, margin: '0 auto' }}>
 
         {/* 标题 + Tab */}
-        <div className="letter-card" style={{ marginBottom: 28, animationDelay: '0ms', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div className="letter-card" style={{ marginBottom: 28, animationDelay: '0ms', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: isMobile ? 12 : 0 }}>
           <div>
             <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>
               温柔留存
@@ -359,7 +363,7 @@ export default function LettersPage() {
 
         {/* ── 情书 Tab ── */}
         {tab === 'letters' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
 
             {/* 左：待送出 */}
             <div className="letter-card" style={{ animationDelay: '60ms' }}>
@@ -437,7 +441,7 @@ export default function LettersPage() {
 
         {/* ── 日记 Tab ── */}
         {tab === 'diary' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
 
             {/* 左：我的日记 */}
             <div className="letter-card" style={{ animationDelay: '60ms', display: 'flex', flexDirection: 'column', gap: 16 }}>

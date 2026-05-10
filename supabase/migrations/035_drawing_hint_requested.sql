@@ -1,0 +1,2 @@
+-- 增加揭示请求列
+ALTER TABLE drawing_games ADD COLUMN IF NOT EXISTS hint_requested BOOLEAN DEFAULT FALSE NOT NULL;

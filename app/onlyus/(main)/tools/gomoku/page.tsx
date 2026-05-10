@@ -2,12 +2,14 @@
 
 import { useEffect } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 import { useGomokuStore, type Stone } from '@/stores/onlyus/gameStores'
 
 const BOARD_SIZE = 15
 
 export default function GomokuPage() {
   const { profile, partner, coupleInfo } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const { game, myColor, isLoading, loadOrCreateGame, makeMove, restartGame, subscribeToGame, unsubscribe } = useGomokuStore()
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function GomokuPage() {
 
   const winSet = new Set((game.win_line ?? []).map(([r, c]) => `${r}-${c}`))
 
-  const cellSize = 36
+  const cellSize = isMobile ? 22 : 36
 
   return (
     <>
@@ -45,10 +47,10 @@ export default function GomokuPage() {
         @keyframes win-glow { 0%,100% { box-shadow: 0 0 6px 2px rgba(196,120,90,0.5); } 50% { box-shadow: 0 0 14px 4px rgba(232,132,156,0.7); } }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '32px 40px 60px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '32px 40px 60px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
         {/* 标题 */}
-        <div style={{ width: '100%', maxWidth: 600, marginBottom: 24 }}>
+        <div style={{ width: '100%', maxWidth: isMobile ? '100%' : 600, marginBottom: 24 }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>
             联机对战
           </p>
@@ -59,7 +61,7 @@ export default function GomokuPage() {
 
         {/* 状态栏 */}
         <div style={{
-          width: '100%', maxWidth: 600, marginBottom: 20,
+          width: '100%', maxWidth: isMobile ? '100%' : 600, marginBottom: 20,
           background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(12px)',
           borderRadius: 14, border: '1px solid rgba(196,120,90,0.1)',
           padding: '14px 20px',

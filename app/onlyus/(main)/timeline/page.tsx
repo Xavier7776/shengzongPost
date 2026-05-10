@@ -4,18 +4,79 @@ import { useState, useEffect, useRef } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
 import { useMemoryStore, useAlbumStore, useWishlistStore, type Memory, type Photo } from '@/stores/onlyus/timelineStores'
 import dayjs from 'dayjs'
+import { useIsMobile } from '@/lib/hooks'
 
 // ── 视差时间轴条目 ────────────────────────────────────────────────────
 function MemoryCard({ memory, index }: { memory: Memory; index: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   const isLeft = index % 2 === 0
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true) }, { threshold: 0.15 })
     if (ref.current) obs.observe(ref.current)
     return () => obs.disconnect()
   }, [])
+
+  const cardContent = (
+    <div style={{
+      background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(12px)',
+      borderRadius: 16, border: '1px solid rgba(196,120,90,0.12)',
+      padding: '16px 18px',
+      boxShadow: '0 2px 12px rgba(196,120,90,0.07)',
+      maxWidth: isMobile ? '100%' : 300,
+      width: '100%',
+    }}>
+      {memory.photo_urls?.[0] && (
+        <div style={{
+          width: '100%', height: 120, borderRadius: 10, overflow: 'hidden',
+          marginBottom: 12,
+        }}>
+          <img src={memory.photo_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      )}
+      <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#3D2318', fontFamily: "'DM Sans', sans-serif" }}>
+        {memory.title}
+      </p>
+      {memory.description && (
+        <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(61,35,24,0.5)', lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
+          {memory.description}
+        </p>
+      )}
+      <p style={{ margin: 0, fontSize: 10, color: 'rgba(196,120,90,0.6)', fontFamily: "'Cormorant Garamond', serif", letterSpacing: '0.06em' }}>
+        {dayjs(memory.happened_at).format('YYYY · MM · DD')}
+      </p>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <div ref={ref} style={{
+        display: 'grid',
+        gridTemplateColumns: '24px 1fr',
+        gap: 0, marginBottom: 8,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : `translateY(20px)`,
+        transition: `opacity 0.6s ease ${index * 0.08}s, transform 0.6s cubic-bezier(0.16,1,0.3,1) ${index * 0.08}s`,
+      }}>
+        {/* 左侧时间轴 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{
+            width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+            background: 'linear-gradient(135deg, #C4785A, #E8849C)',
+            boxShadow: '0 0 0 3px rgba(196,120,90,0.15)',
+            marginTop: 16, zIndex: 2,
+          }} />
+          <div style={{ flex: 1, width: 1, background: 'linear-gradient(to bottom, rgba(196,120,90,0.3), rgba(232,132,156,0.15))' }} />
+        </div>
+        {/* 右侧内容 */}
+        <div style={{ paddingLeft: 12, paddingBottom: 8 }}>
+          {cardContent}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div ref={ref} style={{
@@ -28,35 +89,7 @@ function MemoryCard({ memory, index }: { memory: Memory; index: number }) {
     }}>
       {/* 左侧内容 or 空 */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: 20, paddingBottom: 8 }}>
-        {isLeft && (
-          <div style={{
-            maxWidth: 300, width: '100%',
-            background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(12px)',
-            borderRadius: 16, border: '1px solid rgba(196,120,90,0.12)',
-            padding: '16px 18px',
-            boxShadow: '0 2px 12px rgba(196,120,90,0.07)',
-          }}>
-            {memory.photo_urls?.[0] && (
-              <div style={{
-                width: '100%', height: 120, borderRadius: 10, overflow: 'hidden',
-                marginBottom: 12,
-              }}>
-                <img src={memory.photo_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            )}
-            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#3D2318', fontFamily: "'DM Sans', sans-serif" }}>
-              {memory.title}
-            </p>
-            {memory.description && (
-              <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(61,35,24,0.5)', lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
-                {memory.description}
-              </p>
-            )}
-            <p style={{ margin: 0, fontSize: 10, color: 'rgba(196,120,90,0.6)', fontFamily: "'Cormorant Garamond', serif", letterSpacing: '0.06em' }}>
-              {dayjs(memory.happened_at).format('YYYY · MM · DD')}
-            </p>
-          </div>
-        )}
+        {isLeft && cardContent}
       </div>
 
       {/* 中间轴 */}
@@ -72,47 +105,21 @@ function MemoryCard({ memory, index }: { memory: Memory; index: number }) {
 
       {/* 右侧内容 or 空 */}
       <div style={{ paddingLeft: 20, paddingBottom: 8 }}>
-        {!isLeft && (
-          <div style={{
-            maxWidth: 300,
-            background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(12px)',
-            borderRadius: 16, border: '1px solid rgba(196,120,90,0.12)',
-            padding: '16px 18px',
-            boxShadow: '0 2px 12px rgba(196,120,90,0.07)',
-          }}>
-            {memory.photo_urls?.[0] && (
-              <div style={{ width: '100%', height: 120, borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-                <img src={memory.photo_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            )}
-            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#3D2318', fontFamily: "'DM Sans', sans-serif" }}>
-              {memory.title}
-            </p>
-            {memory.description && (
-              <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(61,35,24,0.5)', lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
-                {memory.description}
-              </p>
-            )}
-            <p style={{ margin: 0, fontSize: 10, color: 'rgba(196,120,90,0.6)', fontFamily: "'Cormorant Garamond', serif", letterSpacing: '0.06em' }}>
-              {dayjs(memory.happened_at).format('YYYY · MM · DD')}
-            </p>
-          </div>
-        )}
+        {!isLeft && cardContent}
       </div>
     </div>
   )
 }
 
 // ── Masonry 相册 ─────────────────────────────────────────────────────
-function MasonryAlbum({ photos, onUpload, onDelete, isUploading, myId }: {
-  photos: Photo[]; isUploading: boolean; myId: string
+function MasonryAlbum({ photos, onUpload, onDelete, isUploading, myId, mobile = false }: {
+  photos: Photo[]; isUploading: boolean; myId: string; mobile?: boolean
   onUpload: (file: File, caption?: string) => void
   onDelete: (id: string, path: string) => void
 }) {
   const [lightbox, setLightbox] = useState<Photo | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // 简单两列 masonry（CSS columns）
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
@@ -142,7 +149,7 @@ function MasonryAlbum({ photos, onUpload, onDelete, isUploading, myId }: {
           </p>
         </div>
       ) : (
-        <div style={{ columns: '2 200px', columnGap: 10 }}>
+        <div style={{ columns: mobile ? 1 : '2 200px', columnGap: 10 }}>
           {photos.map(photo => (
             <div
               key={photo.id}
@@ -325,6 +332,7 @@ function AddMemoryModal({ coupleId, onClose }: { coupleId: string; onClose: () =
   const [desc, setDesc] = useState('')
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [saving, setSaving] = useState(false)
+  const isMobile = useIsMobile()
 
   const handleSave = async () => {
     if (!title.trim()) return
@@ -335,8 +343,8 @@ function AddMemoryModal({ coupleId, onClose }: { coupleId: string; onClose: () =
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(61,35,24,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={onClose}>
-      <div style={{ width: '100%', maxWidth: 480, background: 'rgba(255,252,248,0.97)', borderRadius: 24, padding: '36px 40px', boxShadow: '0 24px 64px rgba(61,35,24,0.18)', border: '1px solid rgba(196,120,90,0.15)' }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(61,35,24,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 12 : 24 }} onClick={onClose}>
+      <div style={{ width: '100%', maxWidth: isMobile ? '100%' : 480, background: 'rgba(255,252,248,0.97)', borderRadius: isMobile ? 16 : 24, padding: isMobile ? '24px 20px' : '36px 40px', boxShadow: '0 24px 64px rgba(61,35,24,0.18)', border: '1px solid rgba(196,120,90,0.15)' }} onClick={e => e.stopPropagation()}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 22, color: '#3D2318', margin: '0 0 24px' }}>
           记录一段故事
         </h2>
@@ -362,6 +370,7 @@ function AddMemoryModal({ coupleId, onClose }: { coupleId: string; onClose: () =
 // ── 主页面 ──────────────────────────────────────────────────────────
 export default function TimelinePage() {
   const { profile, partner, coupleInfo } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const { memories, isLoading: memoriesLoading, loadMemories } = useMemoryStore()
   const { photos, isLoading: albumLoading, isUploading, loadPhotos, uploadPhoto, deletePhoto } = useAlbumStore()
   const [tab, setTab] = useState<'timeline' | 'album' | 'wishlist'>('timeline')
@@ -395,10 +404,10 @@ export default function TimelinePage() {
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(196,120,90,0.2); border-radius: 2px; }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '40px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '40px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
 
         {/* 标题行 */}
-        <div style={{ animation: 'card-rise 0.5s ease both', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div style={{ animation: 'card-rise 0.5s ease both', marginBottom: 28, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: isMobile ? 12 : 0 }}>
           <div>
             <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>
               我们的
@@ -482,6 +491,7 @@ export default function TimelinePage() {
               photos={photos}
               isUploading={isUploading}
               myId={profile?.id ?? ''}
+              mobile={isMobile}
               onUpload={handleUpload}
               onDelete={deletePhoto}
             />

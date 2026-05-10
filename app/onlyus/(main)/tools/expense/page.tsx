@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 import { useExpenseStore, EXPENSE_CATEGORIES, type Expense } from '@/stores/onlyus/gameStores'
 import dayjs from 'dayjs'
 
@@ -40,6 +41,7 @@ function DonutChart({ data }: { data: { label: string; value: number; color: str
 // ── 添加账单弹窗 ──────────────────────────────────────────────────────
 function AddExpenseModal({ onClose, coupleId, userId }: { onClose: () => void; coupleId: string; userId: string }) {
   const { addExpense } = useExpenseStore()
+  const isMobile = useIsMobile()
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].key)
   const [note, setNote] = useState('')
@@ -55,8 +57,8 @@ function AddExpenseModal({ onClose, coupleId, userId }: { onClose: () => void; c
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(61,35,24,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={onClose}>
-      <div style={{ width: '100%', maxWidth: 420, background: 'rgba(255,252,248,0.97)', borderRadius: 24, padding: '32px 36px', boxShadow: '0 24px 64px rgba(61,35,24,0.18)', border: '1px solid rgba(196,120,90,0.15)' }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(61,35,24,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 12 : 24 }} onClick={onClose}>
+      <div style={{ width: '100%', maxWidth: isMobile ? '100%' : 420, background: 'rgba(255,252,248,0.97)', borderRadius: isMobile ? 16 : 24, padding: isMobile ? '24px 20px' : '32px 36px', boxShadow: '0 24px 64px rgba(61,35,24,0.18)', border: '1px solid rgba(196,120,90,0.15)' }} onClick={e => e.stopPropagation()}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 20, color: '#3D2318', margin: '0 0 22px' }}>添加账单</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -115,6 +117,7 @@ const CAT_COLORS: Record<string, string> = {
 
 export default function ExpensePage() {
   const { profile, partner, coupleInfo } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const { expenses, isLoading, currentMonth, setCurrentMonth, loadExpenses, deleteExpense, subscribe, unsubscribe, getMonthTotal, getCategoryBreakdown, getPerPersonSplit } = useExpenseStore()
   const [showAdd, setShowAdd] = useState(false)
 
@@ -151,10 +154,10 @@ export default function ExpensePage() {
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(196,120,90,0.2); border-radius: 2px; }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '36px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '36px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
 
         {/* 标题 + 月份切换 */}
-        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 24, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: isMobile ? 12 : 0 }}>
           <div>
             <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>共同账单</p>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 400, color: '#3D2318', margin: 0 }}>
@@ -170,7 +173,7 @@ export default function ExpensePage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '240px 1fr', gap: 16, alignItems: 'start' }}>
 
           {/* 左侧统计 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -244,50 +247,85 @@ export default function ExpensePage() {
               </div>
             ) : (
               <div style={{ maxHeight: 520, overflowY: 'auto' }}>
-                {/* 表头 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 72px 36px', gap: 8, padding: '6px 8px', marginBottom: 6 }}>
-                  {['备注', '分类', '谁', '金额', ''].map((h, i) => (
-                    <span key={i} style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(61,35,24,0.3)', fontFamily: "'DM Sans', sans-serif" }}>{h}</span>
-                  ))}
-                </div>
-
-                {expenses.map(exp => {
-                  const isMe = exp.user_id === myId
-                  const cat = EXPENSE_CATEGORIES.find(c => c.key === exp.category)
-                  return (
-                    <div key={exp.id} style={{
-                      display: 'grid', gridTemplateColumns: '1fr 80px 100px 72px 36px',
-                      gap: 8, padding: '10px 8px',
-                      borderBottom: '1px solid rgba(196,120,90,0.06)',
-                      alignItems: 'center',
-                    }}>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 13, color: '#3D2318', fontFamily: "'DM Sans', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {exp.note || '—'}
-                        </p>
-                        <p style={{ margin: 0, fontSize: 10, color: 'rgba(61,35,24,0.35)', fontFamily: "'DM Sans', sans-serif" }}>
-                          {dayjs(exp.expense_date).format('MM/DD')}
-                        </p>
-                      </div>
-                      <span style={{ fontSize: 12, color: 'rgba(61,35,24,0.5)', fontFamily: "'DM Sans', sans-serif" }}>{cat?.emoji} {exp.category}</span>
-                      <span style={{
-                        fontSize: 11, fontFamily: "'DM Sans', sans-serif",
-                        color: isMe ? '#C4785A' : '#E8849C',
-                        background: isMe ? 'rgba(196,120,90,0.08)' : 'rgba(232,132,156,0.08)',
-                        padding: '3px 8px', borderRadius: 6,
-                      }}>
-                        {isMe ? (profile?.nickname ?? 'Me') : (partner?.nickname ?? 'Ta')}
-                      </span>
-                      <span style={{ fontSize: 14, color: '#3D2318', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", textAlign: 'right' }}>
-                        ¥{Number(exp.amount).toFixed(0)}
-                      </span>
-                      {exp.user_id === myId && (
-                        <button onClick={() => deleteExpense(exp.id)} style={{ width: 24, height: 24, border: 'none', background: 'transparent', color: 'rgba(61,35,24,0.25)', cursor: 'pointer', fontSize: 14, borderRadius: 4 }}>×</button>
-                      )}
-                      {exp.user_id !== myId && <div />}
+                {isMobile ? (
+                  /* 手机端：卡片布局 */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {expenses.map(exp => {
+                      const isMe = exp.user_id === myId
+                      const cat = EXPENSE_CATEGORIES.find(c => c.key === exp.category)
+                      return (
+                        <div key={exp.id} style={{
+                          padding: '12px 14px', borderRadius: 12,
+                          background: 'rgba(255,255,255,0.5)',
+                          border: '1px solid rgba(196,120,90,0.08)',
+                          display: 'flex', alignItems: 'center', gap: 10,
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, color: '#3D2318', fontFamily: "'DM Sans', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {cat?.emoji} {exp.note || exp.category}
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(61,35,24,0.35)', fontFamily: "'DM Sans', sans-serif" }}>
+                              {dayjs(exp.expense_date).format('MM/DD')} · {isMe ? (profile?.nickname ?? 'Me') : (partner?.nickname ?? 'Ta')}
+                            </p>
+                          </div>
+                          <span style={{ fontSize: 14, color: '#3D2318', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+                            ¥{Number(exp.amount).toFixed(0)}
+                          </span>
+                          {exp.user_id === myId && (
+                            <button onClick={() => deleteExpense(exp.id)} style={{ width: 24, height: 24, border: 'none', background: 'transparent', color: 'rgba(61,35,24,0.25)', cursor: 'pointer', fontSize: 14, borderRadius: 4, flexShrink: 0 }}>×</button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <>
+                    {/* 桌面端：表格布局 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 72px 36px', gap: 8, padding: '6px 8px', marginBottom: 6 }}>
+                      {['备注', '分类', '谁', '金额', ''].map((h, i) => (
+                        <span key={i} style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(61,35,24,0.3)', fontFamily: "'DM Sans', sans-serif" }}>{h}</span>
+                      ))}
                     </div>
-                  )
-                })}
+
+                    {expenses.map(exp => {
+                      const isMe = exp.user_id === myId
+                      const cat = EXPENSE_CATEGORIES.find(c => c.key === exp.category)
+                      return (
+                        <div key={exp.id} style={{
+                          display: 'grid', gridTemplateColumns: '1fr 80px 100px 72px 36px',
+                          gap: 8, padding: '10px 8px',
+                          borderBottom: '1px solid rgba(196,120,90,0.06)',
+                          alignItems: 'center',
+                        }}>
+                          <div>
+                            <p style={{ margin: 0, fontSize: 13, color: '#3D2318', fontFamily: "'DM Sans', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {exp.note || '—'}
+                            </p>
+                            <p style={{ margin: 0, fontSize: 10, color: 'rgba(61,35,24,0.35)', fontFamily: "'DM Sans', sans-serif" }}>
+                              {dayjs(exp.expense_date).format('MM/DD')}
+                            </p>
+                          </div>
+                          <span style={{ fontSize: 12, color: 'rgba(61,35,24,0.5)', fontFamily: "'DM Sans', sans-serif" }}>{cat?.emoji} {exp.category}</span>
+                          <span style={{
+                            fontSize: 11, fontFamily: "'DM Sans', sans-serif",
+                            color: isMe ? '#C4785A' : '#E8849C',
+                            background: isMe ? 'rgba(196,120,90,0.08)' : 'rgba(232,132,156,0.08)',
+                            padding: '3px 8px', borderRadius: 6,
+                          }}>
+                            {isMe ? (profile?.nickname ?? 'Me') : (partner?.nickname ?? 'Ta')}
+                          </span>
+                          <span style={{ fontSize: 14, color: '#3D2318', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", textAlign: 'right' }}>
+                            ¥{Number(exp.amount).toFixed(0)}
+                          </span>
+                          {exp.user_id === myId && (
+                            <button onClick={() => deleteExpense(exp.id)} style={{ width: 24, height: 24, border: 'none', background: 'transparent', color: 'rgba(61,35,24,0.25)', cursor: 'pointer', fontSize: 14, borderRadius: 4 }}>×</button>
+                          )}
+                          {exp.user_id !== myId && <div />}
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
               </div>
             )}
           </div>

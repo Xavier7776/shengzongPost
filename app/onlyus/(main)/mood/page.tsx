@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 import { useMoodStore } from '@/stores/onlyus/moodStore'
 import { useQuestionStore } from '@/stores/onlyus/utilStores'
 
@@ -11,6 +12,9 @@ const MOODS = [
   { key: 'happy',   emoji: '😊', label: '开心',  color: '#F5A623', bg: 'rgba(245,166,35,0.12)'  },
   { key: 'excited', emoji: '🤩', label: '兴奋',  color: '#FF6B6B', bg: 'rgba(255,107,107,0.12)' },
   { key: 'calm',    emoji: '😌', label: '平静',  color: '#7EB8D4', bg: 'rgba(126,184,212,0.12)' },
+  { key: 'cozy',    emoji: '☕', label: '惬意',  color: '#C4785A', bg: 'rgba(196,120,90,0.12)'  },
+  { key: 'love',    emoji: '💕', label: '爱你',  color: '#E8849C', bg: 'rgba(232,132,156,0.12)' },
+  { key: 'missing', emoji: '🥺', label: '想你',  color: '#7EB8D4', bg: 'rgba(126,184,212,0.12)' },
   { key: 'meh',     emoji: '😑', label: '一般',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' },
   { key: 'tired',   emoji: '😴', label: '疲惫',  color: '#A09BB0', bg: 'rgba(160,155,176,0.12)' },
   { key: 'anxious', emoji: '😰', label: '焦虑',  color: '#C4785A', bg: 'rgba(196,120,90,0.12)'  },
@@ -20,15 +24,15 @@ const MOODS = [
 
 // ── 3D Emoji 球（CSS 3D transform carousel）─────────────────────────
 function EmojiSphere({
-  selected, onSelect,
-}: { selected: string | null; onSelect: (key: string) => void }) {
+  selected, onSelect, mobile = false,
+}: { selected: string | null; onSelect: (key: string) => void; mobile?: boolean }) {
   const [rotation, setRotation] = useState(0)
   const [hovered, setHovered] = useState<string | null>(null)
   const dragStart = useRef<{ x: number; rot: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const count = MOODS.length
-  const radius = 110
+  const radius = mobile ? 80 : 110
 
   const handleMouseDown = (e: React.MouseEvent) => {
     dragStart.current = { x: e.clientX, rot: rotation }
@@ -40,14 +44,27 @@ function EmojiSphere({
   }
   const handleMouseUp = () => { dragStart.current = null }
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStart.current = { x: e.touches[0].clientX, rot: rotation }
+  }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!dragStart.current) return
+    const delta = (e.touches[0].clientX - dragStart.current.x) * 0.5
+    setRotation(dragStart.current.rot + delta)
+  }
+  const handleTouchEnd = () => { dragStart.current = null }
+
   return (
     <div
       ref={containerRef}
-      style={{ position: 'relative', width: '100%', height: 280, cursor: 'grab' }}
+      style={{ position: 'relative', width: '100%', height: mobile ? 220 : 280, cursor: 'grab', touchAction: 'none' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* 底部阴影 */}
       <div style={{
@@ -132,7 +149,7 @@ function EmojiSphere({
 }
 
 // ── 今日一题双栏 ───────────────────────────────────────────────────────
-function QuestionSection() {
+function QuestionSection({ mobile = false }: { mobile?: boolean }) {
   const { profile, partner } = useOnlyUsAuthStore()
   const { todayQuestion, myAnswer, partnerAnswer, loadToday, submitAnswer } = useQuestionStore()
   const [draft, setDraft] = useState('')
@@ -169,7 +186,7 @@ function QuestionSection() {
         &ldquo;{todayQuestion.question_text}&rdquo;
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 12 }}>
         {/* 我的回答 */}
         <div style={{
           padding: '14px 16px', borderRadius: 14,
@@ -244,7 +261,7 @@ function QuestionSection() {
 
 // ── 趋势迷你图（7天心情折线）────────────────────────────────────────────
 const MOOD_SCORE: Record<string, number> = {
-  loved: 5, happy: 5, excited: 4, calm: 4, meh: 3,
+  loved: 5, happy: 5, excited: 4, calm: 4, cozy: 4, love: 5, missing: 3, meh: 3,
   tired: 2, anxious: 2, sad: 1, angry: 1,
 }
 const DAYS = ['一', '二', '三', '四', '五', '六', '日']
@@ -312,6 +329,7 @@ function MoodTrendChart() {
 // ── 主页面 ──────────────────────────────────────────────────────────
 export default function MoodPage() {
   const { profile, partner } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const { myMood, partnerMood, myMoodText, loadMyMood, loadPartnerMood, saveMood, subscribeToPartner, unsubscribe } = useMoodStore()
   const [pendingMood, setPendingMood] = useState<string | null>(null)
   const [moodText, setMoodText] = useState('')
@@ -347,7 +365,7 @@ export default function MoodPage() {
         textarea::placeholder { color: rgba(61,35,24,0.3); }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '40px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '40px 40px 60px', maxWidth: 900, margin: '0 auto' }}>
 
         {/* 标题 */}
         <div className="mood-card" style={{ marginBottom: 32, animationDelay: '0ms' }}>
@@ -359,7 +377,7 @@ export default function MoodPage() {
           </h1>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 16 }}>
           {/* 左栏 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -375,7 +393,7 @@ export default function MoodPage() {
               <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.7)', margin: '0 0 16px' }}>
                 选择心情
               </p>
-              <EmojiSphere selected={pendingMood} onSelect={setPendingMood} />
+              <EmojiSphere selected={pendingMood} onSelect={setPendingMood} mobile={isMobile} />
 
               {selectedMoodInfo && (
                 <div style={{
@@ -440,7 +458,7 @@ export default function MoodPage() {
               <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.7)', margin: '0 0 16px' }}>
                 每日一题
               </p>
-              <QuestionSection />
+              <QuestionSection mobile={isMobile} />
             </div>
           </div>
 

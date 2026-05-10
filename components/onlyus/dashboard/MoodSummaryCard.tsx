@@ -15,6 +15,9 @@ const MOOD_MAP: Record<string, { emoji: string; label: string; color: string }> 
   loved:     { emoji: '🥰', label: '幸福',   color: '#E8849C' },
   angry:     { emoji: '😤', label: '生气',   color: '#D4584A' },
   meh:       { emoji: '😑', label: '一般',   color: '#9CA3AF' },
+  cozy:      { emoji: '☕', label: '惬意',   color: '#C4785A' },
+  love:      { emoji: '💕', label: '爱你',   color: '#E8849C' },
+  missing:   { emoji: '🥺', label: '想你',   color: '#7EB8D4' },
 }
 
 export default function MoodSummaryCard() {

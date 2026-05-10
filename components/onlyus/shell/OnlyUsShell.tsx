@@ -3,14 +3,17 @@
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import SideNav from './SideNav'
+import MobileBottomNav from './MobileBottomNav'
 import BackgroundBlobs from './BackgroundBlobs'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 
 export default function OnlyUsShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { currentUserId, isReady, init } = useOnlyUsAuthStore()
   const initialized = useRef(false)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     if (initialized.current) return
@@ -46,6 +49,27 @@ export default function OnlyUsShell({ children }: { children: React.ReactNode })
             40% { transform: translateY(-8px); opacity: 1; }
           }
         `}</style>
+      </div>
+    )
+  }
+
+  if (isMobile) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
+        background: '#F8F6F3', overflow: 'hidden',
+      }}>
+        <BackgroundBlobs />
+        <main style={{
+          flex: 1, overflowY: 'auto', overflowX: 'hidden',
+          paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+          position: 'relative', zIndex: 10,
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(196,120,90,0.2) transparent',
+        }}>
+          {children}
+        </main>
+        <MobileBottomNav pathname={pathname} />
       </div>
     )
   }

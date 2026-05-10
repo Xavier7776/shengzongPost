@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useIsMobile } from '@/lib/hooks'
 
 const TOOLS = [
   {
@@ -60,7 +61,7 @@ const TOOLS = [
   },
 ]
 
-function ToolCard({ tool, index }: { tool: typeof TOOLS[0]; index: number }) {
+function ToolCard({ tool, index, mobile = false }: { tool: typeof TOOLS[0]; index: number; mobile?: boolean }) {
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -75,7 +76,7 @@ function ToolCard({ tool, index }: { tool: typeof TOOLS[0]; index: number }) {
         backdropFilter: 'blur(16px)',
         borderRadius: 20,
         border: `1px solid ${hovered ? tool.border : 'rgba(196,120,90,0.1)'}`,
-        padding: '28px 28px 24px',
+        padding: mobile ? '20px 16px 18px' : '28px 28px 24px',
         cursor: 'pointer',
         transition: 'all 0.25s cubic-bezier(0.16,1,0.3,1)',
         transform: hovered ? 'translateY(-6px) scale(1.02)' : 'translateY(0) scale(1)',
@@ -142,6 +143,7 @@ function ToolCard({ tool, index }: { tool: typeof TOOLS[0]; index: number }) {
 }
 
 export default function ToolsPage() {
+  const isMobile = useIsMobile()
   return (
     <>
       <style>{`
@@ -149,7 +151,7 @@ export default function ToolsPage() {
         @keyframes card-rise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '40px 40px 60px', maxWidth: 860, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '40px 40px 60px', maxWidth: 860, margin: '0 auto' }}>
         <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 36 }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>
             专属工具箱
@@ -159,9 +161,9 @@ export default function ToolsPage() {
           </h1>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 14 }}>
           {TOOLS.map((tool, i) => (
-            <ToolCard key={tool.href} tool={tool} index={i} />
+            <ToolCard key={tool.href} tool={tool} index={i} mobile={isMobile} />
           ))}
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -153,6 +154,7 @@ function CounterCard({
 
 export default function CounterPage() {
   const { profile, partner, coupleInfo } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
   const [counters, setCounters] = useState<Counter[]>([])
   const [loading, setLoading] = useState(true)
   const [newLabel, setNewLabel] = useState('')
@@ -213,7 +215,7 @@ export default function CounterPage() {
         input:focus { border-color: rgba(196,120,90,0.4) !important; outline: none; }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '36px 40px 60px', maxWidth: 860, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '36px 40px 60px', maxWidth: 860, margin: '0 auto' }}>
         <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 28 }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>实时同步</p>
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 400, color: '#3D2318', margin: 0 }}>计数器</h1>

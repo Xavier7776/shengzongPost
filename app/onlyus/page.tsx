@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import UserSelectButton from '@/components/onlyus/landing/UserSelectButton'
 import { useOnlyUsAuthStore, USER_IDS } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
 import { getSupabaseClient } from '@/lib/supabase-client'
 
 const HeartCrystal = dynamic(
@@ -41,6 +42,7 @@ export default function OnlyUsLandingPage() {
   const [selectedUser, setSelectedUser] = useState<(typeof STATIC_USERS)[0] | null>(null)
   const [heartBurst, setHeartBurst] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
   const mouseXRef = useRef(0)
   const mouseYRef = useRef(0)
 
@@ -270,10 +272,10 @@ export default function OnlyUsLandingPage() {
 
           {/* ── 3D Heart ── */}
           <div style={{
-            width: 320,
-            height: 320,
+            width: isMobile ? 240 : 320,
+            height: isMobile ? 240 : 320,
             position: 'relative',
-            transform: `translateX(${mouseX * -5}px) translateY(${mouseY * -3}px)`,
+            transform: `translateX(${mouseX * (isMobile ? -3 : -5)}px) translateY(${mouseY * (isMobile ? -2 : -3)}px)`,
             transition: 'transform 0.15s ease-out',
             opacity: phase === 'idle' ? 0 : 1,
             animation: phase === 'enter' ? 'heartEnter 1.1s cubic-bezier(0.16,1,0.3,1) forwards' : 'none',
@@ -293,7 +295,7 @@ export default function OnlyUsLandingPage() {
           {/* ── User select buttons ── */}
           <div style={{
             display: 'flex',
-            gap: 56,
+            gap: isMobile ? 36 : 56,
             alignItems: 'flex-start',
             opacity: isReady ? 1 : 0,
             animation: isReady ? 'fadeInUp 0.9s 0.4s ease forwards' : 'none',
@@ -365,15 +367,15 @@ export default function OnlyUsLandingPage() {
 
         {/* Side decorative lines */}
         <div style={{
-          position: 'absolute', top: '50%', left: '7%',
-          width: 1, height: 100,
+          position: 'absolute', top: '50%', left: isMobile ? '4%' : '7%',
+          width: 1, height: isMobile ? 60 : 100,
           background: 'linear-gradient(to bottom, transparent, rgba(196,120,90,0.25), transparent)',
           transform: 'translateY(-50%)',
           opacity: isReady ? 0.7 : 0, transition: 'opacity 1.2s ease 0.6s',
         }} />
         <div style={{
-          position: 'absolute', top: '50%', right: '7%',
-          width: 1, height: 100,
+          position: 'absolute', top: '50%', right: isMobile ? '4%' : '7%',
+          width: 1, height: isMobile ? 60 : 100,
           background: 'linear-gradient(to bottom, transparent, rgba(232,132,156,0.25), transparent)',
           transform: 'translateY(-50%)',
           opacity: isReady ? 0.7 : 0, transition: 'opacity 1.2s ease 0.6s',

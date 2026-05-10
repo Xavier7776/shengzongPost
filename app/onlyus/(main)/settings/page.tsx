@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
+import { useIsMobile } from '@/lib/hooks'
+import { getSupabaseClient } from '@/lib/supabase-client'
+import { useRouter } from 'next/navigation'
 import dayjs from 'dayjs'
 
 const INPUT_STYLE = {
@@ -53,6 +56,8 @@ function GlassCard({ children, title }: { children: React.ReactNode; title: stri
 
 export default function SettingsPage() {
   const { profile, partner, coupleInfo, updateProfile, updateCoupleInfo } = useOnlyUsAuthStore()
+  const isMobile = useIsMobile()
+  const router = useRouter()
 
   const [nickname, setNickname] = useState('')
   const [city, setCity] = useState('')
@@ -100,6 +105,12 @@ export default function SettingsPage() {
     ? dayjs().diff(dayjs(anniversary), 'day')
     : null
 
+  const handleSignOut = async () => {
+    const s = getSupabaseClient()
+    await s.auth.signOut()
+    router.push('/onlyus')
+  }
+
   return (
     <>
       <style>{`
@@ -108,7 +119,7 @@ export default function SettingsPage() {
         @keyframes saved-pop { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      <div style={{ minHeight: '100%', padding: '40px 40px 60px', maxWidth: 680, margin: '0 auto' }}>
+      <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '40px 40px 60px', maxWidth: 680, margin: '0 auto' }}>
         <div style={{ marginBottom: 36 }}>
           <p style={{
             fontFamily: "'Cormorant Garamond', serif",
@@ -123,7 +134,7 @@ export default function SettingsPage() {
 
         {/* 个人资料 */}
         <GlassCard title="我的信息">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <div>
               <label style={LABEL_STYLE}>昵称</label>
               <input
@@ -196,7 +207,7 @@ export default function SettingsPage() {
 
         {/* 关系设置 */}
         <GlassCard title="我们的关系">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <div>
               <label style={LABEL_STYLE}>在一起纪念日</label>
               <input
@@ -273,8 +284,25 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* 手机端退出按钮 */}
+        {isMobile && (
+          <button
+            onClick={handleSignOut}
+            style={{
+              marginTop: 32, width: '100%', padding: '12px 0',
+              borderRadius: 12, border: '1px solid rgba(196,120,90,0.2)',
+              background: 'rgba(255,255,255,0.5)',
+              color: 'rgba(61,35,24,0.5)', fontSize: 13,
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: 'pointer',
+            }}
+          >
+            切换用户
+          </button>
+        )}
+
         {/* 底部签名 */}
-        <div style={{ marginTop: 60, textAlign: 'center' }}>
+        <div style={{ marginTop: isMobile ? 24 : 60, textAlign: 'center' }}>
           <p style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic', fontSize: 12,

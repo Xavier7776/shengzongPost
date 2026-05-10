@@ -31,29 +31,32 @@ export const useMoodStore = create<MoodState>((set, get) => ({
     set({ isLoading: true })
     const today = new Date().toISOString().split('T')[0]
     const supabase = getSupabaseClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('moods').select('mood_type,mood_text,mood_image_url')
-      .eq('user_id', userId).eq('mood_date', today).limit(1).single()
+      .eq('user_id', userId).eq('mood_date', today).maybeSingle()
+    if (error) console.error('[moodStore] loadMyMood error:', error)
     set({ myMood: data?.mood_type ?? null, myMoodText: data?.mood_text ?? null, myMoodImage: data?.mood_image_url ?? null, isLoading: false })
   },
 
   loadPartnerMood: async (partnerId) => {
     const today = new Date().toISOString().split('T')[0]
     const supabase = getSupabaseClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('moods').select('mood_type,mood_text,mood_image_url')
-      .eq('user_id', partnerId).eq('mood_date', today).limit(1).single()
+      .eq('user_id', partnerId).eq('mood_date', today).maybeSingle()
+    if (error) console.error('[moodStore] loadPartnerMood error:', error)
     set({ partnerMood: data?.mood_type ?? null, partnerMoodText: data?.mood_text ?? null, partnerMoodImage: data?.mood_image_url ?? null })
   },
 
   saveMood: async (userId, moodType, moodText, moodImageUrl) => {
     const today = new Date().toISOString().split('T')[0]
     const supabase = getSupabaseClient()
-    const { error } = await supabase.from('moods').upsert(
+    const { data, error } = await supabase.from('moods').upsert(
       { user_id: userId, mood_type: moodType, mood_text: moodText || null, mood_image_url: moodImageUrl || null, mood_date: today },
       { onConflict: 'user_id,mood_date' }
-    )
-    if (!error) set({ myMood: moodType, myMoodText: moodText || null, myMoodImage: moodImageUrl || null })
+    ).select()
+    if (error) console.error('[moodStore] saveMood error:', error)
+    else set({ myMood: moodType, myMoodText: moodText || null, myMoodImage: moodImageUrl || null })
   },
 
   subscribeToPartner: (partnerId) => {

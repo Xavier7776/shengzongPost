@@ -114,6 +114,54 @@ export const useGoodnightStore = create<GoodnightState>((set, get) => ({
   unsubscribe: () => { const s = getSupabaseClient(); const { channel } = get(); if (channel) { s.removeChannel(channel); set({ channel: null }) } },
 }))
 
+// Morning Checkin
+interface MorningState {
+  myCheckin: boolean; partnerCheckin: boolean; bothCheckedIn: boolean
+  streak: number; isLoading: boolean; channel: RealtimeChannel | null
+  loadToday: (myId: string, partnerId: string) => Promise<void>
+  loadStreak: (myId: string, partnerId: string) => Promise<void>
+  checkin: (userId: string) => Promise<void>
+  subscribeToPartner: (partnerId: string) => void
+  unsubscribe: () => void
+}
+export const useMorningStore = create<MorningState>((set, get) => ({
+  myCheckin: false, partnerCheckin: false, bothCheckedIn: false, streak: 0, isLoading: false, channel: null,
+  loadToday: async (myId, partnerId) => {
+    set({ isLoading: true })
+    const date = todayStr(); const s = getSupabaseClient()
+    const [my, partner] = await Promise.all([
+      s.from('morning_checkins').select('id').eq('user_id', myId).eq('checkin_date', date).maybeSingle(),
+      s.from('morning_checkins').select('id').eq('user_id', partnerId).eq('checkin_date', date).maybeSingle(),
+    ])
+    const mc = !!my.data, pc = !!partner.data
+    set({ myCheckin: mc, partnerCheckin: pc, bothCheckedIn: mc && pc, isLoading: false })
+  },
+  loadStreak: async (myId, partnerId) => {
+    const s = getSupabaseClient()
+    const { data } = await s.from('morning_checkins').select('user_id,checkin_date').in('user_id', [myId, partnerId]).order('checkin_date', { ascending: false }).limit(120)
+    if (!data) return
+    const byDate = new Map<string, Set<string>>()
+    for (const r of data) { if (!byDate.has(r.checkin_date)) byDate.set(r.checkin_date, new Set()); byDate.get(r.checkin_date)!.add(r.user_id) }
+    let streak = 0; const d = new Date()
+    while (true) { const k = d.toISOString().split('T')[0]; const u = byDate.get(k); if (u?.has(myId) && u?.has(partnerId)) { streak++; d.setDate(d.getDate() - 1) } else break }
+    set({ streak })
+  },
+  checkin: async (userId) => {
+    const s = getSupabaseClient()
+    const { error } = await s.from('morning_checkins').insert({ user_id: userId, checkin_date: todayStr() })
+    if (!error) { const { partnerCheckin } = get(); set({ myCheckin: true, bothCheckedIn: partnerCheckin }) }
+  },
+  subscribeToPartner: (partnerId) => {
+    const s = getSupabaseClient(); const { channel: ex } = get(); if (ex) s.removeChannel(ex)
+    const ch = s.channel('morning-web')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'morning_checkins', filter: `user_id=eq.${partnerId}` }, (p: any) => {
+        if (p.new?.checkin_date === todayStr()) { const { myCheckin } = get(); set({ partnerCheckin: true, bothCheckedIn: myCheckin }) }
+      }).subscribe()
+    set({ channel: ch })
+  },
+  unsubscribe: () => { const s = getSupabaseClient(); const { channel } = get(); if (channel) { s.removeChannel(channel); set({ channel: null }) } },
+}))
+
 // Question
 export interface DailyQuestion { id: string; question_text: string; date: string }
 export interface QuestionAnswer { id: string; question_id: string; user_id: string; answer: string; created_at: string }
