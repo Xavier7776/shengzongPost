@@ -536,12 +536,12 @@ export async function updatePostAttachmentExternalUrl(id: number, externalUrl: s
 }
 
 export interface PostAttachment {
-  id: number; post_slug: string | null; url: string; public_id: string
+  id: number; post_slug: string | null; url: string; public_id: string | null
   filename: string; size: number; mime_type: string; uploaded_by: number; created_at: string
 }
 
 export async function createPostAttachment(data: {
-  post_slug: string | null; url: string; public_id: string
+  post_slug: string | null; url: string; public_id: string | null
   filename: string; size: number; mime_type: string; uploaded_by: number
 }): Promise<PostAttachment> {
   const rows = await sql`
@@ -563,7 +563,7 @@ export async function getPostAttachmentsBySlug(postSlug: string): Promise<PostAt
 }
 
 // ✅ 新增：删除单条附件记录（返回 public_id 供 Cloudinary 同步删除）
-export async function deletePostAttachment(id: number): Promise<{ public_id: string } | null> {
+export async function deletePostAttachment(id: number): Promise<{ public_id: string | null } | null> {
   const rows = await sql`
     DELETE FROM post_attachments WHERE id = ${id} RETURNING public_id
   `
