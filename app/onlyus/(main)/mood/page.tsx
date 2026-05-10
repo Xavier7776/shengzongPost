@@ -195,7 +195,6 @@ function QuestionSection() {
                   background: 'transparent', border: 'none', outline: 'none',
                   fontSize: 13, color: '#3D2318', lineHeight: 1.6,
                   fontFamily: "'DM Sans', sans-serif",
-                  placeholder: 'color: rgba(61,35,24,0.3)',
                 }}
               />
               <button
