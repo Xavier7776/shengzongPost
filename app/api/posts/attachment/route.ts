@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
       post_slug:    post_slug ?? null,
       url:          external_url,
       public_id:    null,
-      external_url: external_url,
       filename:     filename.trim(),
       size:         size ?? 0,
       mime_type:    'application/pdf',
