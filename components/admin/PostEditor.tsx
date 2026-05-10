@@ -67,7 +67,7 @@ interface Props {
   initialData?: {
     slug: string; title: string; excerpt: string; content: string
     tags: string[]; published: boolean; cover_image?: string | null
-    attachments?: Attachment[]
+    attachments?: Attachment[]; author_id?: string | null
   }
 }
 type AiMode = 'draft' | 'continue' | 'excerpt'
