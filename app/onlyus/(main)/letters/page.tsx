@@ -473,7 +473,6 @@ export default function LettersPage() {
                         color: diaryVisibility === key ? '#C4785A' : 'rgba(61,35,24,0.4)',
                         fontSize: 11, fontFamily: "'DM Sans', sans-serif",
                         cursor: 'pointer', transition: 'all 0.15s',
-                        border: diaryVisibility === key ? '1px solid rgba(196,120,90,0.25)' : '1px solid transparent',
                       } as React.CSSProperties}
                     >
                       {cfg.icon} {cfg.label}
