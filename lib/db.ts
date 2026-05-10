@@ -518,3 +518,37 @@ export async function deleteEditRequest(id: number, userId: number): Promise<boo
 
 // ─── Post 附件 ────────────────────────────────────────────────────────────────
 // ✅ 新增：更新单条附件的 external_url（蓝奏云等第三方链接）
+
+// ── Attachment helpers (读写 posts.attachments JSONB) ──────────────────────
+
+export interface PostAttachment {
+  url: string
+  filename: string
+  size: number
+}
+
+export async function getPostAttachmentsBySlug(slug: string): Promise<PostAttachment[]> {
+  const rows = await sql`SELECT attachments FROM posts WHERE slug=${slug}`
+  if (!rows[0]) return []
+  return (rows[0].attachments as PostAttachment[]) ?? []
+}
+
+export async function createPostAttachment(
+  slug: string,
+  attachment: PostAttachment
+): Promise<PostAttachment[]> {
+  const current = await getPostAttachmentsBySlug(slug)
+  const updated = [...current, attachment]
+  await sql`UPDATE posts SET attachments=${JSON.stringify(updated)}::jsonb WHERE slug=${slug}`
+  return updated
+}
+
+export async function deletePostAttachment(
+  slug: string,
+  url: string
+): Promise<PostAttachment[]> {
+  const current = await getPostAttachmentsBySlug(slug)
+  const updated = current.filter(a => a.url !== url)
+  await sql`UPDATE posts SET attachments=${JSON.stringify(updated)}::jsonb WHERE slug=${slug}`
+  return updated
+}
