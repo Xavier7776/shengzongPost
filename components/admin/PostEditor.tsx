@@ -7,7 +7,7 @@ import {
   ChevronRight, FileText, PenLine, AlignLeft, ImagePlus,
   Bold, Italic, Heading2, Heading3, List, ListOrdered,
   Quote, Code, Minus, Link as LinkIcon, Undo, Redo, Code2,
-  Table, Youtube, Clock
+  Table, Youtube, Clock, Paperclip
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -28,7 +28,6 @@ const VideoEmbed = Node.create({
   name: 'videoEmbed',
   group: 'block',
   atom: true,
-  marks: '',          // 禁止任何 mark（包括 Link）附着到此节点
   addAttributes() {
     return {
       src: { default: null },
@@ -55,11 +54,20 @@ const VideoEmbed = Node.create({
   },
 })
 
+interface Attachment {
+  id?: number         // post_attachments 表主键（已保存的附件才有）
+  url: string
+  filename: string
+  size: number
+  external_url?: string  // 蓝奏云等第三方下载链接
+}
+
 interface Props {
   mode: 'new' | 'edit'
   initialData?: {
     slug: string; title: string; excerpt: string; content: string
     tags: string[]; published: boolean; cover_image?: string | null
+    attachments?: Attachment[]
   }
 }
 type AiMode = 'draft' | 'continue' | 'excerpt'
@@ -82,6 +90,12 @@ function mdToHtml(md: string): string {
     .replace(/^(?!<[hupboa]|<li|<pre|<block)(.+)$/gm, '<p>$1</p>').replace(/\n{2,}/g, '')
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function PostEditor({ mode, initialData }: Props) {
   const router = useRouter()
   const [saving, setSaving]       = useState(false)
@@ -92,8 +106,18 @@ export default function PostEditor({ mode, initialData }: Props) {
   const [excerpt, setExcerpt]     = useState(initialData?.excerpt ?? '')
   const [tagsRaw, setTagsRaw]     = useState(initialData?.tags?.join(', ') ?? '')
   const [coverImage, setCoverImage] = useState<string>(initialData?.cover_image ?? '')
-  // 实时同步 HTML 用于分屏预览
   const [previewHtml, setPreviewHtml] = useState('')
+
+  // ── 附件 state ─────────────────────────────────────────────────
+  const [attachments, setAttachments] = useState<Attachment[]>(initialData?.attachments ?? [])
+  const [uploadingPdf, setUploadingPdf]     = useState(false)
+  const [pdfUploadError, setPdfUploadError] = useState('')
+  const pdfFileRef = useRef<HTMLInputElement>(null)
+  // 添加附件表单
+  const [addAttOpen, setAddAttOpen]         = useState(false)
+  const [addAttFilename, setAddAttFilename] = useState('')
+  const [addAttUrl, setAddAttUrl]           = useState('')
+  const [addAttError, setAddAttError]       = useState('')
 
   const coverFileRef = useRef<HTMLInputElement>(null)
   const [uploadingCover, setUploadingCover]     = useState(false)
@@ -109,7 +133,6 @@ export default function PostEditor({ mode, initialData }: Props) {
   const [uploadingImg, setUploadingImg]     = useState(false)
   const [imgUploadError, setImgUploadError] = useState('')
 
-  // ── 内联弹窗 state ──────────────────────────────────────────────
   const [linkOpen, setLinkOpen]   = useState(false)
   const [linkUrl, setLinkUrl]     = useState('')
   const [linkText, setLinkText]   = useState('')
@@ -140,7 +163,6 @@ export default function PostEditor({ mode, initialData }: Props) {
     ],
     content: mdToHtml(initialData?.content ?? ''),
     editorProps: { attributes: { class: 'focus:outline-none min-h-[60vh] px-10 py-8' } },
-    // ← 关键：每次内容变化都同步 HTML 到 state，触发预览重渲染
     onUpdate: ({ editor }) => { setPreviewHtml(editor.getHTML()) },
     onCreate: ({ editor }) => { setPreviewHtml(editor.getHTML()) },
   })
@@ -158,6 +180,7 @@ export default function PostEditor({ mode, initialData }: Props) {
       tags: tagsRaw.split(',').map(t => t.trim()).filter(Boolean),
       published: pub !== undefined ? pub : false,
       cover_image: coverImage.trim() || null,
+      attachments,
     }
     const res = await fetch(
       mode === 'new' ? '/api/posts' : `/api/posts/${initialData!.slug}`,
@@ -196,7 +219,58 @@ export default function PostEditor({ mode, initialData }: Props) {
     finally { setUploadingCover(false); if (coverFileRef.current) coverFileRef.current.value = '' }
   }
 
-  // 打开链接弹窗时预填当前选区文字
+  // ── 添加附件（填写蓝奏云链接，仅写数据库）────────────────────────
+  async function handleAddAttachment() {
+    const filename = addAttFilename.trim()
+    const url      = addAttUrl.trim()
+    setAddAttError('')
+
+    if (!filename) { setAddAttError('请填写文件名'); return }
+    if (!url)      { setAddAttError('请填写蓝奏云链接'); return }
+    if (!/^https?:\/\//i.test(url)) { setAddAttError('链接格式不正确，请以 http(s):// 开头'); return }
+
+    setUploadingPdf(true); setPdfUploadError('')
+    try {
+      const res = await fetch('/api/posts/attachment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename, external_url: url, size: 0, post_slug: slug || null }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setPdfUploadError(data.error ?? '保存失败'); return }
+      setAttachments(prev => [...prev, { id: data.id, url: data.url, filename: data.filename, size: data.size, external_url: data.external_url }])
+      setAddAttFilename('')
+      setAddAttUrl('')
+      setAddAttOpen(false)
+    } catch {
+      setPdfUploadError('网络错误，请重试')
+    } finally {
+      setUploadingPdf(false)
+    }
+  }
+
+  async function removeAttachment(index: number) {
+    const att = attachments[index]
+    if (!att) return
+    if (!att.id) {
+      // 没有数据库记录，直接移除
+      setAttachments(prev => prev.filter((_, i) => i !== index))
+      return
+    }
+    if (!confirm(`确认删除附件「${att.filename}」？此操作不可撤销。`)) return
+    try {
+      const res = await fetch(`/api/posts/attachment?id=${att.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setAttachments(prev => prev.filter((_, i) => i !== index))
+      } else {
+        const d = await res.json()
+        alert(d.error ?? '删除失败')
+      }
+    } catch {
+      alert('网络错误，删除失败')
+    }
+  }
+
   const openLinkPopup = useCallback(() => {
     const { from, to, empty } = editor?.state.selection ?? { from:0, to:0, empty:true }
     setLinkText(empty ? '' : editor?.state.doc.textBetween(from, to) ?? '')
@@ -228,8 +302,7 @@ export default function PostEditor({ mode, initialData }: Props) {
     const url = window.prompt('粘贴 YouTube 或 Bilibili 链接')
     if (!url) return
     const provider = url.includes('bilibili') ? 'bilibili' : 'youtube'
-    // 先清除当前光标处可能存在的 link mark，再插入，防止 URL 被自动包裹成 <a>
-    editor?.chain().focus().unsetLink().insertContent({ type: 'videoEmbed', attrs: { src: url, provider } }).run()
+    editor?.chain().focus().insertContent({ type: 'videoEmbed', attrs: { src: url, provider } }).run()
   }, [editor])
 
   async function handleAiGenerate() {
@@ -275,40 +348,51 @@ export default function PostEditor({ mode, initialData }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center gap-4">
-        <Link href="/admin" className="p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+    <div className="h-screen bg-[#FAFAF8] flex flex-col overflow-hidden">
+      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-2 min-w-0 overflow-x-auto">
+        <Link href="/admin" className="p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <h1 className="text-sm font-black text-gray-600 tracking-widest uppercase flex-1">
+        <h1 className="text-sm font-black text-gray-600 tracking-widest uppercase flex-1 min-w-0 truncate">
           {mode === 'new' ? '新建文章' : '编辑文章'}
         </h1>
         <button onClick={() => setAiOpen(v => !v)}
-          className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'}`}>
+          className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'}`}>
           <Sparkles className="w-4 h-4" />AI 助手
         </button>
         <button onClick={() => { setImgUploadError(''); imgFileRef.current?.click() }} disabled={uploadingImg}
-          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
           {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
         </button>
         <input ref={imgFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleImgUpload} />
+
+        {/* ── 附件添加按钮 ── */}
+        <button
+          onClick={() => { setAddAttOpen(v => !v); setAddAttError('') }}
+          disabled={uploadingPdf}
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-orange-600 px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors disabled:opacity-50"
+        >
+          {uploadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+          附件
+        </button>
+
         <button onClick={() => setPreview(v => !v)}
-          className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${preview ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}>
+          className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${preview ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}>
           {preview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}{preview ? '关闭预览' : '分屏预览'}
         </button>
         <button onClick={() => handleSave(false)} disabled={saving}
-          className="flex items-center gap-2 text-xs font-bold text-gray-600 border border-gray-200 px-4 py-2 rounded-xl hover:border-gray-400 transition-colors disabled:opacity-50">
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold text-gray-600 border border-gray-200 px-4 py-2 rounded-xl hover:border-gray-400 transition-colors disabled:opacity-50">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}存草稿
         </button>
         <button onClick={() => handleSave(true)} disabled={saving}
-          className="flex items-center gap-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50">
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50">
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}发布
         </button>
       </header>
 
-      {error && <div className="bg-red-50 border-b border-red-100 px-6 py-3 text-sm text-red-600 font-medium">⚠ {error}</div>}
+      {error && <div className="flex-shrink-0 bg-red-50 border-b border-red-100 px-6 py-3 text-sm text-red-600 font-medium">⚠ {error}</div>}
 
-      <div className="border-b border-gray-100 bg-white px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="flex-shrink-0 border-b border-gray-100 bg-white px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">标题</label>
           <input value={title} onChange={e => handleTitleChange(e.target.value)} placeholder="文章标题"
@@ -362,6 +446,86 @@ export default function PostEditor({ mode, initialData }: Props) {
             <input ref={coverFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCoverUpload} />
           </div>
         </div>
+
+        {/* ── 附件区域 ── */}
+        {(attachments.length > 0 || addAttOpen || pdfUploadError) && (
+          <div className="md:col-span-3">
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">
+              附件{attachments.length > 0 && `（${attachments.length}）`}
+            </label>
+
+            {/* 添加附件表单 */}
+            {addAttOpen && (
+              <div className="mb-2 p-3 rounded-xl bg-orange-50 border border-orange-200 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-400">填写蓝奏云链接</p>
+                <div className="flex flex-col gap-2">
+                  <input
+                    value={addAttFilename}
+                    onChange={e => setAddAttFilename(e.target.value)}
+                    placeholder="文件名，如：论文终稿.pdf"
+                    className="w-full text-xs text-gray-800 bg-white border border-orange-200 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-400 transition"
+                  />
+                  <input
+                    value={addAttUrl}
+                    onChange={e => setAddAttUrl(e.target.value)}
+                    placeholder="蓝奏云链接，如：https://wwbfh.lanzoul.com/xxxxxx"
+                    className="w-full text-xs text-gray-800 bg-white border border-orange-200 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-400 transition"
+                  />
+                </div>
+                {addAttError && <p className="text-[10px] text-red-500">{addAttError}</p>}
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => { setAddAttOpen(false); setAddAttError(''); setAddAttFilename(''); setAddAttUrl('') }}
+                    className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  >取消</button>
+                  <button
+                    type="button"
+                    onClick={handleAddAttachment}
+                    disabled={uploadingPdf}
+                    className="flex items-center gap-1 text-xs font-black text-white bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {uploadingPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : null}保存
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((att, i) => (
+                  <div key={att.id ?? i} className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-700 w-full">
+                    <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate max-w-[120px]" title={att.filename}>{att.filename}</span>
+                    <span className="text-orange-400 text-[10px] flex-shrink-0">{formatBytes(att.size)}</span>
+                    {att.external_url || att.url ? (
+                      <a
+                        href={att.external_url || att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 min-w-0 text-blue-500 hover:underline truncate text-[10px]"
+                        title={att.external_url || att.url}
+                      >
+                        {att.external_url || att.url}
+                      </a>
+                    ) : (
+                      <span className="flex-1 text-gray-300 text-[10px]">无链接</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(i)}
+                      className="text-orange-400 hover:text-red-500 ml-1 flex-shrink-0"
+                      title="删除附件"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pdfUploadError && <p className="text-[10px] text-red-500 mt-1">⚠ {pdfUploadError}</p>}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -495,7 +659,7 @@ export default function PostEditor({ mode, initialData }: Props) {
             )}
           </div>
 
-          {/* 分屏预览列 — 用 previewHtml state 驱动，实时响应 */}
+          {/* 分屏预览列 */}
           {preview && (
             <div className="w-[45%] border-l border-gray-100 bg-white flex flex-col overflow-hidden flex-shrink-0">
               <div className="px-6 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">

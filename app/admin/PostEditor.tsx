@@ -7,7 +7,7 @@ import {
   ChevronRight, FileText, PenLine, AlignLeft, ImagePlus,
   Bold, Italic, Heading2, Heading3, List, ListOrdered,
   Quote, Code, Minus, Link as LinkIcon, Undo, Redo, Code2,
-  Table, Youtube, Clock
+  Table, Youtube, Clock, Paperclip, Upload, Trash2, Download
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -28,7 +28,6 @@ const VideoEmbed = Node.create({
   name: 'videoEmbed',
   group: 'block',
   atom: true,
-  marks: '',          // 禁止任何 mark（包括 Link）附着到此节点
   addAttributes() {
     return {
       src: { default: null },
@@ -55,11 +54,21 @@ const VideoEmbed = Node.create({
   },
 })
 
+interface AttachmentItem {
+  id?: number          // post_attachments 表的主键（已保存的附件才有）
+  url: string
+  filename: string
+  size: number
+  uploading?: boolean  // 正在上传中的临时状态
+  error?: string
+}
+
 interface Props {
   mode: 'new' | 'edit'
   initialData?: {
     slug: string; title: string; excerpt: string; content: string
     tags: string[]; published: boolean; cover_image?: string | null
+    author_id?: number | null
   }
 }
 type AiMode = 'draft' | 'continue' | 'excerpt'
@@ -82,6 +91,12 @@ function mdToHtml(md: string): string {
     .replace(/^(?!<[hupboa]|<li|<pre|<block)(.+)$/gm, '<p>$1</p>').replace(/\n{2,}/g, '')
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function PostEditor({ mode, initialData }: Props) {
   const router = useRouter()
   const [saving, setSaving]       = useState(false)
@@ -92,8 +107,10 @@ export default function PostEditor({ mode, initialData }: Props) {
   const [excerpt, setExcerpt]     = useState(initialData?.excerpt ?? '')
   const [tagsRaw, setTagsRaw]     = useState(initialData?.tags?.join(', ') ?? '')
   const [coverImage, setCoverImage] = useState<string>(initialData?.cover_image ?? '')
-  // 实时同步 HTML 用于分屏预览
   const [previewHtml, setPreviewHtml] = useState('')
+  // ── 作者 state ──────────────────────────────────────────────────
+  const [authorId, setAuthorId]   = useState<number | null>(initialData?.author_id ?? null)
+  const [users, setUsers]         = useState<{ id: number; name: string; avatar: string | null }[]>([])
 
   const coverFileRef = useRef<HTMLInputElement>(null)
   const [uploadingCover, setUploadingCover]     = useState(false)
@@ -108,6 +125,12 @@ export default function PostEditor({ mode, initialData }: Props) {
   const imgFileRef = useRef<HTMLInputElement>(null)
   const [uploadingImg, setUploadingImg]     = useState(false)
   const [imgUploadError, setImgUploadError] = useState('')
+
+  // ── 附件状态 ────────────────────────────────────────────────────
+  const [attachments, setAttachments]         = useState<AttachmentItem[]>([])
+  const [attachPanelOpen, setAttachPanelOpen] = useState(false)
+  const [loadingAttachments, setLoadingAttachments] = useState(false)
+  const attachFileRef = useRef<HTMLInputElement>(null)
 
   // ── 内联弹窗 state ──────────────────────────────────────────────
   const [linkOpen, setLinkOpen]   = useState(false)
@@ -140,10 +163,40 @@ export default function PostEditor({ mode, initialData }: Props) {
     ],
     content: mdToHtml(initialData?.content ?? ''),
     editorProps: { attributes: { class: 'focus:outline-none min-h-[60vh] px-10 py-8' } },
-    // ← 关键：每次内容变化都同步 HTML 到 state，触发预览重渲染
     onUpdate: ({ editor }) => { setPreviewHtml(editor.getHTML()) },
     onCreate: ({ editor }) => { setPreviewHtml(editor.getHTML()) },
   })
+
+  // ── 编辑模式：进入页面时从 API 加载已有附件 ──────────────────────
+  useEffect(() => {
+    if (mode !== 'edit' || !initialData?.slug) return
+    setLoadingAttachments(true)
+    fetch(`/api/posts/attachment?slug=${encodeURIComponent(initialData.slug)}`)
+      .then(r => r.json())
+      .then((data: { id: number; url: string; filename: string; size: number }[]) => {
+        if (Array.isArray(data)) {
+          setAttachments(data.map(a => ({ id: a.id, url: a.url, filename: a.filename, size: a.size })))
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingAttachments(false))
+  }, [mode, initialData?.slug])
+
+  // ── 加载用户列表，新建时默认选 admin ────────────────────────────
+  useEffect(() => {
+    fetch('/api/admin/users')
+      .then(r => r.json())
+      .then((data: { id: number; name: string; avatar: string | null }[]) => {
+        if (!Array.isArray(data)) return
+        setUsers(data)
+        // 新建模式且未设置作者时，默认选 role=admin 的第一个用户
+        if (mode === 'new' && authorId === null) {
+          const first = data[0]
+          if (first) setAuthorId(first.id)
+        }
+      })
+      .catch(console.error)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTitleChange(val: string) {
     setTitle(val)
@@ -158,6 +211,7 @@ export default function PostEditor({ mode, initialData }: Props) {
       tags: tagsRaw.split(',').map(t => t.trim()).filter(Boolean),
       published: pub !== undefined ? pub : false,
       cover_image: coverImage.trim() || null,
+      author_id: authorId,
     }
     const res = await fetch(
       mode === 'new' ? '/api/posts' : `/api/posts/${initialData!.slug}`,
@@ -196,6 +250,69 @@ export default function PostEditor({ mode, initialData }: Props) {
     finally { setUploadingCover(false); if (coverFileRef.current) coverFileRef.current.value = '' }
   }
 
+  // ── 附件上传 ─────────────────────────────────────────────────────
+  async function handleAttachUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (attachFileRef.current) attachFileRef.current.value = ''
+    if (!file) return
+    if (file.type !== 'application/pdf') {
+      alert('仅支持 PDF 格式'); return
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      alert('PDF 不能超过 200MB'); return
+    }
+
+    // 先插入一条 uploading 占位项
+    const placeholder: AttachmentItem = { url: '', filename: file.name, size: file.size, uploading: true }
+    setAttachments(prev => [...prev, placeholder])
+
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      // 如果已有 slug（编辑模式）则直接关联；新建模式保存后再关联
+      if (slug) fd.append('post_slug', slug)
+
+      const res  = await fetch('/api/posts/attachment', { method: 'POST', body: fd })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setAttachments(prev => prev.map(a =>
+          a === placeholder ? { ...a, uploading: false, error: data.error ?? '上传失败' } : a
+        ))
+        return
+      }
+
+      // 替换占位项为真实数据
+      setAttachments(prev => prev.map(a =>
+        a === placeholder
+          ? { id: data.id, url: data.url, filename: data.filename ?? file.name, size: file.size }
+          : a
+      ))
+    } catch {
+      setAttachments(prev => prev.map(a =>
+        a === placeholder ? { ...a, uploading: false, error: '网络错误，请重试' } : a
+      ))
+    }
+  }
+
+  // ── 附件删除 ─────────────────────────────────────────────────────
+  async function handleAttachDelete(att: AttachmentItem) {
+    if (!att.id) {
+      // 没有保存到数据库，直接从列表移除
+      setAttachments(prev => prev.filter(a => a !== att))
+      return
+    }
+    if (!confirm(`确认删除附件「${att.filename}」？此操作不可撤销。`)) return
+
+    const res = await fetch(`/api/posts/attachment?id=${att.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setAttachments(prev => prev.filter(a => a !== att))
+    } else {
+      const d = await res.json()
+      alert(d.error ?? '删除失败')
+    }
+  }
+
   // 打开链接弹窗时预填当前选区文字
   const openLinkPopup = useCallback(() => {
     const { from, to, empty } = editor?.state.selection ?? { from:0, to:0, empty:true }
@@ -228,8 +345,7 @@ export default function PostEditor({ mode, initialData }: Props) {
     const url = window.prompt('粘贴 YouTube 或 Bilibili 链接')
     if (!url) return
     const provider = url.includes('bilibili') ? 'bilibili' : 'youtube'
-    // 先清除当前光标处可能存在的 link mark，再插入，防止 URL 被自动包裹成 <a>
-    editor?.chain().focus().unsetLink().insertContent({ type: 'videoEmbed', attrs: { src: url, provider } }).run()
+    editor?.chain().focus().insertContent({ type: 'videoEmbed', attrs: { src: url, provider } }).run()
   }, [editor])
 
   async function handleAiGenerate() {
@@ -280,12 +396,42 @@ export default function PostEditor({ mode, initialData }: Props) {
         <Link href="/admin" className="p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <h1 className="text-sm font-black text-gray-600 tracking-widest uppercase flex-1">
+        <h1 className="text-sm font-black text-gray-600 tracking-widest uppercase">
           {mode === 'new' ? '新建文章' : '编辑文章'}
         </h1>
+
+        {/* ── 作者选择器 ── */}
+        <div className="flex items-center gap-1.5 flex-1">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">作者</span>
+          <select
+            value={authorId ?? ''}
+            onChange={e => setAuthorId(e.target.value ? Number(e.target.value) : null)}
+            className="text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors cursor-pointer"
+          >
+            <option value="">— 不指定 —</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        </div>
+
         <button onClick={() => setAiOpen(v => !v)}
           className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'}`}>
           <Sparkles className="w-4 h-4" />AI 助手
+        </button>
+        {/* ── 附件按钮 ── */}
+        <button
+          onClick={() => setAttachPanelOpen(v => !v)}
+          className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors
+            ${attachPanelOpen ? 'bg-orange-100 text-orange-700' : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'}`}
+        >
+          <Paperclip className="w-4 h-4" />
+          附件
+          {attachments.filter(a => !a.error).length > 0 && (
+            <span className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-[9px] font-black">
+              {attachments.filter(a => !a.error).length}
+            </span>
+          )}
         </button>
         <button onClick={() => { setImgUploadError(''); imgFileRef.current?.click() }} disabled={uploadingImg}
           className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
@@ -307,6 +453,67 @@ export default function PostEditor({ mode, initialData }: Props) {
       </header>
 
       {error && <div className="bg-red-50 border-b border-red-100 px-6 py-3 text-sm text-red-600 font-medium">⚠ {error}</div>}
+
+      {/* ── 附件面板 ── */}
+      {attachPanelOpen && (
+        <div className="bg-orange-50 border-b border-orange-100 px-6 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Paperclip className="w-3.5 h-3.5 text-orange-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">文章附件</span>
+              {loadingAttachments && <Loader2 className="w-3 h-3 animate-spin text-orange-400" />}
+            </div>
+            <button
+              onClick={() => { attachFileRef.current?.click() }}
+              className="flex items-center gap-1.5 text-xs font-black text-white bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Upload className="w-3 h-3" />上传 PDF
+            </button>
+            <input ref={attachFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleAttachUpload} />
+          </div>
+
+          {attachments.length === 0 && !loadingAttachments && (
+            <p className="text-xs text-orange-400 py-2">暂无附件，点击「上传 PDF」添加</p>
+          )}
+
+          <div className="space-y-2">
+            {attachments.map((att, i) => (
+              <div key={att.id ?? `tmp-${i}`}
+                className="flex items-center gap-3 p-3 rounded-xl bg-white border border-orange-100">
+                {/* 图标 */}
+                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                  {att.uploading
+                    ? <Loader2 className="w-4 h-4 text-red-400 animate-spin" />
+                    : <FileText className="w-4 h-4 text-red-500" />
+                  }
+                </div>
+                {/* 文件信息 */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-800 truncate">{att.filename}</p>
+                  <p className="text-[10px] text-gray-400">
+                    {att.uploading ? '上传中…' : att.error ? <span className="text-red-500">{att.error}</span> : `PDF · ${formatBytes(att.size)}`}
+                  </p>
+                </div>
+                {/* 操作按钮 */}
+                {!att.uploading && !att.error && att.url && (
+                  <a href={att.url} target="_blank" rel="noopener noreferrer"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="预览">
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                <button
+                  onClick={() => handleAttachDelete(att)}
+                  disabled={att.uploading}
+                  className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30"
+                  title="删除"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="border-b border-gray-100 bg-white px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
@@ -495,7 +702,7 @@ export default function PostEditor({ mode, initialData }: Props) {
             )}
           </div>
 
-          {/* 分屏预览列 — 用 previewHtml state 驱动，实时响应 */}
+          {/* 分屏预览列 */}
           {preview && (
             <div className="w-[45%] border-l border-gray-100 bg-white flex flex-col overflow-hidden flex-shrink-0">
               <div className="px-6 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">

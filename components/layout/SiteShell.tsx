@@ -10,12 +10,13 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isDark = pathname.startsWith('/gallery')
   const isAdmin = pathname.startsWith('/admin')
-  // dashboard 编辑器页面自带 toolbar，不套全局导航
   const isDashboardEditor =
     pathname.startsWith('/dashboard/new') ||
     pathname.startsWith('/dashboard/edit')
+  // onlyus 是独立全屏体验，不套全局导航和页脚
+  const isOnlyUs = pathname.startsWith('/onlyus')
 
-  if (isAdmin || isDashboardEditor) {
+  if (isAdmin || isDashboardEditor || isOnlyUs) {
     return <>{children}</>
   }
 

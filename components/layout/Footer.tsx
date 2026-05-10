@@ -1,13 +1,13 @@
-import Image from 'next/image'
-import Link from 'next/link'
 import { Github, Search, Mail } from 'lucide-react'
+import Link from 'next/link'
+import FooterLogo from './FooterLogo'
 
 export default function Footer() {
   return (
     <footer className="py-20 text-center z-10 relative border-t border-gray-100">
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <Image src="/logo.png" alt="MindStack" width={32} height={32} className="w-8 h-8 rounded-full" />
+          <FooterLogo />
           <h2 className="text-2xl font-black tracking-tighter">
             Mind<span className="text-blue-600">Stack</span>
           </h2>

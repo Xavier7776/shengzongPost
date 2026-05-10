@@ -8,7 +8,7 @@ import PostActions from '@/components/sections/PostActions'
 import ViewTracker from '@/components/sections/ViewTracker'
 import AuthorCard from '@/components/sections/AuthorCard'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
-import PostContent from '@/components/sections/PostContent'
+import AttachmentList from '@/components/sections/AttachmentList'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -153,13 +153,19 @@ export default async function BlogPostPage({ params }: PageProps) {
         </header>
 
         {isHtml ? (
-          // 新文章：Tiptap 输出的 HTML，由 PostContent 处理视频嵌入
-          <PostContent html={post.content} />
+          // 新文章：Tiptap 输出的 HTML，样式由 globals.css .post-content 控制
+          <div
+            className="post-content"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
         ) : (
           // 旧文章：保留原有 Markdown 解析，不受影响
           <div className="space-y-5">{renderMarkdown(post.content)}</div>
         )}
       </article>
+
+      <AttachmentList attachments={(post as any).attachments ?? []} />
+
       <ViewTracker slug={params.slug} />
       <PostActions slug={params.slug} />
       <CommentSection slug={params.slug} />

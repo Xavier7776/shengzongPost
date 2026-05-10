@@ -2,16 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { createPostImage, getPostImages, deletePostImage } from '@/lib/db'
+import { uploadLarge } from '@/lib/uploadLarge'
 import { v2 as cloudinary } from 'cloudinary'
 
-function getCld() {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key:    process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  })
-  return cloudinary
-}
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+})
 
 export async function GET(req: NextRequest) {
   const session = await requireAdminApi()
@@ -27,23 +25,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // ── 诊断日志，确认请求到达此 handler ──
   console.log('[posts/image POST] ✅ handler 被调用')
-
   const session = await requireAdminApi()
-  console.log('[posts/image POST] session:', session ? '已登录' : '未登录/null')
-
-  if (!session) {
-    console.error('[posts/image POST] ❌ 鉴权失败，返回 401')
-    return NextResponse.json({ error: '无权限，请重新登录后再试' }, { status: 401 })
-  }
+  if (!session) return NextResponse.json({ error: '无权限，请重新登录后再试' }, { status: 401 })
 
   try {
     const formData = await req.formData()
     const file     = formData.get('file')     as File   | null
     const postSlug = formData.get('postSlug') as string | null
-
-    console.log('[posts/image POST] 文件名:', file?.name, '大小:', file?.size, 'postSlug:', postSlug)
 
     if (!file) return NextResponse.json({ error: '请选择文件' }, { status: 400 })
     if (file.size > 10 * 1024 * 1024)
@@ -53,20 +42,16 @@ export async function POST(req: NextRequest) {
     if (!allowed.includes(file.type))
       return NextResponse.json({ error: '仅支持 JPG/PNG/WebP/GIF' }, { status: 400 })
 
-    const bytes   = await file.arrayBuffer()
-    const base64  = Buffer.from(bytes).toString('base64')
-    const dataUri = `data:${file.type};base64,${base64}`
+    const buffer = Buffer.from(await file.arrayBuffer())
 
-    console.log('[posts/image POST] 开始上传到 Cloudinary folder: arc-portfolio/post-images')
-    const result = await getCld().uploader.upload(dataUri, {
+    console.log('[posts/image POST] 开始 upload_large, 文件:', file.name, file.size)
+    const result = await uploadLarge(buffer, {
       folder:        'arc-portfolio/post-images',
       resource_type: 'image',
     })
-    console.log('[posts/image POST] Cloudinary 上传成功, public_id:', result.public_id)
+    console.log('[posts/image POST] 上传成功, public_id:', result.public_id)
 
     const userId = Number((session.user as { id?: string }).id ?? 0)
-    console.log('[posts/image POST] 写入 post_images 表, userId:', userId)
-
     const image = await createPostImage({
       post_slug:   postSlug || null,
       url:         result.secure_url,
@@ -76,7 +61,6 @@ export async function POST(req: NextRequest) {
       mime_type:   file.type,
       uploaded_by: userId,
     })
-    console.log('[posts/image POST] ✅ 写入成功, image.id:', image.id)
 
     return NextResponse.json({ url: image.url, id: image.id, public_id: image.public_id })
   } catch (err) {
@@ -95,7 +79,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const deleted = await deletePostImage(id)
     if (!deleted) return NextResponse.json({ error: '记录不存在' }, { status: 404 })
-    await getCld().uploader.destroy(deleted.public_id).catch(e =>
+    await cloudinary.uploader.destroy(deleted.public_id).catch(e =>
       console.warn('[posts/image DELETE] Cloudinary 删除失败:', e)
     )
     return NextResponse.json({ ok: true })

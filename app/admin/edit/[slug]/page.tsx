@@ -15,12 +15,15 @@ export default async function EditPostPage({ params }: Props) {
     <PostEditor
       mode="edit"
       initialData={{
-        slug: post.slug,
-        title: post.title,
-        excerpt: post.excerpt,
-        content: post.content,
-        tags: post.tags,
-        published: post.published,
+        slug:        post.slug,
+        title:       post.title,
+        excerpt:     post.excerpt,
+        content:     post.content,
+        tags:        post.tags,
+        published:   post.published,
+        cover_image: post.cover_image ?? null,
+        attachments: post.attachments ?? [],
+        author_id:   post.author_id ?? null,
       }}
     />
   )

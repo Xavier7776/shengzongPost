@@ -2,43 +2,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { createGalleryImage } from '@/lib/db'
-import { v2 as cloudinary } from 'cloudinary'
-
-function getCloudinary() {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  })
-  return cloudinary
-}
+import { uploadLarge } from '@/lib/uploadLarge'
 
 export async function POST(req: NextRequest) {
   try {
     await requireAdmin()
 
     const formData = await req.formData()
-    const file = formData.get('file') as File | null
-    const title = (formData.get('title') as string) || ''
+    const file     = formData.get('file')     as File   | null
+    const title    = (formData.get('title')    as string) || ''
     const category = (formData.get('category') as string) || ''
 
-    if (!file) {
-      return NextResponse.json({ error: '请选择文件' }, { status: 400 })
-    }
+    if (!file) return NextResponse.json({ error: '请选择文件' }, { status: 400 })
 
-    // 转成 base64 给 Cloudinary
-    const bytes = await file.arrayBuffer()
-    const base64 = Buffer.from(bytes).toString('base64')
-    const dataUri = `data:${file.type};base64,${base64}`
+    const buffer = Buffer.from(await file.arrayBuffer())
 
-    const cld = getCloudinary()
-    const result = await cld.uploader.upload(dataUri, {
-      folder: 'arc-portfolio/gallery',
+    const result = await uploadLarge(buffer, {
+      folder:        'arc-portfolio/gallery',
       resource_type: 'image',
     })
 
     const image = await createGalleryImage({
-      url: result.secure_url,
+      url:       result.secure_url,
       public_id: result.public_id,
       title,
       category,

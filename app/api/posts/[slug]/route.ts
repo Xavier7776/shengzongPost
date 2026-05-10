@@ -4,7 +4,7 @@
 // DELETE /api/posts/:slug → 删除文章（管理员）
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
-import { updatePost, deletePost, getPostBySlugAdmin } from '@/lib/db'
+import { updatePost, deletePost, getPostBySlugAdmin, updatePostAttachmentExternalUrl } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
@@ -30,7 +30,28 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
   try {
     const body = await req.json()
-    const post = await updatePost(params.slug, body)
+    const post = await updatePost(params.slug, {
+      title:       body.title,
+      excerpt:     body.excerpt,
+      content:     body.content,
+      tags:        body.tags,
+      published:   body.published,
+      slug:        body.slug,
+      cover_image: body.cover_image,
+      attachments: body.attachments,
+      author_id:   body.author_id ?? undefined,
+    })
+
+    // 批量更新各附件的 external_url（蓝奏云链接）
+    if (Array.isArray(body.attachments)) {
+      await Promise.all(
+        body.attachments
+          .filter((a: { id?: number; external_url?: string }) => a.id)
+          .map((a: { id: number; external_url?: string }) =>
+            updatePostAttachmentExternalUrl(a.id, a.external_url ?? null)
+          )
+      )
+    }
 
     revalidateTag('posts')
     revalidateTag(`post-${params.slug}`)
@@ -66,6 +87,17 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
 
   try {
     await deletePost(params.slug)
+    // 批量更新各附件的 external_url（蓝奏云链接）
+    if (Array.isArray(body.attachments)) {
+      await Promise.all(
+        body.attachments
+          .filter((a: { id?: number; external_url?: string }) => a.id)
+          .map((a: { id: number; external_url?: string }) =>
+            updatePostAttachmentExternalUrl(a.id, a.external_url ?? null)
+          )
+      )
+    }
+
     revalidateTag('posts')
     revalidateTag(`post-${params.slug}`)
     return NextResponse.json({ ok: true })

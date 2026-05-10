@@ -17,6 +17,7 @@ function serializeRows(rows: Record<string, unknown>[]) { return rows.map(serial
 export interface Post {
   id: number; slug: string; title: string; excerpt: string; content: string
   tags: string[]; published: boolean; created_at: string; updated_at: string; cover_image: string | null
+  attachments?: { id?: number; url: string; filename: string; size: number; external_url?: string }[]
   author_id?: number | null
   author_name?: string | null
   author_avatar?: string | null
@@ -37,7 +38,14 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     SELECT p.*,u.name as author_name,u.avatar as author_avatar,u.bio as author_bio
     FROM posts p LEFT JOIN users u ON u.id = p.author_id
     WHERE p.slug=${slug} AND p.published=true LIMIT 1`
-  return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as Post : null
+  if (!rows[0]) return null
+  const post = serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
+  // 从 post_attachments 表读取附件（覆盖 posts.attachments jsonb 字段，以 post_attachments 为准）
+  const attRows = await sql`
+    SELECT id, url, filename, size, external_url FROM post_attachments
+    WHERE post_slug=${slug} ORDER BY created_at ASC`
+  post.attachments = serializeRows(attRows as Record<string, unknown>[]) as unknown as Post['attachments']
+  return post
 }
 export async function getAllPostsAdmin(): Promise<PostMeta[]> {
   const rows = await sql`
@@ -51,14 +59,28 @@ export async function getPostBySlugAdmin(slug: string): Promise<Post | null> {
     SELECT p.*,u.name as author_name
     FROM posts p LEFT JOIN users u ON u.id = p.author_id
     WHERE p.slug=${slug} LIMIT 1`
-  return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as Post : null
+  if (!rows[0]) return null
+  const post = serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
+  // ✅ 修复：从 post_attachments 表联查附件，不再只依赖 posts.attachments jsonb 字段
+  const attRows = await sql`
+    SELECT id, url, filename, size, external_url FROM post_attachments
+    WHERE post_slug=${slug} ORDER BY created_at ASC`
+  post.attachments = serializeRows(attRows as Record<string, unknown>[]) as unknown as Post['attachments']
+  return post
 }
-export async function createPost(data: { slug: string; title: string; excerpt: string; content: string; tags: string[]; published: boolean; cover_image?: string | null }): Promise<Post> {
-  const rows = await sql`INSERT INTO posts(slug,title,excerpt,content,tags,published,cover_image) VALUES(${data.slug},${data.title},${data.excerpt},${data.content},${data.tags},${data.published},${data.cover_image ?? null}) RETURNING *`
+export async function createPost(data: { slug: string; title: string; excerpt: string; content: string; tags: string[]; published: boolean; cover_image?: string | null; attachments?: { url: string; filename: string; size: number }[] }): Promise<Post> {
+  const attachments = JSON.stringify(data.attachments ?? [])
+  const rows = await sql`INSERT INTO posts(slug,title,excerpt,content,tags,published,cover_image,attachments) VALUES(${data.slug},${data.title},${data.excerpt},${data.content},${data.tags},${data.published},${data.cover_image ?? null},${attachments}::jsonb) RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
-export async function updatePost(slug: string, data: Partial<{ title: string; excerpt: string; content: string; tags: string[]; published: boolean; slug: string; cover_image: string }>): Promise<Post> {
-  const rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content??null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),updated_at=NOW() WHERE slug=${slug} RETURNING *`
+export async function updatePost(slug: string, data: Partial<{ title: string; excerpt: string; content: string; tags: string[]; published: boolean; slug: string; cover_image: string; attachments: { url: string; filename: string; size: number }[]; author_id: number | null }>): Promise<Post> {
+  let rows
+  if (data.attachments !== undefined) {
+    const attachments = JSON.stringify(data.attachments)
+    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content??null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),attachments=${attachments}::jsonb,author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
+  } else {
+    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content??null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
+  }
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
 export async function deletePost(slug: string): Promise<void> { await sql`DELETE FROM posts WHERE slug=${slug}` }
@@ -108,6 +130,14 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 export async function getUserById(id: number): Promise<User | null> {
   const rows = await sql`SELECT * FROM users WHERE id=${id} LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null
+}
+export async function getAdminUserId(): Promise<number | null> {
+  const rows = await sql`SELECT id FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1`
+  return rows[0] ? (rows[0].id as number) : null
+}
+export async function getAllUsers(): Promise<{ id: number; name: string; avatar: string | null }[]> {
+  const rows = await sql`SELECT id, name, avatar FROM users ORDER BY role DESC, id ASC`
+  return rows.map(r => ({ id: r.id as number, name: r.name as string, avatar: (r.avatar ?? null) as string | null }))
 }
 export async function createUser(data: { email: string; name: string; password: string }): Promise<User> {
   const rows = await sql`INSERT INTO users(email,name,password) VALUES(${data.email},${data.name},${data.password}) RETURNING *`
@@ -495,4 +525,47 @@ export async function deleteEditRequest(id: number, userId: number): Promise<boo
     RETURNING id
   `
   return rows.length > 0
+}
+
+// ─── Post 附件 ────────────────────────────────────────────────────────────────
+// ✅ 新增：更新单条附件的 external_url（蓝奏云等第三方链接）
+export async function updatePostAttachmentExternalUrl(id: number, externalUrl: string | null): Promise<void> {
+  await sql`
+    UPDATE post_attachments SET external_url = ${externalUrl} WHERE id = ${id}
+  `
+}
+
+export interface PostAttachment {
+  id: number; post_slug: string | null; url: string; public_id: string
+  filename: string; size: number; mime_type: string; uploaded_by: number; created_at: string
+}
+
+export async function createPostAttachment(data: {
+  post_slug: string | null; url: string; public_id: string
+  filename: string; size: number; mime_type: string; uploaded_by: number
+}): Promise<PostAttachment> {
+  const rows = await sql`
+    INSERT INTO post_attachments(post_slug, url, public_id, filename, size, mime_type, uploaded_by)
+    VALUES(${data.post_slug}, ${data.url}, ${data.public_id}, ${data.filename}, ${data.size}, ${data.mime_type}, ${data.uploaded_by})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as PostAttachment
+}
+
+// ✅ 新增：按 slug 读取附件列表（供编辑页和详情页使用）
+export async function getPostAttachmentsBySlug(postSlug: string): Promise<PostAttachment[]> {
+  const rows = await sql`
+    SELECT * FROM post_attachments
+    WHERE post_slug = ${postSlug}
+    ORDER BY created_at ASC
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PostAttachment[]
+}
+
+// ✅ 新增：删除单条附件记录（返回 public_id 供 Cloudinary 同步删除）
+export async function deletePostAttachment(id: number): Promise<{ public_id: string } | null> {
+  const rows = await sql`
+    DELETE FROM post_attachments WHERE id = ${id} RETURNING public_id
+  `
+  return rows[0] ? { public_id: rows[0].public_id as string } : null
 }
