@@ -22,7 +22,6 @@ export default async function EditPostPage({ params }: Props) {
         tags:        post.tags,
         published:   post.published,
         cover_image: post.cover_image ?? null,
-        attachments: post.attachments ?? [],
         author_id:   post.author_id ?? null,
       }}
     />

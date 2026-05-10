@@ -162,9 +162,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           // 旧文章：保留原有 Markdown 解析，不受影响
           <div className="space-y-5">{renderMarkdown(post.content)}</div>
         )}
-      </article>
 
-      <AttachmentList attachments={(post as any).attachments ?? []} />
+        <AttachmentList attachments={(post as any).attachments ?? []} />
+      </article>
 
       <ViewTracker slug={params.slug} />
       <PostActions slug={params.slug} />
