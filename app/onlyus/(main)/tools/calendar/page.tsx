@@ -9,6 +9,91 @@ import dayjs, { type Dayjs } from 'dayjs'
 const EVENT_COLORS = ['#C4785A','#E8849C','#F5A623','#7EB8D4','#7BB87E','#9B7EB8']
 const WEEKDAYS = ['日','一','二','三','四','五','六']
 
+// ── 节日数据 ──────────────────────────────────────────────────────────
+interface Holiday { date: string; title: string; emoji: string; color: string }
+
+// 固定日期节日（每年相同，date 格式 MM-DD）
+const FIXED_HOLIDAYS: { title: string; emoji: string; color: string; date: string }[] = [
+  { title: '元旦', emoji: '🎊', color: '#F5A623', date: '01-01' },
+  { title: '情人节', emoji: '💝', color: '#E8849C', date: '02-14' },
+  { title: '妇女节', emoji: '🌸', color: '#E8849C', date: '03-08' },
+  { title: '白色情人节', emoji: '🤍', color: '#9B7EB8', date: '03-14' },
+  { title: '植树节', emoji: '🌱', color: '#7BB87E', date: '03-12' },
+  { title: '愚人节', emoji: '🤡', color: '#F5A623', date: '04-01' },
+  { title: '劳动节', emoji: '💪', color: '#C4785A', date: '05-01' },
+  { title: '青年节', emoji: '✨', color: '#7EB8D4', date: '05-04' },
+  { title: '520', emoji: '💕', color: '#E8849C', date: '05-20' },
+  { title: '儿童节', emoji: '🎈', color: '#F5A623', date: '06-01' },
+  { title: '建党节', emoji: '🇨🇳', color: '#D4584A', date: '07-01' },
+  { title: '建军节', emoji: '⭐', color: '#D4584A', date: '08-01' },
+  { title: '教师节', emoji: '📚', color: '#7EB8D4', date: '09-10' },
+  { title: '国庆节', emoji: '🇨🇳', color: '#D4584A', date: '10-01' },
+  { title: '万圣节', emoji: '🎃', color: '#F5A623', date: '10-31' },
+  { title: '感恩节', emoji: '🍁', color: '#C4785A', date: '11-27' },
+  { title: '圣诞节', emoji: '🎄', color: '#D4584A', date: '12-25' },
+  { title: '跨年夜', emoji: '🎆', color: '#F5A623', date: '12-31' },
+]
+
+// 农历节日（按年份硬编码，需要每年更新）
+// 2026年农历节日日期
+const LUNAR_HOLIDAYS_2026: Holiday[] = [
+  { date: '2026-02-17', title: '除夕', emoji: '🧧', color: '#D4584A' },
+  { date: '2026-02-18', title: '春节', emoji: '🧧', color: '#D4584A' },
+  { date: '2026-02-19', title: '初二', emoji: '🧧', color: '#D4584A' },
+  { date: '2026-02-20', title: '初三', emoji: '🧧', color: '#D4584A' },
+  { date: '2026-03-05', title: '元宵节', emoji: '🏮', color: '#F5A623' },
+  { date: '2026-04-05', title: '清明节', emoji: '🍃', color: '#7BB87E' },
+  { date: '2026-06-19', title: '端午节', emoji: '🐉', color: '#7EB8D4' },
+  { date: '2026-08-25', title: '七夕', emoji: '💑', color: '#E8849C' },
+  { date: '2026-09-15', title: '中元节', emoji: '👻', color: '#9B7EB8' },
+  { date: '2026-10-04', title: '中秋节', emoji: '🥮', color: '#F5A623' },
+  { date: '2026-10-18', title: '重阳节', emoji: '🌼', color: '#C4785A' },
+]
+
+// 2025年农历节日日期
+const LUNAR_HOLIDAYS_2025: Holiday[] = [
+  { date: '2025-01-28', title: '除夕', emoji: '🧧', color: '#D4584A' },
+  { date: '2025-01-29', title: '春节', emoji: '🧧', color: '#D4584A' },
+  { date: '2025-01-30', title: '初二', emoji: '🧧', color: '#D4584A' },
+  { date: '2025-01-31', title: '初三', emoji: '🧧', color: '#D4584A' },
+  { date: '2025-02-12', title: '元宵节', emoji: '🏮', color: '#F5A623' },
+  { date: '2025-04-04', title: '清明节', emoji: '🍃', color: '#7BB87E' },
+  { date: '2025-05-31', title: '端午节', emoji: '🐉', color: '#7EB8D4' },
+  { date: '2025-08-29', title: '七夕', emoji: '💑', color: '#E8849C' },
+  { date: '2025-09-06', title: '中元节', emoji: '👻', color: '#9B7EB8' },
+  { date: '2025-10-06', title: '中秋节', emoji: '🥮', color: '#F5A623' },
+  { date: '2025-10-29', title: '重阳节', emoji: '🌼', color: '#C4785A' },
+]
+
+// 纪念日（可自定义，这里是示例）
+const ANNIVERSARIES: Holiday[] = [
+  { date: '2024-02-14', title: '在一起纪念日', emoji: '💕', color: '#E8849C' },
+]
+
+function getHolidaysForMonth(year: number, month: number): Holiday[] {
+  const mm = String(month).padStart(2, '0')
+  const result: Holiday[] = []
+
+  // 固定节日
+  for (const h of FIXED_HOLIDAYS) {
+    const [m, d] = h.date.split('-')
+    if (m === mm) {
+      result.push({ ...h, date: `${year}-${h.date}` })
+    }
+  }
+
+  // 农历节日
+  const lunarHolidays = year === 2025 ? LUNAR_HOLIDAYS_2025 : year === 2026 ? LUNAR_HOLIDAYS_2026 : []
+  for (const h of lunarHolidays) {
+    const m = parseInt(h.date.split('-')[1])
+    if (m === month) {
+      result.push(h)
+    }
+  }
+
+  return result
+}
+
 // ── 添加事件弹窗 ──────────────────────────────────────────────────────
 function AddEventModal({ defaultDate, coupleId, userId, onClose, onSave }: {
   defaultDate: string; coupleId: string; userId: string
@@ -26,9 +111,15 @@ function AddEventModal({ defaultDate, coupleId, userId, onClose, onSave }: {
   const handleSave = async () => {
     if (!title.trim()) return
     setSaving(true)
-    await onSave({ couple_id: coupleId, created_by: userId, title: title.trim(), date, end_date: endDate || date, note: note || null, color })
-    setSaving(false)
-    onClose()
+    try {
+      await onSave({ couple_id: coupleId, created_by: userId, title: title.trim(), date, end_date: endDate || date, note: note || null, color })
+      onClose()
+    } catch (err: any) {
+      console.error('Calendar add error:', err)
+      alert(`保存失败: ${err?.message || JSON.stringify(err)}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -107,8 +198,16 @@ export default function CalendarPage() {
     return events.filter(e => ds >= e.date && ds <= (e.end_date ?? e.date))
   }
 
+  // 获取当月节日
+  const monthHolidays = getHolidaysForMonth(currentMonth.year(), currentMonth.month() + 1)
+  const getHolidaysForDate = (d: Dayjs): Holiday[] => {
+    const ds = d.format('YYYY-MM-DD')
+    return monthHolidays.filter(h => h.date === ds)
+  }
+
   const today = dayjs().format('YYYY-MM-DD')
   const selectedEvents = selectedDate ? events.filter(e => selectedDate >= e.date && selectedDate <= (e.end_date ?? e.date)) : []
+  const selectedHolidays = selectedDate ? monthHolidays.filter(h => h.date === selectedDate) : []
 
   const handleAddEvent = async (e: Omit<CalendarEvent, 'id' | 'created_at'>) => {
     await addEvent(e)
@@ -165,6 +264,7 @@ export default function CalendarPage() {
                 const isToday = ds === today
                 const isSelected = ds === selectedDate
                 const dayEvents = getEventsForDate(day)
+                const dayHolidays = getHolidaysForDate(day)
                 const isCurrentMonth = day.month() === currentMonth.month()
 
                 return (
@@ -198,6 +298,12 @@ export default function CalendarPage() {
                     }}>
                       {day.date()}
                     </div>
+                    {/* 节日标记 */}
+                    {dayHolidays.length > 0 && (
+                      <span style={{ fontSize: 8, color: dayHolidays[0].color, fontFamily: "'DM Sans', sans-serif", display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {dayHolidays[0].emoji}{dayHolidays[0].title}
+                      </span>
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       {dayEvents.slice(0, 3).map(ev => (
                         <div key={ev.id} style={{
@@ -246,12 +352,29 @@ export default function CalendarPage() {
                     }}>+</button>
                   </div>
 
-                  {selectedEvents.length === 0 ? (
+                  {selectedHolidays.length === 0 && selectedEvents.length === 0 ? (
                     <p style={{ fontSize: 12, color: 'rgba(61,35,24,0.3)', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
                       这天还没有日程
                     </p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, animation: 'slide-in 0.25s ease' }}>
+                      {/* 节日 */}
+                      {selectedHolidays.map(h => (
+                        <div key={h.title} style={{
+                          padding: '10px 12px', borderRadius: 12,
+                          background: `${h.color}12`,
+                          border: `1px solid ${h.color}25`,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 18 }}>{h.emoji}</span>
+                            <div>
+                              <p style={{ margin: 0, fontSize: 13, color: '#3D2318', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>{h.title}</p>
+                              <p style={{ margin: 0, fontSize: 10, color: h.color, fontFamily: "'DM Sans', sans-serif" }}>节日</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {/* 用户事件 */}
                       {selectedEvents.map(ev => {
                         const isMe = ev.created_by === profile?.id
                         return (

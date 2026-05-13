@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
 import { useGoodnightStore } from '@/stores/onlyus/utilStores'
 
@@ -18,7 +18,12 @@ export default function GoodnightCard() {
     myCheckin, partnerCheckin, bothCheckedIn, streak,
     isLoading, loadToday, loadStreak, checkin, subscribeToPartner, unsubscribe,
   } = useGoodnightStore()
-  const [justChecked, setJustChecked] = useState(false)
+  const [showPopup, setShowPopup] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [checking, setChecking] = useState(false)
+  const [particles, setParticles] = useState<{ id: number; x: number; y: number; vx: number; vy: number; emoji: string }[]>([])
+  const particleId = useRef(0)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!profile?.id || !partner?.id) return
@@ -28,16 +33,44 @@ export default function GoodnightCard() {
     return () => unsubscribe()
   }, [profile?.id, partner?.id, loadToday, loadStreak, subscribeToPartner, unsubscribe])
 
+  const spawnParticles = useCallback(() => {
+    const emojis = ['🌙', '✨', '💫', '⭐', '🌟']
+    const card = cardRef.current
+    if (!card) return
+    const rect = card.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    const ps = Array.from({ length: 14 }, () => ({
+      id: particleId.current++,
+      x: cx, y: cy,
+      vx: (Math.random() - 0.5) * 10,
+      vy: (Math.random() - 0.5) * 10 - 3,
+      emoji: emojis[Math.floor(Math.random() * emojis.length)],
+    }))
+    setParticles(ps)
+    setTimeout(() => setParticles([]), 1200)
+  }, [])
+
   const handleCheckin = async () => {
-    if (!profile?.id || myCheckin) return
-    await checkin(profile.id)
-    setJustChecked(true)
+    if (!profile?.id || myCheckin || checking) return
+    setErrorMsg('')
+    setChecking(true)
+    try {
+      await checkin(profile.id)
+      spawnParticles()
+      setShowPopup(true)
+      setTimeout(() => setShowPopup(false), 2500)
+    } catch (err: any) {
+      setErrorMsg(err?.message || '打卡失败，请重试')
+      setTimeout(() => setErrorMsg(''), 3000)
+    } finally {
+      setChecking(false)
+    }
   }
 
   const myName = profile?.nickname ?? 'Me'
   const partnerName = partner?.nickname ?? 'Ta'
 
-  // 星星点点背景装饰
   const stars = Array.from({ length: 6 }, (_, i) => ({
     left: `${15 + i * 13}%`,
     top: `${20 + (i % 3) * 25}%`,
@@ -47,188 +80,7 @@ export default function GoodnightCard() {
   }))
 
   return (
-    <div style={{
-      background: bothCheckedIn
-        ? 'linear-gradient(135deg, rgba(61,35,24,0.92), rgba(80,30,50,0.88))'
-        : 'rgba(255,255,255,0.55)',
-      backdropFilter: 'blur(16px)',
-      borderRadius: 20,
-      border: bothCheckedIn
-        ? '1px solid rgba(232,132,156,0.25)'
-        : '1px solid rgba(196,120,90,0.1)',
-      padding: '24px 28px',
-      position: 'relative',
-      overflow: 'hidden',
-      transition: 'all 0.6s ease',
-    }}>
-      {/* 星星装饰（晚安状态下显示）*/}
-      {bothCheckedIn && stars.map((s, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          left: s.left, top: s.top,
-          width: s.size, height: s.size,
-          borderRadius: '50%',
-          background: '#F8F6F3',
-          opacity: s.opacity,
-          animation: `star-twinkle 2s ease-in-out ${s.delay}s infinite`,
-          pointerEvents: 'none',
-        }} />
-      ))}
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-        <p style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 11, letterSpacing: '0.3em',
-          textTransform: 'uppercase',
-          color: bothCheckedIn ? 'rgba(232,132,156,0.7)' : 'rgba(196,120,90,0.7)',
-          margin: 0,
-        }}>
-          晚安打卡
-        </p>
-
-        {streak > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 4,
-            background: bothCheckedIn ? 'rgba(232,132,156,0.15)' : 'rgba(196,120,90,0.08)',
-            border: `1px solid ${bothCheckedIn ? 'rgba(232,132,156,0.3)' : 'rgba(196,120,90,0.15)'}`,
-            borderRadius: 20, padding: '3px 10px',
-          }}>
-            <span style={{ fontSize: 12 }}>🔥</span>
-            <span style={{
-              fontSize: 11, fontWeight: 600,
-              color: bothCheckedIn ? '#E8849C' : '#C4785A',
-              fontFamily: "'DM Sans', sans-serif",
-            }}>
-              {streak}天
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* 两人状态 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-        {/* 我 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            border: `2px solid ${myCheckin ? '#C4785A' : 'rgba(196,120,90,0.2)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: myCheckin ? '#C4785A' : 'rgba(196,120,90,0.3)',
-            background: myCheckin ? 'rgba(196,120,90,0.08)' : 'transparent',
-            transition: 'all 0.4s ease',
-          }}>
-            <MoonIcon filled={myCheckin} />
-          </div>
-          <span style={{
-            fontSize: 10, letterSpacing: '0.04em',
-            color: bothCheckedIn ? 'rgba(248,246,243,0.5)' : 'rgba(61,35,24,0.4)',
-            fontFamily: "'DM Sans', sans-serif",
-          }}>
-            {myName}
-          </span>
-        </div>
-
-        {/* 连线 */}
-        <div style={{ flex: 1, position: 'relative', height: 2 }}>
-          <div style={{
-            height: '100%',
-            borderRadius: 2,
-            background: bothCheckedIn
-              ? 'linear-gradient(to right, #C4785A, #E8849C)'
-              : partnerCheckin || myCheckin
-                ? `linear-gradient(to right, ${myCheckin ? '#C4785A' : 'rgba(196,120,90,0.15)'}, ${partnerCheckin ? '#E8849C' : 'rgba(232,132,156,0.15)'})`
-                : 'rgba(196,120,90,0.1)',
-            transition: 'background 0.6s ease',
-          }} />
-          {bothCheckedIn && (
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              fontSize: 14,
-              animation: 'heart-pop 0.4s cubic-bezier(0.16,1,0.3,1)',
-            }}>
-              💕
-            </div>
-          )}
-        </div>
-
-        {/* 对方 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            border: `2px solid ${partnerCheckin ? '#E8849C' : 'rgba(232,132,156,0.2)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: partnerCheckin ? '#E8849C' : 'rgba(232,132,156,0.3)',
-            background: partnerCheckin ? 'rgba(232,132,156,0.08)' : 'transparent',
-            transition: 'all 0.4s ease',
-          }}>
-            <MoonIcon filled={partnerCheckin} />
-          </div>
-          <span style={{
-            fontSize: 10, letterSpacing: '0.04em',
-            color: bothCheckedIn ? 'rgba(248,246,243,0.5)' : 'rgba(61,35,24,0.4)',
-            fontFamily: "'DM Sans', sans-serif",
-          }}>
-            {partnerName}
-          </span>
-        </div>
-      </div>
-
-      {/* 打卡按钮或状态提示 */}
-      {bothCheckedIn ? (
-        <div style={{ textAlign: 'center' }}>
-          <p style={{
-            fontFamily: "'Playfair Display', serif",
-            fontStyle: 'italic',
-            fontSize: 15, color: 'rgba(248,246,243,0.85)',
-            margin: '0 0 4px',
-          }}>
-            晚安，好梦 ✨
-          </p>
-          <p style={{
-            fontSize: 11, color: 'rgba(248,246,243,0.35)',
-            fontFamily: "'Cormorant Garamond', serif",
-            letterSpacing: '0.05em', margin: 0,
-          }}>
-            两颗心都安心了
-          </p>
-        </div>
-      ) : myCheckin ? (
-        <div style={{
-          textAlign: 'center', padding: '8px 0',
-          color: bothCheckedIn ? 'rgba(248,246,243,0.6)' : 'rgba(61,35,24,0.45)',
-          fontFamily: "'Cormorant Garamond', serif",
-          fontStyle: 'italic', fontSize: 13,
-        }}>
-          {justChecked ? '你已打卡 ✓' : '你已打卡'} · 等 {partnerName} 回应
-        </div>
-      ) : (
-        <button
-          onClick={handleCheckin}
-          disabled={isLoading}
-          style={{
-            width: '100%', padding: '12px 0',
-            borderRadius: 12, border: 'none',
-            background: 'linear-gradient(135deg, rgba(196,120,90,0.15), rgba(232,132,156,0.1))',
-            borderTop: '1px solid rgba(196,120,90,0.15)',
-            color: '#C4785A',
-            fontFamily: "'Cormorant Garamond', serif",
-            fontStyle: 'italic', fontSize: 15,
-            cursor: 'pointer',
-            transition: 'all 0.18s ease',
-            letterSpacing: '0.02em',
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(196,120,90,0.22), rgba(232,132,156,0.16))'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(196,120,90,0.15), rgba(232,132,156,0.1))'
-          }}
-        >
-          晚安打卡 🌙
-        </button>
-      )}
-
+    <>
       <style>{`
         @keyframes star-twinkle {
           0%, 100% { opacity: 0.15; transform: scale(1); }
@@ -238,7 +90,242 @@ export default function GoodnightCard() {
           from { transform: translate(-50%, -50%) scale(0); }
           to { transform: translate(-50%, -50%) scale(1); }
         }
+        @keyframes goodnight-popup-in {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+          60% { transform: translate(-50%, -50%) scale(1.08); }
+          100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes goodnight-overlay-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes goodnight-particle {
+          0% { opacity: 1; transform: translate(0, 0) scale(1); }
+          100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.3); }
+        }
       `}</style>
-    </div>
+
+      <div ref={cardRef} style={{
+        background: bothCheckedIn
+          ? 'linear-gradient(135deg, rgba(61,35,24,0.92), rgba(80,30,50,0.88))'
+          : 'rgba(255,255,255,0.55)',
+        backdropFilter: 'blur(16px)',
+        borderRadius: 20,
+        border: bothCheckedIn
+          ? '1px solid rgba(232,132,156,0.25)'
+          : '1px solid rgba(196,120,90,0.1)',
+        padding: '24px 28px',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'all 0.6s ease',
+      }}>
+        {/* Particles */}
+        {particles.map(p => (
+          <div key={p.id} style={{
+            position: 'absolute', left: p.x, top: p.y,
+            fontSize: 16 + Math.random() * 8, pointerEvents: 'none', zIndex: 20,
+            ['--px' as string]: `${p.vx * 20}px`,
+            ['--py' as string]: `${p.vy * 20 - 20}px`,
+            animation: 'goodnight-particle 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+          }}>
+            {p.emoji}
+          </div>
+        ))}
+
+        {bothCheckedIn && stars.map((s, i) => (
+          <div key={i} style={{
+            position: 'absolute', left: s.left, top: s.top,
+            width: s.size, height: s.size,
+            borderRadius: '50%', background: '#F8F6F3',
+            opacity: s.opacity,
+            animation: `star-twinkle 2s ease-in-out ${s.delay}s infinite`,
+            pointerEvents: 'none',
+          }} />
+        ))}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <p style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase',
+            color: bothCheckedIn ? 'rgba(232,132,156,0.7)' : 'rgba(196,120,90,0.7)', margin: 0,
+          }}>晚安打卡</p>
+          {streak > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: bothCheckedIn ? 'rgba(232,132,156,0.15)' : 'rgba(196,120,90,0.08)',
+              border: `1px solid ${bothCheckedIn ? 'rgba(232,132,156,0.3)' : 'rgba(196,120,90,0.15)'}`,
+              borderRadius: 20, padding: '3px 10px',
+            }}>
+              <span style={{ fontSize: 12 }}>🔥</span>
+              <span style={{
+                fontSize: 11, fontWeight: 600,
+                color: bothCheckedIn ? '#E8849C' : '#C4785A',
+                fontFamily: "'DM Sans', sans-serif",
+              }}>{streak}天</span>
+            </div>
+          )}
+        </div>
+
+        {/* Two avatars */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              border: `2px solid ${myCheckin ? '#C4785A' : 'rgba(196,120,90,0.2)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: myCheckin ? '#C4785A' : 'rgba(196,120,90,0.3)',
+              background: myCheckin ? 'rgba(196,120,90,0.08)' : 'transparent',
+              transition: 'all 0.4s ease',
+            }}><MoonIcon filled={myCheckin} /></div>
+            <span style={{
+              fontSize: 10, letterSpacing: '0.04em',
+              color: bothCheckedIn ? 'rgba(248,246,243,0.5)' : 'rgba(61,35,24,0.4)',
+              fontFamily: "'DM Sans', sans-serif",
+            }}>{myName}</span>
+          </div>
+
+          <div style={{ flex: 1, position: 'relative', height: 2 }}>
+            <div style={{
+              height: '100%', borderRadius: 2,
+              background: bothCheckedIn
+                ? 'linear-gradient(to right, #C4785A, #E8849C)'
+                : partnerCheckin || myCheckin
+                  ? `linear-gradient(to right, ${myCheckin ? '#C4785A' : 'rgba(196,120,90,0.15)'}, ${partnerCheckin ? '#E8849C' : 'rgba(232,132,156,0.15)'})`
+                  : 'rgba(196,120,90,0.1)',
+              transition: 'background 0.6s ease',
+            }} />
+            {bothCheckedIn && (
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)', fontSize: 14,
+                animation: 'heart-pop 0.4s cubic-bezier(0.16,1,0.3,1)',
+              }}>💕</div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              border: `2px solid ${partnerCheckin ? '#E8849C' : 'rgba(232,132,156,0.2)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: partnerCheckin ? '#E8849C' : 'rgba(232,132,156,0.3)',
+              background: partnerCheckin ? 'rgba(232,132,156,0.08)' : 'transparent',
+              transition: 'all 0.4s ease',
+            }}><MoonIcon filled={partnerCheckin} /></div>
+            <span style={{
+              fontSize: 10, letterSpacing: '0.04em',
+              color: bothCheckedIn ? 'rgba(248,246,243,0.5)' : 'rgba(61,35,24,0.4)',
+              fontFamily: "'DM Sans', sans-serif",
+            }}>{partnerName}</span>
+          </div>
+        </div>
+
+        {/* Error message */}
+        {errorMsg && (
+          <p style={{
+            textAlign: 'center', fontSize: 12, color: 'rgba(180,60,60,0.8)',
+            fontFamily: "'DM Sans', sans-serif", margin: '0 0 10px',
+          }}>{errorMsg}</p>
+        )}
+
+        {/* Button or status */}
+        {bothCheckedIn ? (
+          <div style={{ textAlign: 'center' }}>
+            <p style={{
+              fontFamily: "'Playfair Display', serif", fontStyle: 'italic',
+              fontSize: 15, color: 'rgba(248,246,243,0.85)', margin: '0 0 4px',
+            }}>晚安，好梦 ✨</p>
+            <p style={{
+              fontSize: 11, color: 'rgba(248,246,243,0.35)',
+              fontFamily: "'Cormorant Garamond', serif", margin: 0,
+            }}>两颗心都安心了</p>
+          </div>
+        ) : myCheckin ? (
+          <div style={{
+            textAlign: 'center', padding: '8px 0',
+            color: 'rgba(61,35,24,0.45)',
+            fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 13,
+          }}>
+            你已打卡 ✓ · 等 {partnerName} 回应
+          </div>
+        ) : (
+          <button
+            onClick={handleCheckin}
+            disabled={checking}
+            style={{
+              width: '100%', padding: '14px 0',
+              borderRadius: 14, border: 'none',
+              background: checking
+                ? 'rgba(196,120,90,0.08)'
+                : 'linear-gradient(135deg, rgba(196,120,90,0.15), rgba(232,132,156,0.12))',
+              color: '#C4785A',
+              fontFamily: "'Cormorant Garamond', serif",
+              fontStyle: 'italic', fontSize: 16,
+              cursor: checking ? 'wait' : 'pointer',
+              transition: 'all 0.15s ease',
+              letterSpacing: '0.02em',
+            }}
+          >
+            {checking ? '打卡中...' : '晚安打卡 🌙'}
+          </button>
+        )}
+      </div>
+
+      {/* Success popup */}
+      {showPopup && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 400,
+          background: 'rgba(61,35,24,0.3)',
+          backdropFilter: 'blur(4px)',
+          animation: 'goodnight-overlay-in 0.2s ease',
+        }} onClick={() => setShowPopup(false)}>
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            animation: 'goodnight-popup-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            width: '80%', maxWidth: 300,
+            background: 'linear-gradient(145deg, rgba(80,40,60,0.95), rgba(61,35,24,0.98))',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 24,
+            border: '1px solid rgba(232,132,156,0.25)',
+            padding: '36px 28px 28px',
+            textAlign: 'center',
+            boxShadow: '0 24px 60px rgba(61,35,24,0.3)',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)',
+              width: 100, height: 100, borderRadius: '50%',
+              background: 'radial-gradient(ellipse, rgba(232,132,156,0.15), transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+            <div style={{ fontSize: 52, marginBottom: 12 }}>🌙</div>
+            <h2 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 22, fontWeight: 400, color: 'rgba(248,246,243,0.95)', margin: '0 0 8px',
+            }}>晚安打卡成功</h2>
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 14, fontStyle: 'italic',
+              color: 'rgba(232,132,156,0.8)', margin: '0 0 16px', lineHeight: 1.5,
+            }}>
+              {partnerCheckin ? '两颗心都安心了，晚安好梦~' : `等 ${partnerName} 一起说晚安~`}
+            </p>
+            {streak > 0 && (
+              <div style={{
+                display: 'inline-block', background: 'rgba(232,132,156,0.12)',
+                border: '1px solid rgba(232,132,156,0.25)', borderRadius: 20, padding: '6px 18px', marginBottom: 12,
+              }}>
+                <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: '#E8849C' }}>
+                  🔥 连续 {streak + 1} 天
+                </span>
+              </div>
+            )}
+            <p style={{ margin: '12px 0 0', fontSize: 10, color: 'rgba(248,246,243,0.2)', fontFamily: "'DM Sans', sans-serif" }}>
+              点击空白处关闭
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

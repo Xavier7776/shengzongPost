@@ -27,7 +27,8 @@ export const useCalendarStore = create<CalendarState>()(persist((set) => ({
   addEvent: async (event) => {
     const s = getSupabaseClient()
     const { data, error } = await s.from('calendar_events').insert(event).select().single()
-    if (!error && data) set((st) => ({ events: [...st.events, data].sort((a, b) => a.date.localeCompare(b.date)) }))
+    if (error) throw error
+    if (data) set((st) => ({ events: [...st.events, data].sort((a, b) => a.date.localeCompare(b.date)) }))
   },
   deleteEvent: async (id) => {
     const s = getSupabaseClient()
@@ -101,7 +102,8 @@ export const useGoodnightStore = create<GoodnightState>((set, get) => ({
   checkin: async (userId) => {
     const s = getSupabaseClient()
     const { error } = await s.from('goodnights').insert({ user_id: userId, checkin_date: todayStr() })
-    if (!error) { const { partnerCheckin } = get(); set({ myCheckin: true, bothCheckedIn: partnerCheckin }) }
+    if (error) throw error
+    const { partnerCheckin } = get(); set({ myCheckin: true, bothCheckedIn: partnerCheckin })
   },
   subscribeToPartner: (partnerId) => {
     const s = getSupabaseClient(); const { channel: ex } = get(); if (ex) s.removeChannel(ex)
@@ -149,7 +151,8 @@ export const useMorningStore = create<MorningState>((set, get) => ({
   checkin: async (userId) => {
     const s = getSupabaseClient()
     const { error } = await s.from('morning_checkins').insert({ user_id: userId, checkin_date: todayStr() })
-    if (!error) { const { partnerCheckin } = get(); set({ myCheckin: true, bothCheckedIn: partnerCheckin }) }
+    if (error) throw error
+    const { partnerCheckin } = get(); set({ myCheckin: true, bothCheckedIn: partnerCheckin })
   },
   subscribeToPartner: (partnerId) => {
     const s = getSupabaseClient(); const { channel: ex } = get(); if (ex) s.removeChannel(ex)

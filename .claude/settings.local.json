@@ -3,7 +3,10 @@
     "allow": [
       "Bash(rm -rf .next)",
       "Bash(TMPDIR=E:/chromeDownload/arc-portfolio/.tmp npm run build)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(npx tsc *)",
+      "Bash(node -e ' *)",
+      "Read(//tmp/**)"
     ]
   }
 }

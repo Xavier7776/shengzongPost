@@ -6,6 +6,8 @@ import { useIsMobile } from '@/lib/hooks'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import { useRouter } from 'next/navigation'
 import dayjs from 'dayjs'
+import MedalGrid from '@/components/onlyus/medals/MedalGrid'
+import { usePushStore } from '@/stores/onlyus/pushStore'
 
 const INPUT_STYLE = {
   width: '100%',
@@ -56,8 +58,11 @@ function GlassCard({ children, title }: { children: React.ReactNode; title: stri
 
 export default function SettingsPage() {
   const { profile, partner, coupleInfo, updateProfile, updateCoupleInfo } = useOnlyUsAuthStore()
+  const { isSupported, isSubscribed, isLoading: pushLoading, checkStatus, subscribe, unsubscribe } = usePushStore()
   const isMobile = useIsMobile()
   const router = useRouter()
+
+  useEffect(() => { checkStatus() }, [checkStatus])
 
   const [nickname, setNickname] = useState('')
   const [city, setCity] = useState('')
@@ -283,6 +288,55 @@ export default function SettingsPage() {
             </span>
           )}
         </div>
+
+        {/* 勋章与成就 */}
+        <GlassCard title="勋章与成就">
+          {coupleInfo?.id ? (
+            <MedalGrid coupleId={coupleInfo.id} />
+          ) : (
+            <p style={{ fontSize: 12, color: 'rgba(61,35,24,0.3)', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic' }}>
+              请先设置在一起纪念日
+            </p>
+          )}
+        </GlassCard>
+
+        {/* 消息推送 */}
+        <GlassCard title="消息推送">
+          {!isSupported ? (
+            <p style={{ fontSize: 12, color: 'rgba(61,35,24,0.3)', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', margin: 0 }}>
+              你的浏览器不支持推送通知
+            </p>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 500, color: '#3D2318', fontFamily: "'DM Sans', sans-serif" }}>
+                  早安/晚安提醒
+                </p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(61,35,24,0.4)', fontFamily: "'DM Sans', sans-serif" }}>
+                  {isSubscribed ? '已开启推送通知' : '开启后接收早安、晚安及关怀消息推送'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (!profile?.id) return
+                  isSubscribed ? unsubscribe(profile.id) : subscribe(profile.id)
+                }}
+                disabled={pushLoading}
+                style={{
+                  padding: '8px 20px', borderRadius: 10,
+                  border: isSubscribed ? '1px solid rgba(220,80,80,0.2)' : '1px solid rgba(107,197,160,0.3)',
+                  background: isSubscribed ? 'rgba(220,80,80,0.05)' : 'rgba(107,197,160,0.08)',
+                  color: isSubscribed ? 'rgba(220,80,80,0.7)' : '#6BC5A0',
+                  fontSize: 12, cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                  opacity: pushLoading ? 0.5 : 1,
+                }}
+              >
+                {pushLoading ? '处理中...' : isSubscribed ? '关闭推送' : '开启推送'}
+              </button>
+            </div>
+          )}
+        </GlassCard>
 
         {/* 手机端退出按钮 */}
         {isMobile && (

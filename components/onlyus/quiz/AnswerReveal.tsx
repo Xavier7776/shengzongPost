@@ -1,0 +1,89 @@
+'use client'
+
+import type { QuizSession } from '@/stores/onlyus/quizStore'
+
+interface Props {
+  session: QuizSession
+  myName: string
+  partnerName: string
+}
+
+export default function AnswerReveal({ session, myName, partnerName }: Props) {
+  const isMatch = session.is_match
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.55)',
+      backdropFilter: 'blur(16px)',
+      borderRadius: 20,
+      border: '1px solid rgba(196,120,90,0.12)',
+      padding: '28px 24px',
+      textAlign: 'center',
+    }}>
+      {/* 结果标识 */}
+      <div style={{
+        width: 60, height: 60, borderRadius: '50%', margin: '0 auto 16px',
+        background: isMatch ? 'rgba(107,197,160,0.12)' : 'rgba(196,120,90,0.1)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: 28 }}>{isMatch ? '💕' : '🤔'}</span>
+      </div>
+
+      <h2 style={{
+        fontFamily: "'Playfair Display', serif", fontSize: 20,
+        fontWeight: 400, color: '#3D2318', margin: '0 0 4px',
+      }}>
+        {isMatch ? '心有灵犀！' : '答案不同~'}
+      </h2>
+      <p style={{
+        fontFamily: "'Cormorant Garamond', serif", fontSize: 12,
+        color: 'rgba(196,120,90,0.6)', margin: '0 0 24px', fontStyle: 'italic',
+      }}>
+        {isMatch ? '你们的答案一致，加 10 分' : '没关系，下次更默契'}
+      </p>
+
+      {/* 题目 */}
+      {session.question && (
+        <p style={{
+          fontSize: 13, color: 'rgba(61,35,24,0.5)',
+          fontFamily: "'DM Sans', sans-serif",
+          margin: '0 0 20px',
+        }}>{session.question.question_text}</p>
+      )}
+
+      {/* 双栏答案对比 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{
+          background: 'rgba(232,132,156,0.06)',
+          borderRadius: 14, padding: '16px 12px',
+          border: '1px solid rgba(232,132,156,0.12)',
+        }}>
+          <p style={{
+            fontSize: 10, fontFamily: "'Cormorant Garamond', serif",
+            letterSpacing: '0.15em', color: 'rgba(232,132,156,0.7)',
+            margin: '0 0 8px', textTransform: 'uppercase',
+          }}>{myName}</p>
+          <p style={{
+            fontSize: 15, fontFamily: "'Playfair Display', serif",
+            color: '#3D2318', margin: 0,
+          }}>{session.user1_answer || '—'}</p>
+        </div>
+        <div style={{
+          background: 'rgba(196,120,90,0.06)',
+          borderRadius: 14, padding: '16px 12px',
+          border: '1px solid rgba(196,120,90,0.12)',
+        }}>
+          <p style={{
+            fontSize: 10, fontFamily: "'Cormorant Garamond', serif",
+            letterSpacing: '0.15em', color: 'rgba(196,120,90,0.7)',
+            margin: '0 0 8px', textTransform: 'uppercase',
+          }}>{partnerName}</p>
+          <p style={{
+            fontSize: 15, fontFamily: "'Playfair Display', serif",
+            color: '#3D2318', margin: 0,
+          }}>{session.user2_answer || '—'}</p>
+        </div>
+      </div>
+    </div>
+  )
+}

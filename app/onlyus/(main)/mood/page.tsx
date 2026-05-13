@@ -151,13 +151,17 @@ function EmojiSphere({
 // ── 今日一题双栏 ───────────────────────────────────────────────────────
 function QuestionSection({ mobile = false }: { mobile?: boolean }) {
   const { profile, partner } = useOnlyUsAuthStore()
-  const { todayQuestion, myAnswer, partnerAnswer, loadToday, submitAnswer } = useQuestionStore()
+  const { todayQuestion, myAnswer, partnerAnswer, history, loadToday, submitAnswer, loadHistory } = useQuestionStore()
   const [draft, setDraft] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
-    if (profile?.id && partner?.id) loadToday(profile.id, partner.id)
-  }, [profile?.id, partner?.id, loadToday])
+    if (profile?.id && partner?.id) {
+      loadToday(profile.id, partner.id)
+      loadHistory(profile.id, partner.id)
+    }
+  }, [profile?.id, partner?.id, loadToday, loadHistory])
 
   const handleSubmit = async () => {
     if (!draft.trim() || !profile?.id || !todayQuestion) return
@@ -255,6 +259,97 @@ function QuestionSection({ mobile = false }: { mobile?: boolean }) {
           )}
         </div>
       </div>
+
+      {/* 历史记录 */}
+      {history.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12,
+            }}
+          >
+            <span style={{
+              fontFamily: "'Cormorant Garamond', serif", fontSize: 10,
+              letterSpacing: '0.25em', textTransform: 'uppercase',
+              color: 'rgba(196,120,90,0.6)',
+            }}>
+              历史题目
+            </span>
+            <span style={{
+              fontSize: 10, color: 'rgba(196,120,90,0.4)',
+              transform: showHistory ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+            }}>&#9662;</span>
+          </button>
+
+          {showHistory && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'card-rise 0.3s ease' }}>
+              {history.map((item) => (
+                <div key={item.question.id} style={{
+                  padding: '12px 14px', borderRadius: 12,
+                  background: 'rgba(255,255,255,0.4)',
+                  border: '1px solid rgba(196,120,90,0.08)',
+                }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <p style={{
+                      fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase',
+                      color: 'rgba(196,120,90,0.5)', margin: '0 0 4px',
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}>
+                      {item.question.date}
+                    </p>
+                    <p style={{
+                      fontSize: 13, color: '#3D2318', margin: 0, lineHeight: 1.5,
+                      fontFamily: "'Playfair Display', serif", fontStyle: 'italic',
+                    }}>
+                      &ldquo;{item.question.question_text}&rdquo;
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 8 }}>
+                    <div style={{
+                      padding: '8px 10px', borderRadius: 8,
+                      background: 'rgba(196,120,90,0.05)',
+                    }}>
+                      <p style={{
+                        fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase',
+                        color: 'rgba(196,120,90,0.5)', margin: '0 0 3px',
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}>{myName}</p>
+                      <p style={{
+                        fontSize: 12, color: item.myAnswer ? '#3D2318' : 'rgba(61,35,24,0.25)',
+                        margin: 0, fontFamily: "'DM Sans', sans-serif",
+                        fontStyle: item.myAnswer ? 'normal' : 'italic',
+                      }}>
+                        {item.myAnswer?.answer ?? '未回答'}
+                      </p>
+                    </div>
+                    <div style={{
+                      padding: '8px 10px', borderRadius: 8,
+                      background: 'rgba(232,132,156,0.05)',
+                    }}>
+                      <p style={{
+                        fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase',
+                        color: 'rgba(232,132,156,0.5)', margin: '0 0 3px',
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}>{partnerName}</p>
+                      <p style={{
+                        fontSize: 12, color: item.partnerAnswer ? '#3D2318' : 'rgba(61,35,24,0.25)',
+                        margin: 0, fontFamily: "'DM Sans', sans-serif",
+                        fontStyle: item.partnerAnswer ? 'normal' : 'italic',
+                      }}>
+                        {item.partnerAnswer?.answer ?? '未回答'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

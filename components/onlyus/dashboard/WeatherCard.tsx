@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import CareSuggestion from '@/components/onlyus/weather/CareSuggestion'
 
 interface WeatherData {
   temp: number
@@ -46,6 +47,8 @@ interface WeatherCardProps {
   partnerLon: number
   myName: string
   partnerName: string
+  myUserId?: string
+  partnerUserId?: string
 }
 
 interface SingleWeatherProps {
@@ -118,6 +121,7 @@ export default function WeatherCard({
   myCity, myLat, myLon,
   partnerCity, partnerLat, partnerLon,
   myName, partnerName,
+  myUserId, partnerUserId,
 }: WeatherCardProps) {
   const [myWeather, setMyWeather] = useState<WeatherData | null>(null)
   const [partnerWeather, setPartnerWeather] = useState<WeatherData | null>(null)
@@ -172,6 +176,18 @@ export default function WeatherCard({
         </div>
         <SingleWeather data={partnerWeather} loading={loading} name={partnerName} />
       </div>
+
+      {/* 关怀建议 */}
+      {myWeather && myUserId && partnerUserId && (
+        <CareSuggestion
+          temp={myWeather.temp}
+          weatherCode={myWeather.weatherCode}
+          windspeed={myWeather.windspeed}
+          senderId={myUserId}
+          receiverId={partnerUserId}
+          receiverName={partnerName}
+        />
+      )}
     </div>
   )
 }

@@ -59,6 +59,24 @@ const TOOLS = [
     bg: 'rgba(123,184,126,0.08)',
     border: 'rgba(123,184,126,0.18)',
   },
+  {
+    href: '/onlyus/tools/quiz',
+    emoji: '❓',
+    title: '双人问答',
+    desc: '测试默契，看谁更了解对方',
+    color: '#9B8EC4',
+    bg: 'rgba(155,142,196,0.08)',
+    border: 'rgba(155,142,196,0.18)',
+  },
+  {
+    href: '/onlyus/tools/pet',
+    emoji: '🐾',
+    title: '虚拟宠物',
+    desc: '一起养一只小宠物吧',
+    color: '#D4A05E',
+    bg: 'rgba(212,160,94,0.08)',
+    border: 'rgba(212,160,94,0.18)',
+  },
 ]
 
 function ToolCard({ tool, index, mobile = false }: { tool: typeof TOOLS[0]; index: number; mobile?: boolean }) {

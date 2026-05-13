@@ -11,6 +11,8 @@ import PingButton from '@/components/onlyus/dashboard/PingButton'
 import GoodnightCard from '@/components/onlyus/dashboard/GoodnightCard'
 import MorningCard from '@/components/onlyus/dashboard/MorningCard'
 import MoodSummaryCard from '@/components/onlyus/dashboard/MoodSummaryCard'
+import CountdownWidget from '@/components/onlyus/dashboard/CountdownWidget'
+import CareMessageToast from '@/components/onlyus/weather/CareMessageToast'
 
 // 默认城市坐标（fallback）
 const DEFAULT_COORDS = { lat: 39.9042, lon: 116.4074, city: '北京' }
@@ -44,6 +46,7 @@ export default function OnlyUsHomePage() {
   if (isMobile) {
     return (
       <>
+        {profile && partner && <CareMessageToast userId={profile.id} senderName={partner.nickname} />}
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
           @keyframes card-rise {
@@ -97,6 +100,13 @@ export default function OnlyUsHomePage() {
             <div className="onlyus-card" style={{ animationDelay: '80ms' }}>
               <DaysCounter anniversaryDate={anniversary} />
             </div>
+            <div className="onlyus-card" style={{ animationDelay: '100ms' }}>
+              <CountdownWidget
+                meetupDate={coupleInfo?.proposed_meetup_date}
+                anniversaryDate={anniversary}
+                coupleId={coupleInfo?.id}
+              />
+            </div>
             <div className="onlyus-card" style={{ animationDelay: '120ms' }}>
               <MoodSummaryCard />
             </div>
@@ -108,6 +118,8 @@ export default function OnlyUsHomePage() {
                 myCity={myCity} myLat={myLat} myLon={myLon}
                 partnerCity={ptCity} partnerLat={ptLat} partnerLon={ptLon}
                 myName={myName} partnerName={partnerName}
+                myUserId={profile?.id}
+                partnerUserId={partner?.id}
               />
             </div>
             <div className="onlyus-card" style={{ animationDelay: '220ms' }}>
@@ -146,6 +158,7 @@ export default function OnlyUsHomePage() {
 
   return (
     <>
+      {profile && partner && <CareMessageToast userId={profile.id} senderName={partner.nickname} />}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
 
@@ -216,6 +229,15 @@ export default function OnlyUsHomePage() {
           {/* 早安打卡 — 占 5 列 */}
           <div className="onlyus-card" style={{ gridColumn: 'span 5', animationDelay: '150ms' }}>
             <MorningCard />
+          </div>
+
+          {/* 倒数日 — 占 7 列 */}
+          <div className="onlyus-card" style={{ gridColumn: 'span 7', animationDelay: '170ms' }}>
+            <CountdownWidget
+              meetupDate={coupleInfo?.proposed_meetup_date}
+              anniversaryDate={anniversary}
+              coupleId={coupleInfo?.id}
+            />
           </div>
 
           {/* 双城天气 — 占 7 列 */}
