@@ -6,7 +6,12 @@
       "Bash(npx next *)",
       "Bash(npx tsc *)",
       "Bash(node -e ' *)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(claude mcp *)",
+      "mcp__obsidian-vault__obsidian_list_files_in_dir",
+      "mcp__obsidian-vault__obsidian_list_files_in_vault",
+      "mcp__obsidian-vault__obsidian_get_file_contents",
+      "mcp__obsidian-vault__obsidian_append_content"
     ]
   }
 }

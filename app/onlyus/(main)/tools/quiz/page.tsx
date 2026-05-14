@@ -16,14 +16,13 @@ export default function QuizPage() {
   const {
     questions, currentSession, scores, history, loadError,
     loadQuestions, loadScores, loadHistory,
-    startSession, submitAnswer, setCurrentSession, subscribeToSession,
+    startSession, findOrJoinSession, submitAnswer, revealSession, setCurrentSession, subscribeToSession,
   } = useQuizStore()
   const { checkAndUnlock, loadMedals } = useMedalStore()
 
   const [tab, setTab] = useState<Tab>('quiz')
   const [showHistory, setShowHistory] = useState(false)
   const [compatRunning, setCompatRunning] = useState(false)
-  const [compatDone, setCompatDone] = useState(false)
 
   const coupleId = coupleInfo?.id
   const userId = profile?.id
@@ -41,85 +40,133 @@ export default function QuizPage() {
 
   const pickRandomQuestion = () => {
     if (questions.length === 0) return null
-    // Avoid recently used questions
     const recentIds = history.slice(0, 5).map(h => h.question_id)
     const available = questions.filter(q => !recentIds.includes(q.id))
     const pool = available.length > 0 ? available : questions
     return pool[Math.floor(Math.random() * pool.length)]
   }
 
+  // ── 开始/加入双人问答 ────────────────────────────────────────
   const handleStartQuiz = async () => {
-    if (!coupleId) { alert('请先设置情侣关系'); return }
+    if (!coupleId || !userId) { alert('请先设置情侣关系'); return }
     if (questions.length === 0) {
       alert(loadError ? `题库加载失败: ${loadError}` : '题库为空，请检查数据库迁移 039 是否已执行')
       return
     }
-    const q = pickRandomQuestion()
-    if (!q) return
     try {
-      await startSession(coupleId, q.id, 'quiz')
+      const existing = await findOrJoinSession(coupleId, userId, 'quiz')
+      if (existing) return
+      const q = pickRandomQuestion()
+      if (!q) return
+      await startSession(coupleId, q.id, userId, 'quiz')
     } catch (err: any) {
       console.error('Quiz start error:', err)
       alert(`启动失败: ${err?.message || JSON.stringify(err)}`)
     }
   }
 
+  // ── 开始/加入默契挑战 ────────────────────────────────────────
   const handleStartCompatibility = async () => {
-    if (!coupleId) { alert('请先设置情侣关系'); return }
+    if (!coupleId || !userId) { alert('请先设置情侣关系'); return }
     if (questions.length === 0) {
       alert(loadError ? `题库加载失败: ${loadError}` : '题库为空，请检查数据库迁移 039 是否已执行')
       return
     }
-    const q = pickRandomQuestion()
-    if (!q) return
-    setCompatDone(false)
-    setCompatRunning(true)
     try {
-      await startSession(coupleId, q.id, 'compatibility')
+      const existing = await findOrJoinSession(coupleId, userId, 'compatibility')
+      if (existing) {
+        // 加入已有的 session，检查是否已超时
+        const elapsed = (Date.now() - new Date(existing.created_at).getTime()) / 1000
+        if (elapsed >= 60 && existing.status === 'waiting') {
+          await revealSession(existing.id)
+        } else {
+          setCompatRunning(true)
+        }
+        return
+      }
+      const q = pickRandomQuestion()
+      if (!q) return
+      await startSession(coupleId, q.id, userId, 'compatibility')
+      setCompatRunning(true)
     } catch (err: any) {
       console.error('Compatibility start error:', err)
       alert(`启动失败: ${err?.message || JSON.stringify(err)}`)
-      setCompatRunning(false)
     }
   }
 
+  // ── 提交答案 ────────────────────────────────────────────────
   const handleSubmitAnswer = useCallback(async (answer: string) => {
     if (!currentSession || !userId) return
     await submitAnswer(currentSession.id, userId, answer)
-    // Check quiz_first medal
     if (coupleId) checkAndUnlock(userId, coupleId, 'quiz_first')
   }, [currentSession, userId, coupleId, submitAnswer, checkAndUnlock])
 
-  const handleTimeUp = useCallback(() => {
+  // ── 默契挑战倒计时结束 → 揭晓 ──────────────────────────────
+  const handleTimeUp = useCallback(async () => {
     setCompatRunning(false)
-    setCompatDone(true)
-  }, [])
+    if (currentSession && currentSession.status === 'waiting') {
+      await revealSession(currentSession.id)
+    }
+  }, [currentSession, revealSession])
 
-  const handleNextRound = () => {
+  // ── 下一题（不回到开始页） ──────────────────────────────────
+  const handleNextRound = useCallback(async () => {
     setCurrentSession(null)
     setCompatRunning(false)
-    setCompatDone(false)
+    if (coupleId && userId && questions.length > 0) {
+      const mode = tab
+      try {
+        const existing = await findOrJoinSession(coupleId, userId, mode)
+        if (existing) {
+          if (mode === 'compatibility') {
+            const elapsed = (Date.now() - new Date(existing.created_at).getTime()) / 1000
+            if (elapsed >= 60 && existing.status === 'waiting') {
+              await revealSession(existing.id)
+            } else {
+              setCompatRunning(true)
+            }
+          }
+          return
+        }
+        const q = pickRandomQuestion()
+        if (!q) return
+        await startSession(coupleId, q.id, userId, mode)
+        if (mode === 'compatibility') setCompatRunning(true)
+      } catch (err) {
+        console.error('Next round error:', err)
+      }
+    }
     if (coupleId) {
       loadScores(coupleId)
       loadHistory(coupleId)
     }
-  }
+  }, [coupleId, userId, questions, tab, findOrJoinSession, startSession, revealSession, setCurrentSession, loadScores, loadHistory])
 
-  // Subscribe to session updates
+  // ── 订阅 session 实时更新 ──────────────────────────────────
   useEffect(() => {
     if (!currentSession) return
     const unsub = subscribeToSession(currentSession.id, (updated) => {
       if (updated.status === 'revealed' && updated.is_match && userId && coupleId) {
-        // Check streak medals
         const matchCount = (scores.find(s => s.user_id === userId)?.total_matches || 0) + 1
         if (matchCount >= 5) checkAndUnlock(userId, coupleId, 'quiz_perfect')
       }
+      // 如果收到揭晓事件，停止倒计时
+      if (updated.status === 'revealed') setCompatRunning(false)
     })
     return unsub
   }, [currentSession?.id])
 
-  const myAnswered = currentSession?.user1_answer !== null && userId === '11111111-1111-1111-1111-111111111111'
-    || currentSession?.user2_answer !== null && userId !== '11111111-1111-1111-1111-111111111111'
+  // ── 切换 tab 时重置 ────────────────────────────────────────
+  const handleTabChange = (t: Tab) => {
+    setTab(t)
+    setCurrentSession(null)
+    setCompatRunning(false)
+  }
+
+  // 判断当前用户是否已回答
+  const myAnswered = currentSession
+    ? (userId === currentSession.user1_id ? currentSession.user1_answer : currentSession.user2_answer) !== null
+    : false
 
   return (
     <>
@@ -153,7 +200,7 @@ export default function QuizPage() {
           border: '1px solid rgba(196,120,90,0.1)',
         }}>
           {([['quiz', '双人问答'], ['compatibility', '默契挑战']] as const).map(([key, label]) => (
-            <button key={key} onClick={() => { setTab(key as Tab); handleNextRound() }} style={{
+            <button key={key} onClick={() => handleTabChange(key as Tab)} style={{
               flex: 1, padding: '10px 0', border: 'none',
               background: tab === key ? 'rgba(196,120,90,0.12)' : 'transparent',
               color: tab === key ? '#C4785A' : 'rgba(61,35,24,0.4)',
@@ -173,6 +220,7 @@ export default function QuizPage() {
                 <div className="quiz-card" style={{ animationDelay: '80ms' }}>
                   <CompatibilityTimer
                     seconds={60}
+                    createdAt={currentSession.created_at}
                     onTimeUp={handleTimeUp}
                     running={compatRunning}
                   />
@@ -184,6 +232,7 @@ export default function QuizPage() {
                 <div className="quiz-card" style={{ animationDelay: '100ms' }}>
                   <AnswerReveal
                     session={currentSession}
+                    myUserId={userId || ''}
                     myName={myName}
                     partnerName={partnerName}
                   />

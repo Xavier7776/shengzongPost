@@ -170,42 +170,63 @@ export interface DailyQuestion { id: string; question_text: string; date: string
 export interface QuestionAnswer { id: string; question_id: string; user_id: string; answer: string; created_at: string }
 interface QuestionState {
   todayQuestion: DailyQuestion | null; myAnswer: QuestionAnswer | null; partnerAnswer: QuestionAnswer | null
+  bothAnswered: boolean; channel: RealtimeChannel | null
   history: { question: DailyQuestion; myAnswer: QuestionAnswer | null; partnerAnswer: QuestionAnswer | null }[]
   isLoading: boolean
   loadToday: (userId: string, partnerId: string) => Promise<void>
   submitAnswer: (questionId: string, userId: string, answer: string) => Promise<void>
   loadHistory: (userId: string, partnerId: string) => Promise<void>
+  subscribeToPartner: (questionId: string, partnerId: string) => void
+  unsubscribe: () => void
 }
-export const useQuestionStore = create<QuestionState>()(persist((set) => ({
-  todayQuestion: null, myAnswer: null, partnerAnswer: null, history: [], isLoading: false,
+export const useQuestionStore = create<QuestionState>()(persist((set, get) => ({
+  todayQuestion: null, myAnswer: null, partnerAnswer: null, bothAnswered: false, channel: null, history: [], isLoading: false,
   loadToday: async (userId, partnerId) => {
     set({ isLoading: true })
     const s = getSupabaseClient(); const today = new Date().toISOString().split('T')[0]
-    const { data: q } = await s.from('daily_questions').select('*').eq('date', today).single()
+    const { data: q } = await s.from('daily_questions').select('*').eq('date', today).maybeSingle()
     if (q) {
       const [my, partner] = await Promise.all([
-        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', userId).single(),
-        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', partnerId).single(),
+        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', userId).maybeSingle(),
+        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', partnerId).maybeSingle(),
       ])
-      set({ todayQuestion: q, myAnswer: my.data ?? null, partnerAnswer: partner.data ?? null, isLoading: false })
-    } else set({ todayQuestion: null, myAnswer: null, partnerAnswer: null, isLoading: false })
+      const mc = my.data ?? null, pc = partner.data ?? null
+      set({ todayQuestion: q, myAnswer: mc, partnerAnswer: pc, bothAnswered: !!(mc && pc), isLoading: false })
+    } else set({ todayQuestion: null, myAnswer: null, partnerAnswer: null, bothAnswered: false, isLoading: false })
   },
   submitAnswer: async (questionId, userId, answer) => {
     const s = getSupabaseClient()
     const { error } = await s.from('question_answers').upsert({ question_id: questionId, user_id: userId, answer }, { onConflict: 'question_id,user_id' })
-    if (!error) { const { data } = await s.from('question_answers').select('*').eq('question_id', questionId).eq('user_id', userId).single(); set({ myAnswer: data }) }
+    if (!error) {
+      const { data } = await s.from('question_answers').select('*').eq('question_id', questionId).eq('user_id', userId).single()
+      const { partnerAnswer } = get()
+      set({ myAnswer: data, bothAnswered: !!partnerAnswer })
+    }
   },
+  subscribeToPartner: (questionId, partnerId) => {
+    const s = getSupabaseClient(); const { channel: ex } = get(); if (ex) s.removeChannel(ex)
+    const ch = s.channel('question-answer-web')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'question_answers', filter: `user_id=eq.${partnerId}` }, (p: any) => {
+        if (p.new?.question_id === questionId) {
+          const ans: QuestionAnswer = { id: p.new.id, question_id: p.new.question_id, user_id: p.new.user_id, answer: p.new.answer, created_at: p.new.created_at }
+          const { myAnswer } = get()
+          set({ partnerAnswer: ans, bothAnswered: myAnswer !== null })
+        }
+      }).subscribe()
+    set({ channel: ch })
+  },
+  unsubscribe: () => { const s = getSupabaseClient(); const { channel } = get(); if (channel) { s.removeChannel(channel); set({ channel: null }) } },
   loadHistory: async (userId, partnerId) => {
     const s = getSupabaseClient(); const today = new Date().toISOString().split('T')[0]
     const { data: questions } = await s.from('daily_questions').select('*').lt('date', today).order('date', { ascending: false }).limit(10)
     if (!questions) return
     const history = await Promise.all(questions.map(async (q) => {
       const [my, partner] = await Promise.all([
-        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', userId).single(),
-        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', partnerId).single(),
+        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', userId).maybeSingle(),
+        s.from('question_answers').select('*').eq('question_id', q.id).eq('user_id', partnerId).maybeSingle(),
       ])
       return { question: q, myAnswer: my.data ?? null, partnerAnswer: partner.data ?? null }
     }))
     set({ history })
   },
-}), { name: 'onlyus-questions', storage: createJSONStorage(() => localStorage), partialize: (s) => ({ todayQuestion: s.todayQuestion, myAnswer: s.myAnswer, partnerAnswer: s.partnerAnswer, history: s.history }) }))
+}), { name: 'onlyus-questions', storage: createJSONStorage(() => localStorage), partialize: (s) => ({ myAnswer: s.myAnswer, partnerAnswer: s.partnerAnswer, history: s.history }) }))

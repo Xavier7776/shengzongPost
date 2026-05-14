@@ -4,29 +4,37 @@ import { useEffect, useState, useRef } from 'react'
 
 interface Props {
   seconds: number
+  createdAt: string
   onTimeUp: () => void
   running: boolean
 }
 
-export default function CompatibilityTimer({ seconds, onTimeUp, running }: Props) {
+export default function CompatibilityTimer({ seconds, createdAt, onTimeUp, running }: Props) {
   const [remaining, setRemaining] = useState(seconds)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const firedRef = useRef(false)
 
   useEffect(() => {
-    if (!running) return
-    setRemaining(seconds)
-    intervalRef.current = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
-          clearInterval(intervalRef.current)
-          onTimeUp()
-          return 0
-        }
-        return r - 1
-      })
+    if (!running) { firedRef.current = false; return }
+
+    const calcRemaining = () => {
+      const elapsed = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)
+      return Math.max(0, seconds - elapsed)
+    }
+
+    setRemaining(calcRemaining())
+
+    const interval = setInterval(() => {
+      const r = calcRemaining()
+      setRemaining(r)
+      if (r <= 0 && !firedRef.current) {
+        firedRef.current = true
+        clearInterval(interval)
+        onTimeUp()
+      }
     }, 1000)
-    return () => clearInterval(intervalRef.current)
-  }, [running, seconds, onTimeUp])
+
+    return () => clearInterval(interval)
+  }, [running, createdAt, seconds, onTimeUp])
 
   const progress = remaining / seconds
   const radius = 40

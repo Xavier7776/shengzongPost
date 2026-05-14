@@ -4,12 +4,18 @@ import type { QuizSession } from '@/stores/onlyus/quizStore'
 
 interface Props {
   session: QuizSession
+  myUserId: string
   myName: string
   partnerName: string
 }
 
-export default function AnswerReveal({ session, myName, partnerName }: Props) {
+export default function AnswerReveal({ session, myUserId, myName, partnerName }: Props) {
   const isMatch = session.is_match
+
+  // 根据当前用户判断哪个答案是自己的
+  const isUser1 = myUserId === session.user1_id
+  const myAnswer = isUser1 ? session.user1_answer : session.user2_answer
+  const partnerAnswer = isUser1 ? session.user2_answer : session.user1_answer
 
   return (
     <div style={{
@@ -66,7 +72,7 @@ export default function AnswerReveal({ session, myName, partnerName }: Props) {
           <p style={{
             fontSize: 15, fontFamily: "'Playfair Display', serif",
             color: '#3D2318', margin: 0,
-          }}>{session.user1_answer || '—'}</p>
+          }}>{myAnswer || '未作答'}</p>
         </div>
         <div style={{
           background: 'rgba(196,120,90,0.06)',
@@ -81,7 +87,7 @@ export default function AnswerReveal({ session, myName, partnerName }: Props) {
           <p style={{
             fontSize: 15, fontFamily: "'Playfair Display', serif",
             color: '#3D2318', margin: 0,
-          }}>{session.user2_answer || '—'}</p>
+          }}>{partnerAnswer || '未作答'}</p>
         </div>
       </div>
     </div>

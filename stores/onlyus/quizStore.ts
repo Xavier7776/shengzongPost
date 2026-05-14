@@ -10,6 +10,7 @@ export interface QuizQuestion {
 
 export interface QuizSession {
   id: string; couple_id: string; question_id: string; mode: string
+  user1_id: string | null; user2_id: string | null
   user1_answer: string | null; user2_answer: string | null
   user1_answered_at: string | null; user2_answered_at: string | null
   is_match: boolean | null; score_awarded: number
@@ -29,8 +30,10 @@ interface QuizState {
   loadQuestions: () => Promise<void>
   loadScores: (coupleId: string) => Promise<void>
   loadHistory: (coupleId: string) => Promise<void>
-  startSession: (coupleId: string, questionId: string, mode?: string) => Promise<QuizSession | null>
+  startSession: (coupleId: string, questionId: string, userId: string, mode?: string) => Promise<QuizSession | null>
+  findOrJoinSession: (coupleId: string, userId: string, mode?: string) => Promise<QuizSession | null>
   submitAnswer: (sessionId: string, userId: string, answer: string) => Promise<void>
+  revealSession: (sessionId: string) => Promise<void>
   setCurrentSession: (s: QuizSession | null) => void
   subscribeToSession: (sessionId: string, onUpdate: (session: QuizSession) => void) => () => void
 }
@@ -74,11 +77,12 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
     set({ history: data || [], isLoading: false })
   },
 
-  startSession: async (coupleId, questionId, mode = 'quiz') => {
+  startSession: async (coupleId, questionId, userId, mode = 'quiz') => {
     const s = getSupabaseClient()
     const question = get().questions.find(q => q.id === questionId)
     const { data, error } = await s.from('quiz_sessions').insert({
       couple_id: coupleId, question_id: questionId, mode,
+      user1_id: userId,
       time_limit_seconds: mode === 'compatibility' ? 60 : 0,
       status: 'waiting',
     }).select().single()
@@ -94,12 +98,41 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
     return null
   },
 
+  findOrJoinSession: async (coupleId, userId, mode = 'quiz') => {
+    const s = getSupabaseClient()
+    const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+    const { data: existing } = await s.from('quiz_sessions')
+      .select('*, question:quiz_questions(*)')
+      .eq('couple_id', coupleId)
+      .eq('mode', mode)
+      .eq('status', 'waiting')
+      .gte('created_at', twoMinAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (existing) {
+      // 加入对方的 session，分配 user2_id
+      if (!existing.user2_id) {
+        const { data: updated } = await s.from('quiz_sessions')
+          .update({ user2_id: userId })
+          .eq('id', existing.id)
+          .select('*, question:quiz_questions(*)')
+          .single()
+        if (updated) { set({ currentSession: updated as QuizSession }); return updated as QuizSession }
+      }
+      set({ currentSession: existing as QuizSession })
+      return existing as QuizSession
+    }
+    return null
+  },
+
   submitAnswer: async (sessionId, userId, answer) => {
     const s = getSupabaseClient()
     const session = get().currentSession
     if (!session) return
 
-    const isUser1 = userId === '11111111-1111-1111-1111-111111111111'
+    // 根据 user1_id / user2_id 判断当前用户是哪个槽位
+    const isUser1 = userId === session.user1_id
     const field = isUser1 ? 'user1_answer' : 'user2_answer'
     const timeField = isUser1 ? 'user1_answered_at' : 'user2_answered_at'
 
@@ -108,30 +141,45 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
     }).eq('id', sessionId).select().single()
 
     if (!error && data) {
-      // Check if both answered
-      const updated = data
-      if (updated.user1_answer && updated.user2_answer) {
-        const isMatch = updated.user1_answer.trim().toLowerCase() === updated.user2_answer.trim().toLowerCase()
-        await s.from('quiz_sessions').update({
-          is_match: isMatch, status: 'revealed',
-          score_awarded: isMatch ? 10 : 0,
-        }).eq('id', sessionId)
+      set({ currentSession: { ...data, question: session.question } })
 
-        // Update scores
-        const scoreField = isUser1 ? updated.user1_answer : updated.user2_answer
-        if (isMatch) {
-          await s.from('quiz_scores').upsert({
-            couple_id: session.couple_id, user_id: userId,
-            total_score: 10, total_matches: 1, total_played: 1,
-          }, { onConflict: 'couple_id,user_id', ignoreDuplicates: false })
-        }
-
-        const finalSession = { ...updated, is_match: isMatch, status: 'revealed', score_awarded: isMatch ? 10 : 0, question: session.question }
-        set({ currentSession: finalSession })
-      } else {
-        set({ currentSession: { ...updated, question: session.question } })
+      // quiz 模式：双方都答了自动揭晓
+      if (data.user1_answer && data.user2_answer && session.mode === 'quiz') {
+        await get().revealSession(sessionId)
       }
     }
+  },
+
+  revealSession: async (sessionId) => {
+    const s = getSupabaseClient()
+    const session = get().currentSession
+    if (!session || session.status === 'revealed') return
+
+    const { data } = await s.from('quiz_sessions').select('*').eq('id', sessionId).single()
+    if (!data) return
+
+    const ans1 = data.user1_answer?.trim().toLowerCase() ?? ''
+    const ans2 = data.user2_answer?.trim().toLowerCase() ?? ''
+    const isMatch = ans1 !== '' && ans2 !== '' && ans1 === ans2
+
+    await s.from('quiz_sessions').update({
+      is_match: isMatch, status: 'revealed',
+      score_awarded: isMatch ? 10 : 0,
+    }).eq('id', sessionId)
+
+    // 更新积分
+    if (isMatch) {
+      const userIds = [data.user1_id, data.user2_id].filter(Boolean)
+      for (const uid of userIds) {
+        await s.from('quiz_scores').upsert({
+          couple_id: session.couple_id, user_id: uid,
+          total_score: 10, total_matches: 1, total_played: 1,
+        }, { onConflict: 'couple_id,user_id', ignoreDuplicates: false })
+      }
+    }
+
+    const finalSession = { ...data, is_match: isMatch, status: 'revealed', score_awarded: isMatch ? 10 : 0, question: session.question }
+    set({ currentSession: finalSession as QuizSession })
   },
 
   setCurrentSession: (s) => set({ currentSession: s }),

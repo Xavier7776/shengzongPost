@@ -151,7 +151,7 @@ function EmojiSphere({
 // ── 今日一题双栏 ───────────────────────────────────────────────────────
 function QuestionSection({ mobile = false }: { mobile?: boolean }) {
   const { profile, partner } = useOnlyUsAuthStore()
-  const { todayQuestion, myAnswer, partnerAnswer, history, loadToday, submitAnswer, loadHistory } = useQuestionStore()
+  const { todayQuestion, myAnswer, partnerAnswer, bothAnswered, history, loadToday, submitAnswer, loadHistory, subscribeToPartner, unsubscribe } = useQuestionStore()
   const [draft, setDraft] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -162,6 +162,14 @@ function QuestionSection({ mobile = false }: { mobile?: boolean }) {
       loadHistory(profile.id, partner.id)
     }
   }, [profile?.id, partner?.id, loadToday, loadHistory])
+
+  // 订阅伴侣的回答（实时揭晓）
+  useEffect(() => {
+    if (todayQuestion?.id && partner?.id && !bothAnswered) {
+      subscribeToPartner(todayQuestion.id, partner.id)
+    }
+    return () => unsubscribe()
+  }, [todayQuestion?.id, partner?.id, bothAnswered, subscribeToPartner, unsubscribe])
 
   const handleSubmit = async () => {
     if (!draft.trim() || !profile?.id || !todayQuestion) return
@@ -241,11 +249,12 @@ function QuestionSection({ mobile = false }: { mobile?: boolean }) {
           padding: '14px 16px', borderRadius: 14,
           background: 'rgba(232,132,156,0.06)',
           border: '1px solid rgba(232,132,156,0.12)',
+          animation: bothAnswered && partnerAnswer ? 'reveal-pop 0.4s ease both' : undefined,
         }}>
           <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(232,132,156,0.6)', margin: '0 0 8px', fontFamily: "'DM Sans', sans-serif" }}>
             {partnerName}
           </p>
-          {partnerAnswer ? (
+          {bothAnswered && partnerAnswer ? (
             <p style={{ fontSize: 13, color: '#3D2318', margin: 0, lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
               {partnerAnswer.answer}
             </p>
@@ -456,6 +465,7 @@ export default function MoodPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
         @keyframes card-rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes reveal-pop { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
         .mood-card { animation: card-rise 0.5s cubic-bezier(0.16,1,0.3,1) both; }
         textarea::placeholder { color: rgba(61,35,24,0.3); }
       `}</style>
