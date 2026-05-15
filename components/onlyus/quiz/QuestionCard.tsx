@@ -1,17 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { QuizQuestion } from '@/stores/onlyus/quizStore'
 
 interface Props {
   question: QuizQuestion
   onSubmit: (answer: string) => void
   answered: boolean
+  editMode?: boolean
+  initialAnswer?: string
 }
 
-export default function QuestionCard({ question, onSubmit, answered }: Props) {
-  const [openAnswer, setOpenAnswer] = useState('')
-  const [selectedOption, setSelectedOption] = useState('')
+export default function QuestionCard({ question, onSubmit, answered, editMode, initialAnswer }: Props) {
+  const [openAnswer, setOpenAnswer] = useState(initialAnswer || '')
+  const [selectedOption, setSelectedOption] = useState(initialAnswer || '')
+
+  useEffect(() => {
+    if (initialAnswer) {
+      setOpenAnswer(initialAnswer)
+      setSelectedOption(initialAnswer)
+    }
+  }, [initialAnswer])
 
   const handleSubmit = () => {
     const answer = question.question_type === 'choice' ? selectedOption : openAnswer.trim()
@@ -59,7 +68,7 @@ export default function QuestionCard({ question, onSubmit, answered }: Props) {
           value={openAnswer}
           onChange={(e) => setOpenAnswer(e.target.value)}
           placeholder="输入你的答案..."
-          disabled={answered}
+          disabled={answered && !editMode}
           style={{
             width: '100%', minHeight: 80, padding: '12px 14px',
             borderRadius: 12, border: '1px solid rgba(196,120,90,0.15)',
@@ -71,19 +80,21 @@ export default function QuestionCard({ question, onSubmit, answered }: Props) {
         />
       )}
 
-      {!answered && (
+      {(!answered || editMode) && (
         <button onClick={handleSubmit} disabled={question.question_type === 'choice' ? !selectedOption : !openAnswer.trim()} style={{
           padding: '10px 32px', borderRadius: 12,
           border: 'none',
-          background: 'linear-gradient(135deg, #C4785A, #E8849C)',
+          background: editMode
+            ? 'linear-gradient(135deg, #9B8EC4, #C4785A)'
+            : 'linear-gradient(135deg, #C4785A, #E8849C)',
           color: '#fff', fontSize: 14, cursor: 'pointer',
           fontFamily: "'DM Sans', sans-serif",
           opacity: (question.question_type === 'choice' ? !selectedOption : !openAnswer.trim()) ? 0.4 : 1,
           transition: 'opacity 0.2s',
-        }}>提交答案</button>
+        }}>{editMode ? '修改答案' : '提交答案'}</button>
       )}
 
-      {answered && (
+      {answered && !editMode && (
         <p style={{
           fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
           fontSize: 13, color: 'rgba(196,120,90,0.6)', margin: '12px 0 0',

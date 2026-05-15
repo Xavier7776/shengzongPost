@@ -77,6 +77,15 @@ const TOOLS = [
     bg: 'rgba(212,160,94,0.08)',
     border: 'rgba(212,160,94,0.18)',
   },
+  {
+    href: '/onlyus/tools/movies',
+    emoji: '🎬',
+    title: '电影记录',
+    desc: '记录一起看过的每一部电影',
+    color: '#E8849C',
+    bg: 'rgba(232,132,156,0.08)',
+    border: 'rgba(232,132,156,0.18)',
+  },
 ]
 
 function ToolCard({ tool, index, mobile = false }: { tool: typeof TOOLS[0]; index: number; mobile?: boolean }) {

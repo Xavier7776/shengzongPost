@@ -7,9 +7,10 @@ interface Props {
   myUserId: string
   myName: string
   partnerName: string
+  onEdit?: () => void
 }
 
-export default function AnswerReveal({ session, myUserId, myName, partnerName }: Props) {
+export default function AnswerReveal({ session, myUserId, myName, partnerName, onEdit }: Props) {
   const isMatch = session.is_match
 
   // 根据当前用户判断哪个答案是自己的
@@ -90,6 +91,17 @@ export default function AnswerReveal({ session, myUserId, myName, partnerName }:
           }}>{partnerAnswer || '未作答'}</p>
         </div>
       </div>
+
+      {/* 修改答案按钮 */}
+      {onEdit && (
+        <button onClick={onEdit} style={{
+          marginTop: 16, padding: '8px 24px', borderRadius: 10,
+          border: '1px solid rgba(155,142,196,0.3)',
+          background: 'rgba(155,142,196,0.08)',
+          color: '#9B8EC4', fontSize: 12, cursor: 'pointer',
+          fontFamily: "'DM Sans', sans-serif",
+        }}>修改答案</button>
+      )}
     </div>
   )
 }

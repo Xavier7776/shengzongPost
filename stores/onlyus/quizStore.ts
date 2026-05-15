@@ -26,20 +26,22 @@ export interface QuizScore {
 interface QuizState {
   questions: QuizQuestion[]; currentSession: QuizSession | null
   scores: QuizScore[]; history: QuizSession[]; isLoading: boolean
-  loadError: string | null
+  loadError: string | null; answeredQuestionIds: string[]
   loadQuestions: () => Promise<void>
   loadScores: (coupleId: string) => Promise<void>
   loadHistory: (coupleId: string) => Promise<void>
+  getAvailableQuestions: () => QuizQuestion[]
   startSession: (coupleId: string, questionId: string, userId: string, mode?: string) => Promise<QuizSession | null>
   findOrJoinSession: (coupleId: string, userId: string, mode?: string) => Promise<QuizSession | null>
   submitAnswer: (sessionId: string, userId: string, answer: string) => Promise<void>
+  updateAnswer: (sessionId: string, userId: string, newAnswer: string) => Promise<void>
   revealSession: (sessionId: string) => Promise<void>
   setCurrentSession: (s: QuizSession | null) => void
   subscribeToSession: (sessionId: string, onUpdate: (session: QuizSession) => void) => () => void
 }
 
 export const useQuizStore = create<QuizState>()((set, get) => ({
-  questions: [], currentSession: null, scores: [], history: [], isLoading: false, loadError: null,
+  questions: [], currentSession: null, scores: [], history: [], isLoading: false, loadError: null, answeredQuestionIds: [],
 
   loadQuestions: async () => {
     const s = getSupabaseClient()
@@ -73,8 +75,16 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
     set({ isLoading: true })
     const s = getSupabaseClient()
     const { data } = await s.from('quiz_sessions').select('*, question:quiz_questions(*)')
-      .eq('couple_id', coupleId).order('created_at', { ascending: false }).limit(20)
-    set({ history: data || [], isLoading: false })
+      .eq('couple_id', coupleId).order('created_at', { ascending: false }).limit(100)
+    const ids = (data || []).map(h => h.question_id).filter(Boolean)
+    const uniqueIds = Array.from(new Set(ids))
+    set({ history: data || [], answeredQuestionIds: uniqueIds, isLoading: false })
+  },
+
+  getAvailableQuestions: () => {
+    const { questions, answeredQuestionIds } = get()
+    const answeredSet = new Set(answeredQuestionIds)
+    return questions.filter(q => !answeredSet.has(q.id))
   },
 
   startSession: async (coupleId, questionId, userId, mode = 'quiz') => {
@@ -150,6 +160,32 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
     }
   },
 
+  updateAnswer: async (sessionId, userId, newAnswer) => {
+    const s = getSupabaseClient()
+    const session = get().currentSession || get().history.find(h => h.id === sessionId)
+    if (!session) return
+
+    const isUser1 = userId === session.user1_id
+    const field = isUser1 ? 'user1_answer' : 'user2_answer'
+    const timeField = isUser1 ? 'user1_answered_at' : 'user2_answered_at'
+
+    // Update the answer and reset session to waiting for re-evaluation
+    const { data, error } = await s.from('quiz_sessions').update({
+      [field]: newAnswer,
+      [timeField]: new Date().toISOString(),
+      is_match: null,
+      score_awarded: 0,
+      status: 'waiting',
+    }).eq('id', sessionId).select().single()
+
+    if (!error && data) {
+      const updated = { ...data, question: session.question }
+      set({ currentSession: updated as QuizSession })
+      // Auto-reveal after updating
+      await get().revealSession(sessionId)
+    }
+  },
+
   revealSession: async (sessionId) => {
     const s = getSupabaseClient()
     const session = get().currentSession
@@ -167,15 +203,17 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       score_awarded: isMatch ? 10 : 0,
     }).eq('id', sessionId)
 
-    // 更新积分
-    if (isMatch) {
-      const userIds = [data.user1_id, data.user2_id].filter(Boolean)
-      for (const uid of userIds) {
-        await s.from('quiz_scores').upsert({
-          couple_id: session.couple_id, user_id: uid,
-          total_score: 10, total_matches: 1, total_played: 1,
-        }, { onConflict: 'couple_id,user_id', ignoreDuplicates: false })
-      }
+    // 更新积分（累加而非覆盖）
+    const userIds = [data.user1_id, data.user2_id].filter(Boolean)
+    for (const uid of userIds) {
+      const { data: existing } = await s.from('quiz_scores')
+        .select('*').eq('couple_id', session.couple_id).eq('user_id', uid).maybeSingle()
+      await s.from('quiz_scores').upsert({
+        couple_id: session.couple_id, user_id: uid,
+        total_score: (existing?.total_score || 0) + (isMatch ? 10 : 0),
+        total_matches: (existing?.total_matches || 0) + (isMatch ? 1 : 0),
+        total_played: (existing?.total_played || 0) + 1,
+      }, { onConflict: 'couple_id,user_id' })
     }
 
     const finalSession = { ...data, is_match: isMatch, status: 'revealed', score_awarded: isMatch ? 10 : 0, question: session.question }

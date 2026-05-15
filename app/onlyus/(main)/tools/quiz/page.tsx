@@ -15,14 +15,16 @@ export default function QuizPage() {
   const { profile, partner, coupleInfo } = useOnlyUsAuthStore()
   const {
     questions, currentSession, scores, history, loadError,
-    loadQuestions, loadScores, loadHistory,
-    startSession, findOrJoinSession, submitAnswer, revealSession, setCurrentSession, subscribeToSession,
+    loadQuestions, loadScores, loadHistory, getAvailableQuestions,
+    startSession, findOrJoinSession, submitAnswer, updateAnswer, revealSession, setCurrentSession, subscribeToSession,
   } = useQuizStore()
   const { checkAndUnlock, loadMedals } = useMedalStore()
 
   const [tab, setTab] = useState<Tab>('quiz')
   const [showHistory, setShowHistory] = useState(false)
   const [compatRunning, setCompatRunning] = useState(false)
+  const [editSessionId, setEditSessionId] = useState<string | null>(null)
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
 
   const coupleId = coupleInfo?.id
   const userId = profile?.id
@@ -39,11 +41,9 @@ export default function QuizPage() {
   }, [coupleId, loadQuestions, loadScores, loadHistory, loadMedals])
 
   const pickRandomQuestion = () => {
-    if (questions.length === 0) return null
-    const recentIds = history.slice(0, 5).map(h => h.question_id)
-    const available = questions.filter(q => !recentIds.includes(q.id))
-    const pool = available.length > 0 ? available : questions
-    return pool[Math.floor(Math.random() * pool.length)]
+    const available = getAvailableQuestions()
+    if (available.length === 0) return null
+    return available[Math.floor(Math.random() * available.length)]
   }
 
   // ── 开始/加入双人问答 ────────────────────────────────────────
@@ -100,6 +100,17 @@ export default function QuizPage() {
     await submitAnswer(currentSession.id, userId, answer)
     if (coupleId) checkAndUnlock(userId, coupleId, 'quiz_first')
   }, [currentSession, userId, coupleId, submitAnswer, checkAndUnlock])
+
+  // ── 修改答案 ────────────────────────────────────────────────
+  const handleEditAnswer = useCallback(async (sessionId: string, newAnswer: string) => {
+    if (!userId) return
+    await updateAnswer(sessionId, userId, newAnswer)
+    setEditSessionId(null)
+    if (coupleId) {
+      loadScores(coupleId)
+      loadHistory(coupleId)
+    }
+  }, [userId, updateAnswer, coupleId, loadScores, loadHistory])
 
   // ── 默契挑战倒计时结束 → 揭晓 ──────────────────────────────
   const handleTimeUp = useCallback(async () => {
@@ -230,12 +241,25 @@ export default function QuizPage() {
               {/* 题目 / 答案揭晓 */}
               {currentSession.status === 'revealed' ? (
                 <div className="quiz-card" style={{ animationDelay: '100ms' }}>
-                  <AnswerReveal
-                    session={currentSession}
-                    myUserId={userId || ''}
-                    myName={myName}
-                    partnerName={partnerName}
-                  />
+                  {editSessionId === currentSession.id ? (
+                    currentSession.question && (
+                      <QuestionCard
+                        question={currentSession.question}
+                        onSubmit={(answer) => handleEditAnswer(currentSession.id, answer)}
+                        answered={false}
+                        editMode
+                        initialAnswer={userId === currentSession.user1_id ? currentSession.user1_answer || '' : currentSession.user2_answer || ''}
+                      />
+                    )
+                  ) : (
+                    <AnswerReveal
+                      session={currentSession}
+                      myUserId={userId || ''}
+                      myName={myName}
+                      partnerName={partnerName}
+                      onEdit={() => setEditSessionId(currentSession.id)}
+                    />
+                  )}
                   <button onClick={handleNextRound} style={{
                     width: '100%', marginTop: 16, padding: '12px 0',
                     borderRadius: 12, border: 'none',
@@ -268,29 +292,45 @@ export default function QuizPage() {
               textAlign: 'center',
             }}>
               <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>
-                {tab === 'quiz' ? '❓' : '⏱️'}
+                {getAvailableQuestions().length === 0 ? '🎉' : tab === 'quiz' ? '❓' : '⏱️'}
               </span>
-              <h2 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 20, fontWeight: 400, color: '#3D2318',
-                margin: '0 0 8px',
-              }}>
-                {tab === 'quiz' ? '测试你们的了解程度' : '60 秒默契大考验'}
-              </h2>
-              <p style={{
-                fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
-                fontSize: 13, color: 'rgba(196,120,90,0.5)', margin: '0 0 24px',
-              }}>
-                {tab === 'quiz' ? '轮流答题，看看你们有多了解对方' : '同时作答，看看你们有多默契'}
-              </p>
-              <button onClick={tab === 'quiz' ? handleStartQuiz : handleStartCompatibility} style={{
-                padding: '12px 40px', borderRadius: 14,
-                border: 'none',
-                background: 'linear-gradient(135deg, #C4785A, #E8849C)',
-                color: '#fff', fontSize: 15, cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
-                boxShadow: '0 4px 16px rgba(196,120,90,0.25)',
-              }}>开始挑战</button>
+              {getAvailableQuestions().length === 0 ? (
+                <>
+                  <h2 style={{
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: 20, fontWeight: 400, color: '#3D2318',
+                    margin: '0 0 8px',
+                  }}>所有题目已答完！</h2>
+                  <p style={{
+                    fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
+                    fontSize: 13, color: 'rgba(196,120,90,0.5)', margin: '0 0 16px',
+                  }}>可以在历史记录中修改答案重新挑战</p>
+                </>
+              ) : (
+                <>
+                  <h2 style={{
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: 20, fontWeight: 400, color: '#3D2318',
+                    margin: '0 0 8px',
+                  }}>
+                    {tab === 'quiz' ? '测试你们的了解程度' : '60 秒默契大考验'}
+                  </h2>
+                  <p style={{
+                    fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
+                    fontSize: 13, color: 'rgba(196,120,90,0.5)', margin: '0 0 24px',
+                  }}>
+                    {tab === 'quiz' ? '轮流答题，看看你们有多了解对方' : '同时作答，看看你们有多默契'}
+                  </p>
+                  <button onClick={tab === 'quiz' ? handleStartQuiz : handleStartCompatibility} style={{
+                    padding: '12px 40px', borderRadius: 14,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #C4785A, #E8849C)',
+                    color: '#fff', fontSize: 15, cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    boxShadow: '0 4px 16px rgba(196,120,90,0.25)',
+                  }}>开始挑战</button>
+                </>
+              )}
               {loadError && (
                 <div style={{ marginTop: 16 }}>
                   <p style={{
@@ -330,7 +370,7 @@ export default function QuizPage() {
                 fontFamily: "'Cormorant Garamond', serif",
                 fontSize: 12, letterSpacing: '0.15em',
                 color: 'rgba(196,120,90,0.6)', textTransform: 'uppercase',
-              }}>答题历史</span>
+              }}>答题历史 ({history.length})</span>
               <span style={{
                 transform: showHistory ? 'rotate(180deg)' : 'rotate(0)',
                 transition: 'transform 0.2s',
@@ -345,35 +385,110 @@ export default function QuizPage() {
                     fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
                     fontSize: 12, color: 'rgba(61,35,24,0.3)',
                   }}>还没有答题记录</p>
-                ) : history.map((h) => (
-                  <div key={h.id} style={{
-                    padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.4)',
-                    borderRadius: 10,
-                    display: 'flex', alignItems: 'center', gap: 10,
-                  }}>
-                    <span style={{ fontSize: 16, flexShrink: 0 }}>
-                      {h.is_match === true ? '💕' : h.is_match === false ? '🤔' : '⏳'}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        margin: 0, fontSize: 12, color: '#3D2318',
-                        fontFamily: "'DM Sans', sans-serif",
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{(h as any).question?.question_text || '题目'}</p>
-                      <p style={{
-                        margin: '2px 0 0', fontSize: 10,
-                        color: 'rgba(61,35,24,0.3)',
-                      }}>{new Date(h.created_at).toLocaleDateString('zh-CN')}</p>
+                ) : history.map((h) => {
+                  const isExpanded = expandedHistoryId === h.id
+                  const isUser1 = userId === h.user1_id
+                  const myAns = isUser1 ? h.user1_answer : h.user2_answer
+                  const partnerAns = isUser1 ? h.user2_answer : h.user1_answer
+                  return (
+                    <div key={h.id} style={{
+                      background: 'rgba(255,255,255,0.4)',
+                      borderRadius: 12, overflow: 'hidden',
+                      border: isExpanded ? '1px solid rgba(196,120,90,0.2)' : '1px solid transparent',
+                    }}>
+                      <button onClick={() => setExpandedHistoryId(isExpanded ? null : h.id)} style={{
+                        width: '100%', padding: '10px 14px',
+                        background: 'transparent', border: 'none',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                      }}>
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>
+                          {h.is_match === true ? '💕' : h.is_match === false ? '🤔' : '⏳'}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                          <p style={{
+                            margin: 0, fontSize: 12, color: '#3D2318',
+                            fontFamily: "'DM Sans', sans-serif",
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{(h as any).question?.question_text || '题目'}</p>
+                          <p style={{
+                            margin: '2px 0 0', fontSize: 10,
+                            color: 'rgba(61,35,24,0.3)',
+                          }}>{new Date(h.created_at).toLocaleDateString('zh-CN')}</p>
+                        </div>
+                        {h.score_awarded > 0 && (
+                          <span style={{
+                            fontSize: 11, color: '#E8849C',
+                            fontFamily: "'DM Sans', sans-serif",
+                          }}>+{h.score_awarded}</span>
+                        )}
+                        <span style={{
+                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+                          transition: 'transform 0.2s',
+                          color: 'rgba(196,120,90,0.4)', fontSize: 12,
+                        }}>▾</span>
+                      </button>
+                      {isExpanded && (
+                        <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {/* 题目 */}
+                          {(h as any).question && (
+                            <p style={{
+                              fontSize: 11, color: 'rgba(61,35,24,0.4)',
+                              fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
+                              margin: 0,
+                            }}>{(h as any).question.question_text}</p>
+                          )}
+                          {/* 双方答案 */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            <div style={{
+                              background: 'rgba(232,132,156,0.06)', borderRadius: 10, padding: '10px',
+                              border: '1px solid rgba(232,132,156,0.1)',
+                            }}>
+                              <p style={{
+                                fontSize: 9, fontFamily: "'Cormorant Garamond', serif",
+                                letterSpacing: '0.1em', color: 'rgba(232,132,156,0.6)',
+                                margin: '0 0 4px', textTransform: 'uppercase',
+                              }}>{myName}</p>
+                              <p style={{
+                                fontSize: 13, fontFamily: "'Playfair Display', serif",
+                                color: '#3D2318', margin: 0,
+                              }}>{myAns || '未作答'}</p>
+                            </div>
+                            <div style={{
+                              background: 'rgba(196,120,90,0.06)', borderRadius: 10, padding: '10px',
+                              border: '1px solid rgba(196,120,90,0.1)',
+                            }}>
+                              <p style={{
+                                fontSize: 9, fontFamily: "'Cormorant Garamond', serif",
+                                letterSpacing: '0.1em', color: 'rgba(196,120,90,0.6)',
+                                margin: '0 0 4px', textTransform: 'uppercase',
+                              }}>{partnerName}</p>
+                              <p style={{
+                                fontSize: 13, fontFamily: "'Playfair Display', serif",
+                                color: '#3D2318', margin: 0,
+                              }}>{partnerAns || '未作答'}</p>
+                            </div>
+                          </div>
+                          {/* 修改答案按钮 */}
+                          {h.status === 'revealed' && (
+                            <button onClick={() => {
+                              setCurrentSession(h)
+                              setEditSessionId(h.id)
+                              setExpandedHistoryId(null)
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }} style={{
+                              padding: '6px 16px', borderRadius: 8,
+                              border: '1px solid rgba(155,142,196,0.3)',
+                              background: 'rgba(155,142,196,0.08)',
+                              color: '#9B8EC4', fontSize: 11, cursor: 'pointer',
+                              fontFamily: "'DM Sans', sans-serif",
+                              alignSelf: 'flex-end',
+                            }}>修改答案</button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {h.score_awarded > 0 && (
-                      <span style={{
-                        fontSize: 11, color: '#E8849C',
-                        fontFamily: "'DM Sans', sans-serif",
-                      }}>+{h.score_awarded}</span>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
