@@ -135,7 +135,7 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] }, codeBlock: false }),
-      Image.configure({ HTMLAttributes: { class: 'rounded-2xl max-w-full shadow-md my-6' } }),
+      Image.configure({ HTMLAttributes: { class: 'rounded-2xl max-w-full h-auto shadow-md my-6' } }),
       LinkExtension.configure({ openOnClick: false, HTMLAttributes: { class: 'text-blue-600 underline underline-offset-2' } }),
       Placeholder.configure({ placeholder: '在这里写正文……，输入 / 可唤出快捷菜单' }),
       TableExtension.configure({ resizable: false }),

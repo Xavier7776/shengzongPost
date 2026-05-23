@@ -74,7 +74,7 @@ body::before {
 .ProseMirror pre code { background: none; color: #4ade80; font-size: 0.875rem; padding: 0; }
 .ProseMirror hr { border: none; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
 .ProseMirror a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
-.ProseMirror img { border-radius: 1rem; max-width: 100%; box-shadow: 0 4px 6px -1px rgb(0 0 0/0.1); margin: 1.5rem 0; }
+.ProseMirror img { border-radius: 1rem; width: 100% !important; max-width: 100% !important; height: auto !important; object-fit: contain; box-shadow: 0 4px 6px -1px rgb(0 0 0/0.1); margin: 1.5rem 0; }
 .ProseMirror:focus { outline: none; }
 
 /* ── Editor Preview Panel ─────────────────────────────────────── */
@@ -93,7 +93,7 @@ body::before {
 .preview-content pre code { background: none; color: #4ade80; padding: 0; }
 .preview-content hr { border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
 .preview-content a { color: #2563eb; text-decoration: underline; }
-.preview-content img { border-radius: 0.5rem; max-width: 100%; margin: 0.75rem 0; }
+.preview-content img { border-radius: 0.5rem; width: 100% !important; max-width: 100% !important; height: auto !important; margin: 0.75rem 0; }
 
 /* ── AI Preview Panel ─────────────────────────────────────────── */
 .ai-preview h2 { font-size: 0.875rem; font-weight: 900; color: #111827; margin: 0.75rem 0 0.4rem; }
@@ -127,10 +127,10 @@ body::before {
 .post-content blockquote p { color: #1e40af; font-style: italic; margin: 0; }
 .post-content code { background: #f1f5f9; color: #e11d48; padding: 0.15rem 0.4rem; border-radius: 0.35rem; font-size: 0.875em; font-family: ui-monospace, monospace; }
 .post-content pre { background: #030712; border-radius: 1rem; padding: 1.5rem; margin: 2rem 0; overflow-x: auto; }
-.post-content pre code { background: none; color: #4ade80; font-size: 0.875rem; padding: 0; color: #4ade80; }
+.post-content pre code { background: none; font-size: 0.875rem; padding: 0; color: #e6edf3; }
 .post-content hr { border: none; border-top: 2px solid #f3f4f6; margin: 2.5rem 0; }
 .post-content a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
-.post-content img { border-radius: 1rem; max-width: 100%; box-shadow: 0 4px 6px -1px rgb(0 0 0/0.1); margin: 2rem 0; display: block; }
+.post-content img { border-radius: 1rem; width: 100% !important; max-width: 100% !important; height: auto !important; object-fit: contain; box-shadow: 0 4px 6px -1px rgb(0 0 0/0.1); margin: 2rem 0; display: block; }
 
 /* ── 表格样式（编辑器 + 博客渲染端通用）──────────────────────────── */
 .ProseMirror table, .post-content table {
@@ -178,3 +178,16 @@ body::before {
 .hljs-meta, .hljs-doctag { color: #f0883e; }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: bold; }
+
+/* ── 移动端字体响应 ────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .post-content h2 { font-size: 1.25rem; margin: 2.5rem 0 1rem; }
+  .post-content h3 { font-size: 1rem; margin: 2rem 0 0.5rem; }
+  .post-content p  { font-size: 0.95rem; line-height: 1.8; }
+  .post-content pre { padding: 1rem; margin: 1.5rem -0.5rem; border-radius: 0.75rem; }
+  .post-content pre code { font-size: 0.8rem; }
+  .post-content blockquote { padding: 0.2rem 0 0.2rem 1rem; margin: 1rem 0; }
+  .post-content img { margin: 1.5rem 0; border-radius: 0.75rem; width: 100% !important; height: auto !important; }
+  .post-content table { font-size: 0.8rem; }
+  .post-content th, .post-content td { padding: 0.4rem 0.6rem; }
+}

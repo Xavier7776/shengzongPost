@@ -2,13 +2,19 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { getPostBySlug } from '@/lib/db'
+import { getPostBySlug, getAdjacentPosts } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
 import PostActions from '@/components/sections/PostActions'
 import ViewTracker from '@/components/sections/ViewTracker'
 import AuthorCard from '@/components/sections/AuthorCard'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import AttachmentList from '@/components/sections/AttachmentList'
+import TableOfContents from '@/components/sections/TableOfContents'
+import CodeCopyButton from '@/components/sections/CodeCopyButton'
+import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
+import ShareButtons from '@/components/sections/ShareButtons'
+import PostNavigation from '@/components/sections/PostNavigation'
+import KeyboardShortcuts from '@/components/sections/KeyboardShortcuts'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -54,7 +60,7 @@ function renderMarkdown(content: string) {
       elements.push(
         <figure key={i} className="my-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt={alt} className="w-full rounded-2xl object-cover shadow-md" style={{ maxHeight: 420 }} />
+          <img src={url} alt={alt} className="w-full rounded-2xl object-contain shadow-md" style={{ maxHeight: 420 }} />
           {caption && <figcaption className="text-center text-xs text-gray-400 mt-3 font-medium tracking-wide">{caption}</figcaption>}
         </figure>
       )
@@ -118,7 +124,10 @@ function renderMarkdown(content: string) {
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  const post = await getPostBySlug(params.slug)
+  const [post, { prev, next }] = await Promise.all([
+    getPostBySlug(params.slug),
+    getAdjacentPosts(params.slug),
+  ])
   if (!post) notFound()
 
   // 新文章（Tiptap 存的 HTML）以 < 开头；旧文章是 Markdown
@@ -127,6 +136,9 @@ export default async function BlogPostPage({ params }: PageProps) {
   return (
     <>
     <ReadingProgressBar />
+    <TableOfContents contentSelector=".post-content, .space-y-5" />
+    <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
+
     <div className="max-w-[780px] mx-auto px-6 py-24 animate-in">
       <Link href="/blog" className="flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-16 group font-bold uppercase tracking-widest text-xs">
         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
@@ -167,7 +179,11 @@ export default async function BlogPostPage({ params }: PageProps) {
       </article>
 
       <ViewTracker slug={params.slug} />
+      <CodeCopyButton />
+      <ImageLazyLoad />
       <PostActions slug={params.slug} />
+      <ShareButtons title={post.title} slug={params.slug} />
+      <PostNavigation prev={prev} next={next} />
       <CommentSection slug={params.slug} />
     </div>
     </>

@@ -32,6 +32,18 @@ export async function getAllPosts(): Promise<PostMeta[]> {
     WHERE p.published=true ORDER BY p.created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
 }
+export async function getPostsPaginated(page: number, pageSize: number): Promise<{ posts: PostMeta[]; total: number }> {
+  const offset = (page - 1) * pageSize
+  const countRow = await sql`SELECT COUNT(*)::int as total FROM posts WHERE published=true`
+  const total = (countRow[0] as Record<string, unknown>).total as number
+  const rows = await sql`
+    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,
+           p.author_id,u.name as author_name,u.avatar as author_avatar
+    FROM posts p LEFT JOIN users u ON u.id = p.author_id
+    WHERE p.published=true ORDER BY p.created_at DESC
+    LIMIT ${pageSize} OFFSET ${offset}`
+  return { posts: serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[], total }
+}
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   const rows = await sql`
     SELECT p.*,u.name as author_name,u.avatar as author_avatar,u.bio as author_bio
@@ -161,6 +173,33 @@ export async function markUserVerified(userId: number): Promise<void> {
 export async function updateUserPassword(userId: number, hashedPassword: string): Promise<void> {
   await sql`UPDATE users SET password=${hashedPassword},verify_token=NULL,token_expires=NULL WHERE id=${userId}`
 }
+export async function getAdjacentPosts(slug: string): Promise<{ prev: PostMeta | null; next: PostMeta | null }> {
+  const current = await sql`SELECT id FROM posts WHERE slug=${slug} AND published=true LIMIT 1`
+  if (!current[0]) return { prev: null, next: null }
+  const currentId = current[0].id as number
+
+  // 上一篇：更早的文章（id 更小）
+  const prevRows = await sql`
+    SELECT p.slug,p.title,p.excerpt,p.tags,p.created_at,p.cover_image,
+           p.author_id,u.name as author_name,u.avatar as author_avatar
+    FROM posts p LEFT JOIN users u ON u.id=p.author_id
+    WHERE p.published=true AND p.id < ${currentId}
+    ORDER BY p.id DESC LIMIT 1`
+
+  // 下一篇：更新的文章（id 更大）
+  const nextRows = await sql`
+    SELECT p.slug,p.title,p.excerpt,p.tags,p.created_at,p.cover_image,
+           p.author_id,u.name as author_name,u.avatar as author_avatar
+    FROM posts p LEFT JOIN users u ON u.id=p.author_id
+    WHERE p.published=true AND p.id > ${currentId}
+    ORDER BY p.id ASC LIMIT 1`
+
+  return {
+    prev: prevRows[0] ? serializeRow(prevRows[0] as Record<string, unknown>) as unknown as PostMeta : null,
+    next: nextRows[0] ? serializeRow(nextRows[0] as Record<string, unknown>) as unknown as PostMeta : null,
+  }
+}
+
 export async function getPostsByAuthor(authorId: number): Promise<PostMeta[]> {
   const rows = await sql`
     SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,

@@ -117,7 +117,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
   )
 }
 
-// ── Tab 子组件 ────────────────────────────────────────────────────────────────
+// ── Tab 子组件 ────────────────────────────────────────────────────────
 function CategoryTab({
   name,
   count,
