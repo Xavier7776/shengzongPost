@@ -1,6 +1,7 @@
 // 路径：app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import DOMPurify from 'isomorphic-dompurify'
 import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug, getAdjacentPosts } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
@@ -15,6 +16,8 @@ import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
 import ShareButtons from '@/components/sections/ShareButtons'
 import PostNavigation from '@/components/sections/PostNavigation'
 import KeyboardShortcuts from '@/components/sections/KeyboardShortcuts'
+import BackToTop from '@/components/ui/BackToTop'
+import ReadingHistory from '@/components/sections/ReadingHistory'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -138,6 +141,8 @@ export default async function BlogPostPage({ params }: PageProps) {
     <ReadingProgressBar />
     <TableOfContents contentSelector=".post-content, .space-y-5" />
     <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
+    <BackToTop />
+    <ReadingHistory slug={params.slug} title={post.title} />
 
     <div className="max-w-[780px] mx-auto px-6 py-24 animate-in">
       <Link href="/blog" className="flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-16 group font-bold uppercase tracking-widest text-xs">
@@ -168,7 +173,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           // 新文章：Tiptap 输出的 HTML，样式由 globals.css .post-content 控制
           <div
             className="post-content"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
           />
         ) : (
           // 旧文章：保留原有 Markdown 解析，不受影响

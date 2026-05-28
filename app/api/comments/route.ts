@@ -5,16 +5,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { getApprovedComments, createComment, updateCommentStatus } from '@/lib/db'
+import { getApprovedComments, createComment, updateCommentStatus, toggleCommentLike, addPoints, hasPointTransaction } from '@/lib/db'
 
-const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'
+const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET
+if (!INTERNAL_SECRET) console.warn('[comments] WARNING: AI_COMMENT_SECRET is not set. AI review will be skipped.')
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')
   if (!slug) return NextResponse.json({ error: '缺少 slug' }, { status: 400 })
   try {
-    return NextResponse.json(await getApprovedComments(slug))
+    // 尝试获取当前用户 ID（未登录也可查看）
+    const session = await getServerSession(authOptions)
+    const userId = session?.user ? Number((session.user as { id?: string }).id) : undefined
+    return NextResponse.json(await getApprovedComments(slug, userId))
   } catch (err) {
     console.error('[comments GET]', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // 2. 异步调用 AI 审核（不阻塞本次响应）
     //    fire-and-forget：先响应给用户，AI 在后台判断
-    void callAiReview(comment.id, post_slug, content.trim())
+    void callAiReview(comment.id, post_slug, content.trim(), userId)
 
     return NextResponse.json({
       ok: true,
@@ -60,8 +64,31 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
+
+  try {
+    const { commentId } = await req.json()
+    if (!commentId) return NextResponse.json({ error: '缺少 commentId' }, { status: 400 })
+
+    const userId = Number((session.user as { id?: string }).id)
+    if (!userId) return NextResponse.json({ error: '用户信息异常' }, { status: 400 })
+
+    const result = await toggleCommentLike(Number(commentId), userId)
+    return NextResponse.json(result)
+  } catch (err) {
+    console.error('[comments PATCH]', err)
+    return NextResponse.json({ error: '操作失败' }, { status: 500 })
+  }
+}
+
 // ── AI 审核（fire-and-forget）─────────────────────────────────────────────────
-async function callAiReview(commentId: number, postSlug: string, content: string) {
+async function callAiReview(commentId: number, postSlug: string, content: string, userId: number) {
+  if (!INTERNAL_SECRET) {
+    console.warn(`[comments] Skipping AI review for commentId=${commentId}: AI_COMMENT_SECRET not set`)
+    return
+  }
   try {
     const resp = await fetch(`${BASE_URL}/api/ai/review-comment`, {
       method: 'POST',
@@ -81,8 +108,10 @@ async function callAiReview(commentId: number, postSlug: string, content: string
     console.log(`[comments] AI 审核结果 commentId=${commentId}: pass=${pass}, reason="${reason}"`)
 
     if (pass) {
-      // 通过 → 直接标记为已审核
+      // 通过 → 直接标记为已审核 + 奖励积分（幂等检查防重复）
       await updateCommentStatus(commentId, 'approved')
+      const alreadyRewarded = await hasPointTransaction(userId, 'comment_approved', postSlug)
+      if (!alreadyRewarded) await addPoints(userId, 5, 'comment_approved', postSlug)
       console.log(`[comments] 评论 ${commentId} 已自动通过`)
     } else {
       // 未通过 → 保留在待审核队列，等待人工处理

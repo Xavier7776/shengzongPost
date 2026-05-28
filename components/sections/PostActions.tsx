@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { ThumbsUp, ThumbsDown, Bookmark, BookmarkCheck } from 'lucide-react'
+import { usePointsToast } from '@/components/ui/PointsToast'
 
 interface Props { slug: string }
 
@@ -18,6 +19,7 @@ interface ReactionState {
 export default function PostActions({ slug }: Props) {
   const { data: session } = useSession()
   const router = useRouter()
+  const { showPointsToast } = usePointsToast()
   const [state, setState] = useState<ReactionState>({
     likes: 0, dislikes: 0, userReaction: null, bookmarked: false, loading: true,
   })
@@ -47,6 +49,7 @@ export default function PostActions({ slug }: Props) {
 
   async function handleReaction(type: 'like' | 'dislike') {
   if (!session) { requireLogin(); return }
+  const prevReaction = state.userReaction
   const res = await fetch('/api/reactions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -55,11 +58,16 @@ export default function PostActions({ slug }: Props) {
   if (res.ok) {
     const data = await res.json()
     setState(s => ({ ...s, ...data }))
+    // 积分提示：点赞 +1，取消点赞 -1
+    if (type === 'like' && prevReaction !== 'like') showPointsToast(1)
+    else if (type === 'like' && prevReaction === 'like') showPointsToast(-1)
+    else if (prevReaction === 'like') showPointsToast(-1)
   }
 }
 
   async function handleBookmark() {
     if (!session) { requireLogin(); return }
+    const wasBookmarked = state.bookmarked
     const res = await fetch('/api/bookmarks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,6 +76,8 @@ export default function PostActions({ slug }: Props) {
     if (res.ok) {
       const { bookmarked } = await res.json()
       setState(s => ({ ...s, bookmarked }))
+      if (bookmarked && !wasBookmarked) showPointsToast(1)
+      else if (!bookmarked && wasBookmarked) showPointsToast(-1)
     }
   }
 

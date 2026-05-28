@@ -4,8 +4,9 @@ import { useSession, signOut } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogOut, User, ChevronDown, PenLine } from 'lucide-react'
+import { LogOut, User, ChevronDown, PenLine, ShoppingBag } from 'lucide-react'
 import RoleBadge from '@/components/ui/RoleBadge'
+import AvatarFrame from '@/components/ui/AvatarFrame'
 
 interface UserMenuProps {
   dark?: boolean
@@ -14,7 +15,17 @@ interface UserMenuProps {
 export default function UserMenu({ dark = false }: UserMenuProps) {
   const { data: session, status } = useSession()
   const [open, setOpen] = useState(false)
+  const [frameCssKey, setFrameCssKey] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/user/profile')
+        .then(r => r.json())
+        .then(d => { if (d.equipped_frame_css_key) setFrameCssKey(d.equipped_frame_css_key) })
+        .catch(() => {})
+    }
+  }, [status])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -52,6 +63,7 @@ export default function UserMenu({ dark = false }: UserMenuProps) {
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 group">
+        <AvatarFrame frameCssKey={frameCssKey} shape="circle">
         <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-transparent group-hover:ring-blue-500 transition-all duration-200">
           {avatar ? (
             <Image src={avatar} alt={name} width={32} height={32} unoptimized className="w-full h-full object-cover" />
@@ -61,6 +73,7 @@ export default function UserMenu({ dark = false }: UserMenuProps) {
             </div>
           )}
         </div>
+        </AvatarFrame>
         <span className={`hidden md:flex items-center gap-1.5 transition-colors duration-200 ${
           dark ? 'text-white/70 group-hover:text-white' : 'text-gray-500 group-hover:text-gray-900'
         }`}>
@@ -107,6 +120,14 @@ export default function UserMenu({ dark = false }: UserMenuProps) {
             >
               <PenLine className="w-4 h-4 text-gray-400" />
               编辑中心
+            </Link>
+            <Link
+              href="/shop"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            >
+              <ShoppingBag className="w-4 h-4 text-gray-400" />
+              积分商城
             </Link>
             <button
               onClick={() => { setOpen(false); signOut({ callbackUrl: '/' }) }}

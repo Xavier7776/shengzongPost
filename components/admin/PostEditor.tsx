@@ -203,6 +203,8 @@ export default function PostEditor({ mode, initialData }: Props) {
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setCoverUploadError('图片不能超过 10MB'); return }
+    if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) { setCoverUploadError('仅支持 JPG/PNG/WebP/GIF'); return }
     setUploadingCover(true); setCoverUploadError('')
     try {
       const fd = new FormData(); fd.append('file', file)

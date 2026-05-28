@@ -131,3 +131,43 @@ body::before {
 .post-content hr { border: none; border-top: 2px solid #f3f4f6; margin: 2.5rem 0; }
 .post-content a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
 .post-content img { border-radius: 1rem; max-width: 100%; box-shadow: 0 4px 6px -1px rgb(0 0 0/0.1); margin: 2rem 0; display: block; }
+
+/* ── Avatar Frames ──────────────────────────────────────────────── */
+
+/* box-shadow / outline 型 */
+.frame-golden_ring {
+  box-shadow: 0 0 0 3px #fbbf24, 0 0 0 6px #92400e, 0 0 12px 2px rgba(251,191,36,0.3);
+}
+
+.frame-neon_blue {
+  outline: 3px solid #3b82f6;
+  outline-offset: 4px;
+  box-shadow: 0 0 16px 4px rgba(59, 130, 246, 0.5);
+}
+
+.frame-frost {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 20px 6px rgba(186, 230, 253, 0.5);
+}
+
+.frame-flame {
+  animation: flame-pulse 1.5s ease-in-out infinite alternate;
+}
+@keyframes flame-pulse {
+  from { box-shadow: 0 0 8px 2px #ef4444, 0 0 16px 4px #f97316, 0 0 24px 6px rgba(239, 68, 68, 0.3); }
+  to   { box-shadow: 0 0 14px 4px #dc2626, 0 0 22px 7px #ea580c, 0 0 32px 10px rgba(220, 38, 38, 0.4); }
+}
+
+/* 旋转动画 */
+@keyframes aurora-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Points Toast Animation ─────────────────────────────────────── */
+@keyframes pointsToastIn {
+  from { opacity: 0; transform: translateX(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-points-toast-in {
+  animation: pointsToastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

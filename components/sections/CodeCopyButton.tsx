@@ -52,6 +52,26 @@ export default function CodeCopyButton() {
       }
 
       el.appendChild(btn)
+
+      // 语言标签
+      const codeEl = el.querySelector('code')
+      if (codeEl) {
+        const langMatch = Array.from(codeEl.classList).find(c => c.startsWith('language-'))
+        if (langMatch) {
+          const lang = langMatch.replace('language-', '')
+          const label = document.createElement('span')
+          label.textContent = lang
+          label.style.cssText = `
+            position: absolute; top: 8px; left: 12px; z-index: 10;
+            padding: 2px 8px; border-radius: 4px;
+            background: rgba(255,255,255,0.06);
+            color: #8b949e; font-size: 10px; font-family: 'DM Mono', monospace;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            pointer-events: none;
+          `
+          el.appendChild(label)
+        }
+      }
     })
   }, [])
 

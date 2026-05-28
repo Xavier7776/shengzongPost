@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronRight, ChevronLeft, Search, X, Clock, Calendar, ArrowUpDown, Tag } from 'lucide-react'
 import SectionHeading from '@/components/ui/SectionHeading'
+import { hasRead } from '@/components/sections/ReadingHistory'
 
 interface PostMeta {
   slug: string
@@ -199,6 +200,11 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
 function BlogCardItem({ post, index, highlightQuery }: { post: PostMeta; index: number; highlightQuery?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const [read, setRead] = useState(false)
+
+  useEffect(() => {
+    setRead(hasRead(post.slug))
+  }, [post.slug])
 
   useEffect(() => {
     const el = ref.current
@@ -237,8 +243,9 @@ function BlogCardItem({ post, index, highlightQuery }: { post: PostMeta; index: 
 
           {/* 文字内容 */}
           <div className="flex flex-col flex-1">
-            <h3 className="text-base font-black text-gray-900 mb-2 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
+            <h3 className={`text-base font-black mb-2 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 ${read ? 'text-gray-400' : 'text-gray-900'}`}>
               {highlightQuery ? <HighlightText text={post.title} query={highlightQuery} /> : post.title}
+              {read && <span className="ml-2 text-[10px] font-bold text-gray-300 align-middle">已读</span>}
             </h3>
             <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-4 flex-1">
               {post.excerpt}
@@ -342,12 +349,14 @@ function Pagination({ page, totalPages, goToPage }: { page: number; totalPages: 
 // ── 高亮搜索词 ────────────────────────────────────────────────────
 function HighlightText({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
   const parts = text.split(regex)
   return (
     <>
       {parts.map((part, i) =>
-        regex.test(part)
+        // split + 捕获组：匹配项在奇数索引位
+        i % 2 !== 0
           ? <mark key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5 not-italic">{part}</mark>
           : part
       )}

@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { Loader2, MessageCircle, Send, Reply, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, MessageCircle, Send, Reply, ChevronDown, ChevronUp, ThumbsUp } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import RoleBadge from '@/components/ui/RoleBadge'
+import AvatarFrame from '@/components/ui/AvatarFrame'
 
 interface Comment {
   id: number
@@ -13,24 +14,28 @@ interface Comment {
   user_name: string
   user_role: string
   user_avatar: string | null
+  equipped_frame_css_key?: string | null
   content: string
   created_at: string
   parent_id: number | null
+  likes?: number
+  userLiked?: boolean
   replies?: Comment[]
 }
 
-function Avatar({ name, avatar, size = 9, onClick }: { name: string; avatar: string | null; size?: number; onClick?: (e: React.MouseEvent<HTMLDivElement>) => void }) {
+function Avatar({ name, avatar, size = 9, onClick, frameCssKey }: { name: string; avatar: string | null; size?: number; onClick?: (e: React.MouseEvent<HTMLDivElement>) => void; frameCssKey?: string | null }) {
   const cls = `flex-shrink-0 w-${size} h-${size} rounded-full overflow-hidden ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 transition-all' : ''}`
-  if (avatar) return (
+  const content = avatar ? (
     <div className={cls} onClick={onClick}>
       <Image src={avatar} alt={name} width={size * 4} height={size * 4} unoptimized className="w-full h-full object-cover" />
     </div>
-  )
-  return (
+  ) : (
     <div className={`${cls} bg-blue-100 flex items-center justify-center`} onClick={onClick}>
       <span className="text-blue-600 text-xs font-black">{name.charAt(0).toUpperCase()}</span>
     </div>
   )
+  if (frameCssKey) return <AvatarFrame frameCssKey={frameCssKey} shape="circle">{content}</AvatarFrame>
+  return content
 }
 
 interface CommentItemProps {
@@ -38,9 +43,10 @@ interface CommentItemProps {
   depth: number
   onReply: (id: number, name: string) => void
   onAvatarClick: (userId: number) => void
+  onLike: (id: number) => void
 }
 
-function CommentItem({ comment: c, depth, onReply, onAvatarClick }: CommentItemProps) {
+function CommentItem({ comment: c, depth, onReply, onAvatarClick, onLike }: CommentItemProps) {
   const [showReplies, setShowReplies] = useState(true)
   const hasReplies = (c.replies?.length ?? 0) > 0
   const isNested = depth > 0
@@ -53,6 +59,7 @@ function CommentItem({ comment: c, depth, onReply, onAvatarClick }: CommentItemP
           avatar={c.user_avatar}
           size={isNested ? 7 : 9}
           onClick={() => onAvatarClick(c.user_id)}
+          frameCssKey={c.equipped_frame_css_key}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -61,13 +68,24 @@ function CommentItem({ comment: c, depth, onReply, onAvatarClick }: CommentItemP
             <time className="text-xs text-gray-400 font-mono">{c.created_at.slice(0, 10)}</time>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{c.content}</p>
-          <button
-            onClick={() => onReply(c.id, c.user_name)}
-            className="mt-2 flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-all duration-150"
-          >
-            <Reply className="w-3 h-3" />
-            回复
-          </button>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              onClick={() => onReply(c.id, c.user_name)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-all duration-150"
+            >
+              <Reply className="w-3 h-3" />
+              回复
+            </button>
+            <button
+              onClick={() => onLike(c.id)}
+              className={`flex items-center gap-1 text-xs font-bold transition-all duration-150 ${
+                c.userLiked ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100'
+              }`}
+            >
+              <ThumbsUp className={`w-3 h-3 ${c.userLiked ? 'fill-blue-600' : ''}`} />
+              {(c.likes ?? 0) > 0 && <span>{c.likes}</span>}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -77,13 +95,13 @@ function CommentItem({ comment: c, depth, onReply, onAvatarClick }: CommentItemP
             onClick={() => setShowReplies(v => !v)}
             className="flex items-center gap-1 text-xs text-blue-500 font-bold mb-2 hover:text-blue-700"
           >
-            {showReplies ? <ChevronDown className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            {showReplies ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {showReplies ? '收起' : '展开'} {c.replies!.length} 条回复
           </button>
           {showReplies && (
             <div className="border-l-2 border-gray-100 pl-4 space-y-4">
               {c.replies!.map(r => (
-                <CommentItem key={r.id} comment={r} depth={depth + 1} onReply={onReply} onAvatarClick={onAvatarClick} />
+                <CommentItem key={r.id} comment={r} depth={depth + 1} onReply={onReply} onAvatarClick={onAvatarClick} onLike={onLike} />
               ))}
             </div>
           )}
@@ -120,6 +138,30 @@ export default function CommentSection({ slug }: { slug: string }) {
   function handleReply(id: number, name: string) {
     setReplyTo({ id, name })
     setTimeout(() => textareaRef.current?.focus(), 50)
+  }
+
+  function handleLike(id: number) {
+    if (!session) return
+    fetch('/api/comments', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commentId: id }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.liked !== undefined) {
+          setComments(prev => updateCommentLikes(prev, id, data.liked, data.count))
+        }
+      })
+      .catch(() => {})
+  }
+
+  function updateCommentLikes(comments: Comment[], commentId: number, liked: boolean, count: number): Comment[] {
+    return comments.map(c => {
+      if (c.id === commentId) return { ...c, userLiked: liked, likes: count }
+      if (c.replies?.length) return { ...c, replies: updateCommentLikes(c.replies, commentId, liked, count) }
+      return c
+    })
   }
 
   async function handleSubmit() {
@@ -164,7 +206,7 @@ export default function CommentSection({ slug }: { slug: string }) {
       ) : (
         <div className="space-y-6 mb-10">
           {comments.map(c => (
-            <CommentItem key={c.id} comment={c} depth={0} onReply={handleReply} onAvatarClick={handleAvatarClick} />
+            <CommentItem key={c.id} comment={c} depth={0} onReply={handleReply} onAvatarClick={handleAvatarClick} onLike={handleLike} />
           ))}
         </div>
       )}

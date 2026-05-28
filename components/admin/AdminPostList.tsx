@@ -1,10 +1,10 @@
 'use client'
 
 // components/admin/AdminPostList.tsx
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { PenLine, Eye, EyeOff, X } from 'lucide-react'
+import { PenLine, Eye, EyeOff, X, CheckSquare, Square, Trash2, Loader2 } from 'lucide-react'
 import AdminActions from '@/components/admin/AdminActions'
 
 interface PostMeta {
@@ -25,6 +25,8 @@ interface PostMeta {
 export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [activeStatus, setActiveStatus] = useState<'all' | 'published' | 'draft'>('all')
+  const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(new Set())
+  const [batchLoading, setBatchLoading] = useState(false)
 
   // 聚合所有 tags
   const allTags = useMemo(() => {
@@ -39,6 +41,45 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
     if (activeStatus === 'draft' && p.published) return false
     return true
   }), [posts, activeTag, activeStatus])
+
+  const toggleSelect = useCallback((slug: string) => {
+    setSelectedSlugs(prev => {
+      const next = new Set(prev)
+      if (next.has(slug)) next.delete(slug)
+      else next.add(slug)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedSlugs(prev => {
+      if (prev.size === filtered.length) return new Set()
+      return new Set(filtered.map(p => p.slug))
+    })
+  }, [filtered])
+
+  const clearSelection = useCallback(() => setSelectedSlugs(new Set()), [])
+
+  const handleBatch = useCallback(async (action: 'publish' | 'unpublish' | 'delete') => {
+    const slugs = Array.from(selectedSlugs)
+    if (slugs.length === 0) return
+    if (action === 'delete' && !confirm(`确定要删除 ${slugs.length} 篇文章吗？此操作不可撤销。`)) return
+
+    setBatchLoading(true)
+    try {
+      const res = await fetch('/api/posts/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, slugs }),
+      })
+      if (res.ok) {
+        // 刷新页面以反映变更
+        window.location.reload()
+      }
+    } finally {
+      setBatchLoading(false)
+    }
+  }, [selectedSlugs])
 
   return (
     <main className="max-w-4xl mx-auto px-8 py-10">
@@ -86,6 +127,20 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
         <span className="ml-auto text-xs text-gray-400 font-mono">
           {filtered.length} / {posts.length} 篇
         </span>
+
+        {/* 全选 */}
+        {filtered.length > 0 && (
+          <button
+            onClick={toggleSelectAll}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors"
+            title={selectedSlugs.size === filtered.length ? '取消全选' : '全选'}
+          >
+            {selectedSlugs.size === filtered.length
+              ? <CheckSquare className="w-4 h-4 text-blue-600" />
+              : <Square className="w-4 h-4" />
+            }
+          </button>
+        )}
       </div>
 
       {/* ── 文章列表 ── */}
@@ -99,8 +154,23 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
           {filtered.map(post => (
             <div
               key={post.slug}
-              className="bg-white border border-gray-100 rounded-2xl px-6 py-5 flex items-center justify-between gap-4 hover:border-gray-200 transition-colors"
+              className={`bg-white border rounded-2xl px-6 py-5 flex items-center justify-between gap-4 transition-colors ${
+                selectedSlugs.has(post.slug)
+                  ? 'border-blue-300 bg-blue-50/50 ring-1 ring-blue-200'
+                  : 'border-gray-100 hover:border-gray-200'
+              }`}
             >
+              {/* Checkbox */}
+              <button
+                onClick={() => toggleSelect(post.slug)}
+                className="flex-shrink-0 text-gray-300 hover:text-blue-600 transition-colors"
+              >
+                {selectedSlugs.has(post.slug)
+                  ? <CheckSquare className="w-5 h-5 text-blue-600" />
+                  : <Square className="w-5 h-5" />
+                }
+              </button>
+
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-1.5 flex-wrap">
@@ -154,6 +224,49 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
               <AdminActions slug={post.slug} published={post.published} />
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── 批量操作栏 ── */}
+      {selectedSlugs.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
+          <div className="max-w-4xl mx-auto px-8 py-4 flex items-center gap-4">
+            <span className="text-sm font-bold text-gray-700">
+              已选 <span className="text-blue-600">{selectedSlugs.size}</span> 篇
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => handleBatch('publish')}
+                disabled={batchLoading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+              >
+                {batchLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+                批量发布
+              </button>
+              <button
+                onClick={() => handleBatch('unpublish')}
+                disabled={batchLoading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+              >
+                {batchLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <EyeOff className="w-3 h-3" />}
+                批量取消发布
+              </button>
+              <button
+                onClick={() => handleBatch('delete')}
+                disabled={batchLoading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+              >
+                {batchLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                批量删除
+              </button>
+              <button
+                onClick={clearSelection}
+                className="px-3 py-2 text-xs text-gray-400 hover:text-gray-700 font-bold transition-colors"
+              >
+                取消选择
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>

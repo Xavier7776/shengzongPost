@@ -11,7 +11,30 @@
       "mcp__obsidian-vault__obsidian_list_files_in_dir",
       "mcp__obsidian-vault__obsidian_list_files_in_vault",
       "mcp__obsidian-vault__obsidian_get_file_contents",
-      "mcp__obsidian-vault__obsidian_append_content"
+      "mcp__obsidian-vault__obsidian_append_content",
+      "Bash(npm install *)",
+      "Bash(grep -A 20 \"CREATE TABLE.*comments\" migration.sql supabase/migrations/*.sql)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh repo *)",
+      "WebSearch",
+      "Bash(git clone *)",
+      "Bash(npm ls *)",
+      "Bash(curl -s -X POST https://api.resend.com/emails -H 'Authorization: Bearer re_8ix4xBjR_4RuUJ31majtPbaKmYVhsQP3v' -H 'Content-Type: application/json' -d '{\"from\": \"Xavier <Xavier@zshengzong.top>\", \"to\": [\"delivered@resend.dev\"], \"subject\": \"测试邮件\", \"html\": \"<p>测试</p>\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(taskkill *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/projects)",
+      "Bash(curl -s http://localhost:3000/api/points)",
+      "Bash(curl -s http://localhost:3000/profile)",
+      "Bash(ls app/profile/[userId]/)",
+      "Bash(curl -s http://localhost:3000/api/user/profile)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/profile)",
+      "Bash(curl -s http://localhost:3000/_next/static/chunks/app/profile/page.js)",
+      "Bash(tasklist)",
+      "Bash(curl *)",
+      "Bash(npx tsx -e ' *)",
+      "Bash(npx tsx *)",
+      "Bash(taskkill //F //PID 20288)",
+      "Bash(taskkill //F //PID 31100)"
     ]
   }
 }

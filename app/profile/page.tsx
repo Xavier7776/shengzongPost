@@ -4,12 +4,16 @@ import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import AvatarImage from '@/components/ui/AvatarImage'
 import Link from 'next/link'
 import {
   Camera, Loader2, Check, User, Mail, Phone, FileText,
   Lock, Eye, EyeOff, ShieldCheck, Bookmark, Heart,
-  Settings, Save, Send, LogOut, Palette, Bell, Globe, Menu, X
+  Settings, Save, Send, LogOut, Palette, Bell, Globe, Menu, X,
+  MapPin, Link2, Github, Twitter, Quote, Plus, Star
 } from 'lucide-react'
+import FrameSelector from '@/components/shop/FrameSelector'
+import AvatarFrame from '@/components/ui/AvatarFrame'
 
 interface ProfileData {
   id: number
@@ -18,6 +22,13 @@ interface ProfileData {
   phone: string
   bio: string
   avatar: string
+  title: string
+  motto: string
+  location: string
+  website: string
+  github_url: string
+  twitter_url: string
+  tech_stack: string[]
 }
 
 interface FollowCounts {
@@ -46,7 +57,8 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState('profile')
 
-  const [form, setForm]                   = useState<ProfileData>({ id: 0, name: '', email: '', phone: '', bio: '', avatar: '' })
+  const [form, setForm]                   = useState<ProfileData>({ id: 0, name: '', email: '', phone: '', bio: '', avatar: '', title: '', motto: '', location: '', website: '', github_url: '', twitter_url: '', tech_stack: [] })
+  const [techInput, setTechInput]         = useState('')
   const [loading, setLoading]             = useState(true)
   const [saving, setSaving]               = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -54,6 +66,8 @@ export default function ProfilePage() {
   const [error, setError]                 = useState('')
   const [avatarError, setAvatarError]     = useState(false)
   const [followCounts, setFollowCounts]   = useState<FollowCounts>({ following: 0, followers: 0 })
+  const [points, setPoints]               = useState(0)
+  const [frameCssKey, setFrameCssKey]     = useState<string | null>(null)
   const [followModal, setFollowModal]     = useState<'followers'|'following'|null>(null)
   const [followList, setFollowList]       = useState<FollowUser[]>([])
   const [followListLoading, setFollowListLoading] = useState(false)
@@ -83,9 +97,9 @@ export default function ProfilePage() {
     if (status === 'unauthenticated') router.push('/login?callbackUrl=/profile')
   }, [status, router])
 
-  useEffect(() => {
+  const fetchProfile = () => {
     if (status !== 'authenticated') return
-    fetch('/api/user/profile')
+    fetch('/api/user/profile', { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         setForm({
@@ -95,11 +109,31 @@ export default function ProfilePage() {
           phone: data.phone ?? '',
           bio: data.bio ?? '',
           avatar: data.avatar ?? session?.user?.image ?? '',
+          title: data.title ?? '',
+          motto: data.motto ?? '',
+          location: data.location ?? '',
+          website: data.website ?? '',
+          github_url: data.github_url ?? '',
+          twitter_url: data.twitter_url ?? '',
+          tech_stack: Array.isArray(data.tech_stack) ? data.tech_stack : [],
         })
         setAvatarError(false)
+        setFrameCssKey(data.equipped_frame_css_key ?? null)
+        if (typeof data.points === 'number') setPoints(data.points)
         setLoading(false)
       })
       .catch(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchProfile() }, [status, session])
+
+  // 页面重新可见时刷新积分等数据
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchProfile()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [status, session])
 
   useEffect(() => {
@@ -188,6 +222,21 @@ export default function ProfilePage() {
     setShowLikes(!showLikes); savePrefs(next)
   }
 
+  function addTechSkill() {
+    const skill = techInput.trim()
+    if (!skill) return
+    if (skill.length > 30) { setError('技术标签不能超过 30 字'); return }
+    if (form.tech_stack.length >= 30) { setError('技术栈最多 30 项'); return }
+    if (form.tech_stack.includes(skill)) { setError('已存在该技术标签'); return }
+    setForm(prev => ({ ...prev, tech_stack: [...prev.tech_stack, skill] }))
+    setTechInput('')
+    setError('')
+  }
+
+  function removeTechSkill(skill: string) {
+    setForm(prev => ({ ...prev, tech_stack: prev.tech_stack.filter(s => s !== skill) }))
+  }
+
   async function handleSave() {
     if (!form.name.trim()) { setError('昵称不能为空'); return }
     setSaving(true); setError('')
@@ -195,7 +244,12 @@ export default function ProfilePage() {
       const res = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, phone: form.phone, bio: form.bio, avatar: form.avatar }),
+        body: JSON.stringify({
+          name: form.name, phone: form.phone, bio: form.bio, avatar: form.avatar,
+          title: form.title, motto: form.motto, location: form.location,
+          website: form.website, github_url: form.github_url, twitter_url: form.twitter_url,
+          tech_stack: form.tech_stack,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? '保存失败'); return }
@@ -229,18 +283,18 @@ export default function ProfilePage() {
           {/* 头像区 */}
           <section className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-slate-100">
             <div className="relative group flex-shrink-0">
-              <div className="w-24 h-24 rounded-[28px] overflow-hidden bg-gradient-to-tr from-indigo-100 to-slate-100 border-4 border-white shadow-xl flex items-center justify-center">
-                {showAvatar ? (
-                  <Image
-                    src={form.avatar} alt={form.name}
-                    width={96} height={96}
-                    className="w-full h-full object-cover"
-                    onError={() => setAvatarError(true)}
-                  />
-                ) : (
-                  <span className="text-indigo-400 text-3xl font-black">{initial}</span>
-                )}
-              </div>
+              <AvatarFrame frameCssKey={frameCssKey} shape="rounded" size={96}>
+                <div className="w-24 h-24 rounded-[28px] overflow-hidden bg-gradient-to-tr from-indigo-100 to-slate-100 flex items-center justify-center">
+                  {showAvatar ? (
+                    <AvatarImage
+                      src={form.avatar} alt={form.name}
+                      size={96} userId={userId}
+                    />
+                  ) : (
+                    <span className="text-indigo-400 text-3xl font-black">{initial}</span>
+                  )}
+                </div>
+              </AvatarFrame>
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploadingAvatar}
@@ -257,16 +311,23 @@ export default function ProfilePage() {
               <p className="text-sm text-slate-400 mt-0.5">{form.email}</p>
               <p className="text-xs text-slate-300 mt-2">支持 JPG / PNG / WebP，最大 5MB</p>
               {userId > 0 && (
-                <div className="flex items-center gap-4 mt-3 justify-center sm:justify-start">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 justify-center sm:justify-start">
                   <button onClick={() => openFollowModal('followers')} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                     <span className="text-sm font-black text-slate-800">{followCounts.followers}</span>
                     <span className="text-xs text-slate-400">粉丝</span>
                   </button>
-                  <span className="w-px h-4 bg-slate-100" />
                   <button onClick={() => openFollowModal('following')} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                     <span className="text-sm font-black text-slate-800">{followCounts.following}</span>
                     <span className="text-xs text-slate-400">关注</span>
                   </button>
+                  <Link
+                    href="/shop"
+                    className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
+                  >
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                    <span className="text-sm font-black text-amber-700 whitespace-nowrap tabular-nums">{points.toLocaleString()}</span>
+                    <span className="text-xs text-slate-400">积分</span>
+                  </Link>
                 </div>
               )}
             </div>
@@ -317,6 +378,128 @@ export default function ProfilePage() {
               />
               <p className="text-xs text-slate-300 text-right">{form.bio.length}/200</p>
             </div>
+          </section>
+
+          {/* 职业信息 */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">职位</label>
+              <input
+                value={form.title}
+                onChange={e => setField('title', e.target.value)}
+                maxLength={100}
+                placeholder="如：全栈工程师"
+                className="w-full px-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">个性签名</label>
+              <div className="relative">
+                <Quote className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input
+                  value={form.motto}
+                  onChange={e => setField('motto', e.target.value)}
+                  maxLength={100}
+                  placeholder="写一句话介绍自己"
+                  className="w-full pl-10 pr-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 社交信息 */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">所在地</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input
+                  value={form.location}
+                  onChange={e => setField('location', e.target.value)}
+                  maxLength={100}
+                  placeholder="如：北京"
+                  className="w-full pl-10 pr-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">个人网站</label>
+              <div className="relative">
+                <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input
+                  value={form.website}
+                  onChange={e => setField('website', e.target.value)}
+                  placeholder="https://your-site.com"
+                  className="w-full pl-10 pr-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">GitHub</label>
+              <div className="relative">
+                <Github className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input
+                  value={form.github_url}
+                  onChange={e => setField('github_url', e.target.value)}
+                  placeholder="https://github.com/username"
+                  className="w-full pl-10 pr-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Twitter / X</label>
+              <div className="relative">
+                <Twitter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input
+                  value={form.twitter_url}
+                  onChange={e => setField('twitter_url', e.target.value)}
+                  placeholder="https://x.com/username"
+                  className="w-full pl-10 pr-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 技术栈 */}
+          <section className="space-y-3">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">技术栈</label>
+            <div className="flex gap-2">
+              <input
+                value={techInput}
+                onChange={e => { setTechInput(e.target.value); setError('') }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTechSkill() } }}
+                maxLength={30}
+                placeholder="输入技术标签，按回车添加"
+                className="flex-1 px-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"
+              />
+              <button
+                onClick={addTechSkill}
+                type="button"
+                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-colors flex-shrink-0"
+              >
+                <Plus className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            {form.tech_stack.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.tech_stack.map(skill => (
+                  <span
+                    key={skill}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-semibold"
+                  >
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={() => removeTechSkill(skill)}
+                      className="text-indigo-400 hover:text-indigo-700 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-slate-300">{form.tech_stack.length}/30</p>
           </section>
 
           {error && (
@@ -454,10 +637,7 @@ export default function ProfilePage() {
 
       // ── 外观显示 ──
       case 'display': return (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-300">
-          <Palette className="w-10 h-10" />
-          <p className="text-sm font-bold">外观设置即将推出</p>
-        </div>
+        <FrameSelector currentAvatarUrl={form.avatar} />
       )
 
       default: return null
@@ -604,11 +784,7 @@ export default function ProfilePage() {
                     className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors"
                   >
                     <div className="w-10 h-10 rounded-2xl overflow-hidden bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                      {u.avatar ? (
-                        <Image src={u.avatar} alt={u.name} width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                      ) : (
-                        <span className="text-indigo-500 font-black text-sm">{u.name?.charAt(0).toUpperCase() || '?'}</span>
-                      )}
+                      <AvatarImage src={u.avatar} alt={u.name} size={40} userId={u.id} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-slate-800 text-sm truncate">{u.name}</p>

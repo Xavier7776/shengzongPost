@@ -2,8 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { uploadLarge } from '@/lib/uploadLarge'
 import { sql } from '@/lib/db'
+import { writeFile, mkdir } from 'fs/promises'
+import { join } from 'path'
+import { uploadLarge } from '@/lib/uploadLarge'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -23,19 +25,37 @@ export async function POST(req: NextRequest) {
     if (!allowed.includes(file.type))
       return NextResponse.json({ error: '只支持 JPG/PNG/WebP' }, { status: 400 })
 
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+    const fileName = `user_${userId}.${ext}`
+    const avatarsDir = join(process.cwd(), 'public', 'avatars')
+    const localUrl = `/avatars/${fileName}`
+
+    await mkdir(avatarsDir, { recursive: true })
+
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    const result = await uploadLarge(buffer, {
-      folder:          'avatars',
-      public_id:       `user_${userId}`,
-      overwrite:       true,
-      resource_type:   'image',
-      transformation:  [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }],
-    })
+    // 1. 始终保存本地
+    await writeFile(join(avatarsDir, fileName), buffer)
 
-    await sql`UPDATE users SET avatar=${result.secure_url} WHERE id=${userId}`
+    // 2. 尝试上传 Cloudinary
+    let avatarUrl = localUrl
+    try {
+      const result = await uploadLarge(buffer, {
+        folder: 'avatars',
+        public_id: `user_${userId}`,
+        overwrite: true,
+        resource_type: 'image',
+        transformation: [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }],
+      })
+      avatarUrl = result.secure_url
+      console.log(`[avatar] Cloudinary: ${avatarUrl}`)
+    } catch (cldErr) {
+      console.warn('[avatar] Cloudinary 失败，使用本地:', cldErr)
+    }
 
-    return NextResponse.json({ url: result.secure_url })
+    await sql`UPDATE users SET avatar=${avatarUrl} WHERE id=${userId}`
+
+    return NextResponse.json({ url: avatarUrl, localUrl })
   } catch (err) {
     console.error('[avatar upload]', err)
     return NextResponse.json({ error: '上传失败，请重试' }, { status: 500 })

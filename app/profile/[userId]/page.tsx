@@ -5,13 +5,16 @@ import React, { useEffect, useState, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import AvatarImage from '@/components/ui/AvatarImage'
 import Link from 'next/link'
 import {
   ArrowLeft, UserCheck, UserPlus, Users,
   Loader2, RefreshCw, MapPin, Calendar, LinkIcon,
   FileText, Heart, Bookmark, ChevronDown, ChevronUp,
-  MessageCircle, Clock,
+  MessageCircle, Clock, History, Github, Twitter, Quote, Star,
 } from 'lucide-react'
+import { getReadingHistory } from '@/components/sections/ReadingHistory'
+import AvatarFrame from '@/components/ui/AvatarFrame'
 
 // ── 类型定义 ──────────────────────────────────────────────────────────────────
 interface UserInfo {
@@ -21,6 +24,11 @@ interface UserInfo {
   bio: string | null
   location?: string | null
   website?: string | null
+  github_url?: string | null
+  twitter_url?: string | null
+  motto?: string | null
+  title?: string | null
+  tech_stack?: string[]
   createdAt?: string | null
 }
 interface FollowUser {
@@ -50,22 +58,35 @@ interface Post {
   read_time?: number
 }
 
-type ProfileTab = 'posts' | 'likes' | 'bookmarks'
+type ProfileTab = 'posts' | 'likes' | 'bookmarks' | 'history'
+
+interface HistoryItem {
+  slug: string
+  title: string
+  readAt: string
+}
 
 // ── 头像兜底 ──────────────────────────────────────────────────────────────────
 function AvatarWithFallback({
-  src, name, size, className,
+  src, name, size, userId, className,
   bgClass = 'bg-blue-100', textClass = 'text-blue-600 text-sm',
 }: {
-  src: string | null; name: string; size: number
+  src: string | null; name: string; size: number; userId?: number
   className?: string; bgClass?: string; textClass?: string
 }) {
-  const [err, setErr] = React.useState(false)
+  const [imgSrc, setImgSrc] = useState(src)
+  const [failed, setFailed] = useState(false)
+  const localFallback = userId ? `/avatars/user_${userId}.jpg` : null
+
   return (
     <div className={`rounded-full overflow-hidden flex-shrink-0 ${className ?? ''}`}>
-      {src && !err
-        ? <Image src={src} alt={name} width={size} height={size}
-            className="w-full h-full object-cover" onError={() => setErr(true)} />
+      {imgSrc && !failed
+        ? <Image src={imgSrc} alt={name} width={size} height={size}
+            className="w-full h-full object-cover" unoptimized
+            onError={() => {
+              if (localFallback && imgSrc !== localFallback) setImgSrc(localFallback)
+              else setFailed(true)
+            }} />
         : <div className={`w-full h-full flex items-center justify-center ${bgClass}`}>
             <span className={`font-black ${textClass}`}>{name.charAt(0).toUpperCase()}</span>
           </div>
@@ -81,7 +102,7 @@ function UserRow({ user }: { user: FollowUser }) {
       href={`/profile/${user.id}`}
       className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
     >
-      <AvatarWithFallback src={user.avatar} name={user.name} size={36} className="w-9 h-9" />
+      <AvatarWithFallback src={user.avatar} name={user.name} size={36} userId={user.id} className="w-9 h-9" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-black text-gray-900 truncate">{user.name}</span>
@@ -207,13 +228,18 @@ function UserProfileContent() {
   })
   const [loadingUser,   setLoadingUser]   = useState(true)
   const [loadingFollow, setLoadingFollow] = useState(false)
+  const [points, setPoints] = useState(0)
+  const [frameCssKey, setFrameCssKey] = useState<string | null>(null)
 
   // Tab 状态
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts')
   const [posts, setPosts]         = useState<Post[]>([])
   const [bookmarks, setBookmarks] = useState<Post[]>([])
+  const [likedPosts, setLikedPosts] = useState<Post[]>([])
   const [loadingPosts,     setLoadingPosts]     = useState(false)
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
+  const [loadingLikedPosts, setLoadingLikedPosts] = useState(false)
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
 
   // 关注列表折叠状态
   const initTab = (searchParams.get('tab') as 'followers' | 'following') ?? 'followers'
@@ -227,13 +253,32 @@ function UserProfileContent() {
     setLoadingUser(true)
     fetch(`/api/user/profile?id=${targetId}`)
       .then(r => r.json())
-      .then(d => { setUser(d); setLoadingUser(false) })
+      .then(d => { setUser(d); setFrameCssKey(d.equipped_frame_css_key ?? null); setLoadingUser(false) })
       .catch(() => setLoadingUser(false))
 
     fetch(`/api/follows?targetId=${targetId}`)
       .then(r => r.json())
       .then(d => setFollow(d))
+
+    fetch(`/api/points?userId=${targetId}`)
+      .then(r => r.json())
+      .then(d => setPoints(d.points ?? 0))
+      .catch(() => {})
   }, [targetId, myId])
+
+  // 页面重新可见时刷新积分
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        fetch(`/api/points?userId=${targetId}`)
+          .then(r => r.json())
+          .then(d => setPoints(d.points ?? 0))
+          .catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [targetId])
 
   // 加载文章
   useEffect(() => {
@@ -253,6 +298,23 @@ function UserProfileContent() {
       .then(d => { setBookmarks(Array.isArray(d) ? d : []); setLoadingBookmarks(false) })
       .catch(() => setLoadingBookmarks(false))
   }, [isMe, activeTab])
+
+  // 加载点赞
+  useEffect(() => {
+    if (activeTab !== 'likes') return
+    setLoadingLikedPosts(true)
+    fetch(`/api/user/liked-posts?userId=${targetId}`)
+      .then(r => r.json())
+      .then(d => { setLikedPosts(Array.isArray(d) ? d : []); setLoadingLikedPosts(false) })
+      .catch(() => setLoadingLikedPosts(false))
+  }, [targetId, activeTab])
+
+  // 加载浏览记录（仅自己可见）
+  useEffect(() => {
+    if (isMe) {
+      setHistoryItems(getReadingHistory())
+    }
+  }, [isMe])
 
   // 关注列表
   useEffect(() => {
@@ -336,19 +398,31 @@ function UserProfileContent() {
             <div className="h-20 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600" />
             <div className="px-5 pb-5">
               <div className="flex items-end justify-between -mt-8 mb-3">
-                <div className="ring-3 ring-white rounded-full">
-                  <AvatarWithFallback
-                    src={user.avatar} name={user.name} size={64}
-                    className="w-16 h-16"
-                    bgClass="bg-blue-600"
-                    textClass="text-white text-xl"
-                  />
-                </div>
+                <AvatarFrame frameCssKey={frameCssKey} shape="circle" size={64}>
+                  <div className="ring-3 ring-white rounded-full">
+                    <AvatarWithFallback
+                      src={user.avatar} name={user.name} size={64} userId={user.id}
+                      className="w-16 h-16"
+                      bgClass="bg-blue-600"
+                      textClass="text-white text-xl"
+                    />
+                  </div>
+                </AvatarFrame>
                 {followBtn}
               </div>
 
               <h1 className="text-base font-black text-gray-900 leading-tight">{user.name}</h1>
               <p className="text-xs text-gray-400 mt-0.5">@{user.name.toLowerCase().replace(/\s+/g, '_')}</p>
+
+              {user.title && (
+                <p className="text-xs font-semibold text-blue-600 mt-1">{user.title}</p>
+              )}
+              {user.motto && (
+                <p className="text-xs text-gray-500 mt-1 italic flex items-center gap-1">
+                  <Quote className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                  {user.motto}
+                </p>
+              )}
 
               {user.bio && (
                 <p className="text-xs text-gray-600 mt-3 leading-relaxed whitespace-pre-wrap">
@@ -372,6 +446,26 @@ function UserProfileContent() {
                     <span className="truncate">{user.website.replace(/^https?:\/\//, '')}</span>
                   </a>
                 )}
+                {user.github_url && (
+                  <a
+                    href={user.github_url}
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    <Github className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{user.github_url.replace(/^https?:\/\/(www\.)?github\.com\//, '')}</span>
+                  </a>
+                )}
+                {user.twitter_url && (
+                  <a
+                    href={user.twitter_url}
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    <Twitter className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{user.twitter_url.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//, '@')}</span>
+                  </a>
+                )}
                 {user.createdAt && (
                   <div className="flex items-center gap-1.5 text-xs text-gray-400">
                     <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
@@ -380,7 +474,17 @@ function UserProfileContent() {
                 )}
               </div>
 
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-50">
+              {user.tech_stack && user.tech_stack.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {user.tech_stack.map(skill => (
+                    <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[10px] font-semibold">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 pt-4 border-t border-gray-50">
                 <button onClick={() => openFollowTab('following')} className="flex flex-col hover:opacity-70 transition-opacity">
                   <span className="text-sm font-black text-gray-900">{follow.following}</span>
                   <span className="text-[10px] text-gray-400">关注</span>
@@ -389,9 +493,16 @@ function UserProfileContent() {
                   <span className="text-sm font-black text-gray-900">{follow.followers}</span>
                   <span className="text-[10px] text-gray-400">粉丝</span>
                 </button>
-                <div className="flex flex-col ml-auto">
+                <div className="flex flex-col">
                   <span className="text-sm font-black text-gray-900">{posts.length}</span>
                   <span className="text-[10px] text-gray-400">文章</span>
+                </div>
+                <div className="flex flex-col ml-auto">
+                  <span className="flex items-center gap-1 text-sm font-black text-amber-500 whitespace-nowrap">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 flex-shrink-0" />
+                    <span className="tabular-nums">{points.toLocaleString()}</span>
+                  </span>
+                  <span className="text-[10px] text-gray-400">积分</span>
                 </div>
               </div>
             </div>
@@ -437,6 +548,7 @@ function UserProfileContent() {
                 { key: 'posts',     label: '文章',  icon: FileText  },
                 { key: 'likes',     label: '点赞',  icon: Heart     },
                 ...(isMe ? [{ key: 'bookmarks', label: '收藏夹', icon: Bookmark }] : []),
+                ...(isMe ? [{ key: 'history', label: '浏览记录', icon: History }] : []),
               ] as { key: ProfileTab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
@@ -463,7 +575,11 @@ function UserProfileContent() {
                   : posts.map(p => <PostCardDesktop key={p.id} post={p} />)
               )}
               {activeTab === 'likes' && (
-                <EmptyState icon={Heart} text="点赞功能暂未开放公开展示" />
+                loadingLikedPosts
+                  ? <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 text-gray-300 animate-spin" /></div>
+                  : likedPosts.length === 0
+                  ? <EmptyState icon={Heart} text="还没有点赞任何文章" />
+                  : likedPosts.map(p => <PostCardDesktop key={p.id} post={p} />)
               )}
               {activeTab === 'bookmarks' && isMe && (
                 loadingBookmarks
@@ -471,6 +587,25 @@ function UserProfileContent() {
                   : bookmarks.length === 0
                   ? <EmptyState icon={Bookmark} text="还没有收藏任何文章" />
                   : bookmarks.map(p => <PostCardDesktop key={p.id} post={p} />)
+              )}
+              {activeTab === 'history' && isMe && (
+                historyItems.length === 0
+                  ? <EmptyState icon={History} text="还没有浏览记录" />
+                  : historyItems.map(item => (
+                    <Link
+                      key={item.slug}
+                      href={`/blog/${item.slug}`}
+                      className="block px-6 py-5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/60 transition-colors group"
+                    >
+                      <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-snug">
+                        {item.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                        <Clock className="w-3 h-3" />
+                        <span>{new Date(item.readAt).toLocaleString('zh-CN')}</span>
+                      </div>
+                    </Link>
+                  ))
               )}
             </div>
           </div>
@@ -498,18 +633,30 @@ function UserProfileContent() {
           <div className="h-24 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600" />
           <div className="px-6 pb-6">
             <div className="flex items-end justify-between -mt-10 mb-4">
-              <div className="ring-4 ring-white rounded-full">
-                <AvatarWithFallback
-                  src={user.avatar} name={user.name} size={80}
-                  className="w-20 h-20"
-                  bgClass="bg-blue-600"
-                  textClass="text-white text-2xl"
-                />
-              </div>
+              <AvatarFrame frameCssKey={frameCssKey} shape="circle" size={80}>
+                <div className="ring-4 ring-white rounded-full">
+                  <AvatarWithFallback
+                    src={user.avatar} name={user.name} size={80} userId={user.id}
+                    className="w-20 h-20"
+                    bgClass="bg-blue-600"
+                    textClass="text-white text-2xl"
+                  />
+                </div>
+              </AvatarFrame>
               {followBtn}
             </div>
 
             <h1 className="text-xl font-black text-gray-900">{user.name}</h1>
+
+            {user.title && (
+              <p className="text-sm font-semibold text-blue-600 mt-1">{user.title}</p>
+            )}
+            {user.motto && (
+              <p className="text-xs text-gray-500 mt-1 italic flex items-center gap-1">
+                <Quote className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                {user.motto}
+              </p>
+            )}
 
             {user.bio ? (
               <p className="text-sm text-gray-600 mt-2 leading-relaxed whitespace-pre-wrap">{user.bio}</p>
@@ -535,7 +682,37 @@ function UserProfileContent() {
                   <span className="truncate">{user.website.replace(/^https?:\/\//, '')}</span>
                 </a>
               )}
+              {user.github_url && (
+                <a
+                  href={user.github_url}
+                  target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                >
+                  <Github className="w-3.5 h-3.5" />
+                  <span className="truncate">{user.github_url.replace(/^https?:\/\/(www\.)?github\.com\//, '')}</span>
+                </a>
+              )}
+              {user.twitter_url && (
+                <a
+                  href={user.twitter_url}
+                  target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                >
+                  <Twitter className="w-3.5 h-3.5" />
+                  <span className="truncate">{user.twitter_url.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//, '@')}</span>
+                </a>
+              )}
             </div>
+
+            {user.tech_stack && user.tech_stack.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {user.tech_stack.map(skill => (
+                  <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[10px] font-semibold">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div className="flex items-center gap-5 mt-5 pt-5 border-t border-gray-50">
               <button
@@ -554,6 +731,12 @@ function UserProfileContent() {
                 <span className="text-sm font-black text-gray-900">{follow.following}</span>
                 <span className="text-xs text-gray-400">关注</span>
               </button>
+              <span className="w-px h-4 bg-gray-100" />
+              <div className="flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 flex-shrink-0" />
+                <span className="text-sm font-black text-amber-500 whitespace-nowrap tabular-nums">{points.toLocaleString()}</span>
+                <span className="text-xs text-gray-400">积分</span>
+              </div>
             </div>
           </div>
         </div>
@@ -606,6 +789,7 @@ function UserProfileContent() {
               { key: 'posts', label: '文章' },
               { key: 'likes', label: '点赞' },
               ...(isMe ? [{ key: 'bookmarks', label: '收藏夹' }] : []),
+              ...(isMe ? [{ key: 'history', label: '浏览记录' }] : []),
             ] as { key: ProfileTab; label: string }[]).map(({ key, label }) => (
               <button
                 key={key}
@@ -630,9 +814,13 @@ function UserProfileContent() {
           )}
 
           {activeTab === 'likes' && (
-            <div className="flex flex-col items-center gap-2 py-10 text-gray-300">
-              <Heart className="w-6 h-6" /><p className="text-sm">点赞功能暂未开放公开展示</p>
-            </div>
+            loadingLikedPosts
+              ? <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-gray-300 animate-spin" /></div>
+              : likedPosts.length === 0
+              ? <div className="flex flex-col items-center gap-2 py-10 text-gray-300">
+                  <Heart className="w-6 h-6" /><p className="text-sm">还没有点赞任何文章</p>
+                </div>
+              : likedPosts.map(p => <PostCardMobile key={p.id} post={p} />)
           )}
 
           {activeTab === 'bookmarks' && isMe && (
@@ -643,6 +831,30 @@ function UserProfileContent() {
                   <Bookmark className="w-6 h-6" /><p className="text-sm">还没有收藏任何文章</p>
                 </div>
               : bookmarks.map(p => <PostCardMobile key={p.id} post={p} />)
+          )}
+
+          {activeTab === 'history' && isMe && (
+            historyItems.length === 0
+              ? <div className="flex flex-col items-center gap-2 py-10 text-gray-300">
+                  <History className="w-6 h-6" /><p className="text-sm">还没有浏览记录</p>
+                </div>
+              : <div className="space-y-3">
+                  {historyItems.map(item => (
+                    <Link
+                      key={item.slug}
+                      href={`/blog/${item.slug}`}
+                      className="block bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow group"
+                    >
+                      <h3 className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors leading-snug">
+                        {item.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-400">
+                        <Clock className="w-3 h-3" />
+                        <span>{new Date(item.readAt).toLocaleString('zh-CN')}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
           )}
         </div>
 

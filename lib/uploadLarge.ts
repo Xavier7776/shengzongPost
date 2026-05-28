@@ -19,25 +19,45 @@ export interface UploadResult {
   public_id:  string
 }
 
+const MAX_RETRIES = 2
+const TIMEOUT_MS = 60_000 // 60 秒超时
+
+function uploadOnce(tmpPath: string, options: Record<string, unknown>): Promise<UploadResult> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('上传超时，请检查网络后重试')), TIMEOUT_MS)
+
+    cloudinary.uploader.upload_large(
+      tmpPath,
+      { chunk_size: 6 * 1024 * 1024, ...options },
+      (error: unknown, result: { secure_url: string; public_id: string } | undefined) => {
+        clearTimeout(timer)
+        if (error || !result) return reject(error ?? new Error('upload_large 返回空结果'))
+        resolve({ secure_url: result.secure_url, public_id: result.public_id })
+      }
+    )
+  })
+}
+
 export async function uploadLarge(
   buffer: Buffer,
   options: Record<string, unknown> & { resource_type?: 'raw' | 'image' | 'video' | 'auto' }
 ): Promise<UploadResult> {
   const tmpPath = join(tmpdir(), randomUUID())
   await writeFile(tmpPath, buffer)
+
   try {
-    // upload_large 不返回 Promise，必须手动用 callback 包装
-    const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
-      cloudinary.uploader.upload_large(
-        tmpPath,
-        { chunk_size: 6 * 1024 * 1024, ...options },
-        (error: unknown, result: { secure_url: string; public_id: string } | undefined) => {
-          if (error || !result) return reject(error ?? new Error('upload_large 返回空结果'))
-          resolve({ secure_url: result.secure_url, public_id: result.public_id })
+    let lastError: unknown
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await uploadOnce(tmpPath, options)
+      } catch (err) {
+        lastError = err
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000))
         }
-      )
-    })
-    return result
+      }
+    }
+    throw lastError ?? new Error('上传失败')
   } finally {
     await unlink(tmpPath).catch(() => {})
   }

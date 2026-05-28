@@ -54,13 +54,13 @@ export default function BlogCard({ post, index }: BlogCardProps) {
           <article className="flex flex-col h-full bg-white rounded-2xl overflow-hidden border border-gray-100/80 shadow-sm">
 
             {/* 封面图 */}
-            <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0">
+            <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0 bg-gray-50">
               {post.cover_image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={post.cover_image}
                   alt={post.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
                 <div className={`w-full h-full bg-gradient-to-br ${gradient}`} />

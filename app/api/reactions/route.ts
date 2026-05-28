@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { getPostReactions, upsertReaction, deleteReaction } from '@/lib/db'
+import { getPostReactions, upsertReaction, deleteReaction, addPoints, hasPointTransaction } from '@/lib/db'
 
 // GET /api/reactions?slug=xxx
 export async function GET(req: NextRequest) {
@@ -36,8 +36,23 @@ export async function POST(req: NextRequest) {
     if (current.userReaction === type) {
       // 再次点击同一按钮 → 取消
       await deleteReaction(slug, userId)
+      if (type === 'like') {
+        // 只有之前确实加过积分才扣回（幂等）
+        const hasTx = await hasPointTransaction(userId, 'like_post', slug)
+        if (hasTx) await addPoints(userId, -1, 'unlike_post', slug)
+      }
     } else {
+      // 切换反应：如果之前是 like 现在改成 dislike，要扣回 like 的积分
+      if (current.userReaction === 'like') {
+        const hasTx = await hasPointTransaction(userId, 'like_post', slug)
+        if (hasTx) await addPoints(userId, -1, 'unlike_post', slug)
+      }
       await upsertReaction(slug, userId, type)
+      if (type === 'like') {
+        // 检查是否已有 like_post 流水，防止并发重复加分
+        const alreadyLiked = await hasPointTransaction(userId, 'like_post', slug)
+        if (!alreadyLiked) await addPoints(userId, 1, 'like_post', slug)
+      }
     }
     return NextResponse.json(await getPostReactions(slug, userId))
   } catch (err) {

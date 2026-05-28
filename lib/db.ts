@@ -135,6 +135,10 @@ export async function deleteGalleryImage(id: number): Promise<string> {
 export interface User {
   id: number; email: string; name: string; password: string
   role: string; phone: string | null; bio: string | null; avatar: string | null
+  location: string | null; website: string | null
+  github_url: string | null; twitter_url: string | null
+  motto: string | null; tech_stack: string[]; title: string | null
+  points: number
   verified: boolean; verify_token: string | null; token_expires: string | null; created_at: string
 }
 export async function getUserByEmail(email: string): Promise<User | null> {
@@ -157,8 +161,19 @@ export async function createUser(data: { email: string; name: string; password: 
   const rows = await sql`INSERT INTO users(email,name,password) VALUES(${data.email},${data.name},${data.password}) RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as User
 }
-export async function updateUserProfile(id: number, data: { name: string; phone?: string | null; bio?: string | null; avatar?: string | null }): Promise<void> {
-  await sql`UPDATE users SET name=${data.name},phone=${data.phone??null},bio=${data.bio??null},avatar=${data.avatar??null} WHERE id=${id}`
+export async function updateUserProfile(id: number, data: {
+  name: string; phone?: string | null; bio?: string | null; avatar?: string | null
+  location?: string | null; website?: string | null
+  github_url?: string | null; twitter_url?: string | null
+  motto?: string | null; tech_stack?: string[]; title?: string | null
+}): Promise<void> {
+  await sql`UPDATE users SET
+    name=${data.name}, phone=${data.phone??null}, bio=${data.bio??null}, avatar=${data.avatar??null},
+    location=${data.location??null}, website=${data.website??null},
+    github_url=${data.github_url??null}, twitter_url=${data.twitter_url??null},
+    motto=${data.motto??null}, tech_stack=${data.tech_stack??[]},
+    title=${data.title??null}
+    WHERE id=${id}`
 }
 export async function setVerifyToken(userId: number, token: string, expires: Date): Promise<void> {
   await sql`UPDATE users SET verify_token=${token},token_expires=${expires.toISOString()} WHERE id=${userId}`
@@ -214,19 +229,29 @@ export async function getPostsByAuthor(authorId: number): Promise<PostMeta[]> {
 export interface Comment {
   id: number; post_slug: string; user_id: number; user_name: string
   user_role: string; user_avatar: string | null
+  equipped_frame_css_key?: string | null
   content: string; status: 'pending'|'approved'|'rejected'
   parent_id: number | null; created_at: string
+  likes?: number; userLiked?: boolean
   replies?: Comment[]
 }
-export async function getApprovedComments(postSlug: string): Promise<Comment[]> {
+export async function getApprovedComments(postSlug: string, userId?: number): Promise<Comment[]> {
   const rows = await sql`
-    SELECT c.*, u.role as user_role, u.avatar as user_avatar
+    SELECT c.*, u.role as user_role, u.avatar as user_avatar, af.css_key as equipped_frame_css_key,
+      COALESCE((SELECT COUNT(*)::int FROM comment_likes cl WHERE cl.comment_id = c.id), 0) as likes
+      ${userId ? sql`, EXISTS(SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.id AND cl2.user_id = ${userId}) as user_liked` : sql``}
     FROM comments c
     LEFT JOIN users u ON u.id = c.user_id
+    LEFT JOIN avatar_frames af ON af.id = u.equipped_frame AND af.enabled = true
     WHERE c.post_slug=${postSlug} AND c.status='approved'
     ORDER BY c.created_at ASC
   `
   const all = serializeRows(rows as Record<string, unknown>[]) as unknown as Comment[]
+  // Map user_liked -> userLiked if present
+  all.forEach(c => {
+    const r = c as unknown as Record<string, unknown>
+    if ('user_liked' in r) { c.userLiked = r.user_liked as boolean; delete r.user_liked }
+  })
   const map = new Map<number, Comment>()
   const roots: Comment[] = []
   all.forEach(c => { c.replies = []; map.set(c.id, c) })
@@ -265,6 +290,28 @@ export async function updateCommentStatus(id: number, status: 'approved'|'reject
 }
 export async function deleteComment(id: number): Promise<void> {
   await sql`DELETE FROM comments WHERE id=${id}`
+}
+
+// ─── Comment Likes ───────────────────────────────────────────────────────────
+export async function getCommentLikeCount(commentId: number): Promise<number> {
+  const rows = await sql`SELECT COUNT(*)::int as cnt FROM comment_likes WHERE comment_id=${commentId}`
+  return (rows[0] as { cnt: number }).cnt
+}
+export async function hasUserLikedComment(commentId: number, userId: number): Promise<boolean> {
+  const rows = await sql`SELECT 1 FROM comment_likes WHERE comment_id=${commentId} AND user_id=${userId} LIMIT 1`
+  return rows.length > 0
+}
+export async function toggleCommentLike(commentId: number, userId: number): Promise<{ liked: boolean; count: number }> {
+  const existing = await sql`SELECT 1 FROM comment_likes WHERE comment_id=${commentId} AND user_id=${userId} LIMIT 1`
+  if (existing.length > 0) {
+    await sql`DELETE FROM comment_likes WHERE comment_id=${commentId} AND user_id=${userId}`
+    const count = await getCommentLikeCount(commentId)
+    return { liked: false, count }
+  } else {
+    await sql`INSERT INTO comment_likes(comment_id, user_id) VALUES(${commentId}, ${userId})`
+    const count = await getCommentLikeCount(commentId)
+    return { liked: true, count }
+  }
 }
 
 // ─── Post Reactions (like / dislike) ─────────────────────────────────────────
@@ -578,4 +625,112 @@ export async function deletePostAttachment(
   const updated = current.filter(a => a.url !== url)
   await sql`UPDATE posts SET attachments=${JSON.stringify(updated)}::jsonb WHERE slug=${slug}`
   return updated
+}
+
+// ─── Points System ───────────────────────────────────────────────────────────
+
+/** 检查是否已有相同 reason+ref_slug 的积分流水（用于幂等防重复） */
+export async function hasPointTransaction(userId: number, reason: string, refSlug?: string): Promise<boolean> {
+  const rows = await sql`SELECT 1 FROM point_transactions WHERE user_id = ${userId} AND reason = ${reason} AND ref_slug = ${refSlug ?? null} LIMIT 1`
+  return rows.length > 0
+}
+
+export async function addPoints(
+  userId: number,
+  amount: number,
+  reason: string,
+  refSlug?: string
+): Promise<number> {
+  // 用 RETURNING 避免额外 SELECT，单条 SQL 完成更新+取值
+  const rows = await sql`UPDATE users SET points = GREATEST(points + ${amount}, 0) WHERE id = ${userId} RETURNING points`
+  await sql`INSERT INTO point_transactions(user_id, amount, reason, ref_slug) VALUES(${userId}, ${amount}, ${reason}, ${refSlug ?? null})`
+  return (rows[0] as { points: number })?.points ?? 0
+}
+
+export async function getPoints(userId: number): Promise<number> {
+  const rows = await sql`SELECT points FROM users WHERE id = ${userId} LIMIT 1`
+  return (rows[0] as { points: number })?.points ?? 0
+}
+
+export interface PointTransaction {
+  id: number; user_id: number; amount: number; reason: string
+  ref_slug: string | null; created_at: string
+}
+
+export async function getPointHistory(userId: number, limit = 20): Promise<PointTransaction[]> {
+  const rows = await sql`
+    SELECT * FROM point_transactions
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC LIMIT ${limit}
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PointTransaction[]
+}
+
+export async function hasReadPost(userId: number, postSlug: string): Promise<boolean> {
+  const rows = await sql`SELECT 1 FROM point_read_log WHERE user_id = ${userId} AND post_slug = ${postSlug} LIMIT 1`
+  return rows.length > 0
+}
+
+export async function markPostRead(userId: number, postSlug: string): Promise<void> {
+  await sql`INSERT INTO point_read_log(user_id, post_slug) VALUES(${userId}, ${postSlug}) ON CONFLICT DO NOTHING`
+}
+
+// ─── Avatar Frames ──────────────────────────────────────────────────────────
+
+export interface AvatarFrame {
+  id: number; key: string; name: string; description: string | null
+  price: number; rarity: string; css_key: string; enabled: boolean; created_at: string
+}
+
+export async function getAllFrames(): Promise<AvatarFrame[]> {
+  const rows = await sql`SELECT * FROM avatar_frames WHERE enabled = true ORDER BY price ASC`
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as AvatarFrame[]
+}
+
+export async function getUserFrames(userId: number): Promise<number[]> {
+  const rows = await sql`SELECT frame_id FROM user_frames WHERE user_id = ${userId}`
+  return rows.map(r => r.frame_id as number)
+}
+
+export async function getUserEquippedFrame(userId: number): Promise<AvatarFrame | null> {
+  const rows = await sql`
+    SELECT af.* FROM users u
+    JOIN avatar_frames af ON af.id = u.equipped_frame
+    WHERE u.id = ${userId} AND af.enabled = true
+    LIMIT 1
+  `
+  return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as AvatarFrame : null
+}
+
+export async function purchaseFrame(userId: number, frameId: number): Promise<{ remainingPoints: number; frame: AvatarFrame }> {
+  const frameRows = await sql`SELECT * FROM avatar_frames WHERE id = ${frameId} AND enabled = true LIMIT 1`
+  if (!frameRows[0]) throw new Error('Frame not found')
+  const frame = frameRows[0] as unknown as AvatarFrame
+
+  // 幂等检查：如果已有该 frame 的购买流水，说明已购买过（防止并发双重购买）
+  const alreadyPurchased = await hasPointTransaction(userId, 'frame_purchase', `frame_${frame.key}`)
+  if (alreadyPurchased) {
+    const currentPoints = await getPoints(userId)
+    return { remainingPoints: currentPoints, frame: serializeRow(frame as unknown as Record<string, unknown>) as unknown as AvatarFrame }
+  }
+
+  const userPoints = await getPoints(userId)
+  if (userPoints < frame.price) throw new Error('Insufficient points')
+
+  // 先扣积分（addPoints 内部用 GREATEST 保底不为负）
+  const remaining = await addPoints(userId, -frame.price, 'frame_purchase', `frame_${frame.key}`)
+  // 用 ON CONFLICT 防止并发重复插入
+  await sql`INSERT INTO user_frames(user_id, frame_id) VALUES(${userId}, ${frameId}) ON CONFLICT DO NOTHING`
+
+  return { remainingPoints: remaining, frame: serializeRow(frame as unknown as Record<string, unknown>) as unknown as AvatarFrame }
+}
+
+export async function equipFrame(userId: number, frameId: number | null): Promise<void> {
+  if (frameId === null) {
+    await sql`UPDATE users SET equipped_frame = NULL WHERE id = ${userId}`
+    return
+  }
+  const owned = await sql`SELECT 1 FROM user_frames WHERE user_id = ${userId} AND frame_id = ${frameId} LIMIT 1`
+  if (owned.length === 0) throw new Error('Frame not owned')
+  await sql`UPDATE users SET equipped_frame = ${frameId} WHERE id = ${userId}`
 }
