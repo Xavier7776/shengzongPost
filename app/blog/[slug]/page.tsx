@@ -1,7 +1,6 @@
 // 路径：app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import DOMPurify from 'isomorphic-dompurify'
 import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug, getAdjacentPosts } from '@/lib/db'
 import CommentSection from '@/components/sections/CommentSection'
@@ -173,7 +172,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           // 新文章：Tiptap 输出的 HTML，样式由 globals.css .post-content 控制
           <div
             className="post-content"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+            dangerouslySetInnerHTML={{ __html: post.content }}
           />
         ) : (
           // 旧文章：保留原有 Markdown 解析，不受影响
