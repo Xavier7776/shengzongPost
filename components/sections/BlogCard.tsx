@@ -28,6 +28,12 @@ function readingTime(excerpt: string) {
   return `${mins} 分钟阅读`
 }
 
+/** 去掉 Contentful CDN 的强制裁切参数，保留宽度限制 */
+function stripCdnCrop(url: string): string {
+  // 保留 w= 参数去掉 h= 和 fit=crop，让图片按原始比例加载
+  return url.replace(/([?&])h=\d+&?/g, '$1').replace(/([?&])fit=crop&?/g, '$1').replace(/[?&]$/g, '')
+}
+
 const GRADIENTS = [
   'from-blue-900 via-blue-700 to-indigo-800',
   'from-violet-900 via-purple-700 to-fuchsia-800',
@@ -58,9 +64,9 @@ export default function BlogCard({ post, index }: BlogCardProps) {
               {post.cover_image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={post.cover_image}
+                  src={stripCdnCrop(post.cover_image)}
                   alt={post.title}
-                  className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
                 <div className={`w-full h-full bg-gradient-to-br ${gradient}`} />

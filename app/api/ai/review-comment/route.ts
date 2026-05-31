@@ -1,14 +1,14 @@
 // app/api/ai/review-comment/route.ts
 // POST /api/ai/review-comment
 // 内部调用：对一条评论进行 AI 自动审核，返回 { pass: boolean, reason: string }
-// 若 DEEPSEEK_API_KEY 未配置，直接返回 pass:true（降级为人工审核队列）
+// 若 XIAOMI_API_KEY 未配置，直接返回 pass:true（降级为人工审核队列）
 
 import { NextRequest, NextResponse } from 'next/server'
 
 const INTERNAL_SECRET  = process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY  ?? ''
-const DEEPSEEK_MODEL   = process.env.DEEPSEEK_MODEL    ?? 'deepseek-chat'
-const DEEPSEEK_URL     = 'https://api.deepseek.com/chat/completions'
+const MIMO_API_KEY     = process.env.XIAOMI_API_KEY  ?? ''
+const MIMO_MODEL       = process.env.MIMO_MODEL      ?? 'mimo-v2.5-pro'
+const MIMO_BASE_URL    = process.env.XIAOMI_BASE_URL ?? 'https://api.xiaomimimo.com/v1'
 
 const SYSTEM_PROMPT = `你是一个评论审核助手。你的任务是判断一条用户评论是否适合在技术博客上公开显示。
 
@@ -40,21 +40,21 @@ export async function POST(req: NextRequest) {
   }
 
   // 未配置 API key → 降级，默认进入待审核队列（pass: false，由人工处理）
-  if (!DEEPSEEK_API_KEY) {
-    console.warn('[ai/review-comment] DEEPSEEK_API_KEY 未配置，跳过 AI 审核')
+  if (!MIMO_API_KEY) {
+    console.warn('[ai/review-comment] XIAOMI_API_KEY 未配置，跳过 AI 审核')
     return NextResponse.json({ pass: false, reason: 'AI 审核未配置，进入人工审核队列' })
   }
 
   try {
-    const resp = await fetch(DEEPSEEK_URL, {
+    const resp = await fetch(`${MIMO_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        'Authorization': `Bearer ${MIMO_API_KEY}`,
       },
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        max_tokens: 200,
+        model: MIMO_MODEL,
+        max_tokens: 500,
         temperature: 0.1, // 审核任务用低温度，结果更稳定
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     if (!resp.ok) {
       const errText = await resp.text()
-      console.error('[ai/review-comment] DeepSeek 调用失败:', errText)
+      console.error('[ai/review-comment] MiMo 调用失败:', errText)
       // API 失败 → 进入人工审核，不阻塞用户
       return NextResponse.json({ pass: false, reason: 'AI 服务暂时不可用，进入人工审核' })
     }

@@ -2,19 +2,19 @@
 // POST /api/ai/comment  → 异步生成并插入 AI 评论（仅供内部服务调用）
 //
 // 调用方式：fire-and-forget，不等待响应。
-// 若 DEEPSEEK_API_KEY 未配置则静默跳过。
+// 若 XIAOMI_API_KEY 未配置则静默跳过。
 //
-// ✅ 已从 OpenRouter 迁移至 DeepSeek 官方 API
-// 文档：https://platform.deepseek.com/api-docs/
+// ✅ 已从 DeepSeek 迁移至 Xiaomi MiMo API
+// 文档：https://platform.xiaomimimo.com
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createApprovedComment, getOrCreateAiBot, getPostBySlug, deleteAiBotCommentForPost } from '@/lib/db'
 
 // 内部调用鉴权：使用固定的 secret，通过 Authorization header 传递
 const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY ?? ''
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat'
-const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/chat/completions'
+const MIMO_API_KEY = process.env.XIAOMI_API_KEY ?? ''
+const MIMO_MODEL = process.env.MIMO_MODEL ?? 'mimo-v2.5-pro'
+const MIMO_BASE_URL = process.env.XIAOMI_BASE_URL ?? 'https://api.xiaomimimo.com/v1'
 
 export async function POST(req: NextRequest) {
   // ── 鉴权 ──
@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  if (!DEEPSEEK_API_KEY) {
-    console.warn('[ai/comment] DEEPSEEK_API_KEY 未配置，跳过')
+  if (!MIMO_API_KEY) {
+    console.warn('[ai/comment] XIAOMI_API_KEY 未配置，跳过')
     return NextResponse.json({ ok: true, skipped: true })
   }
 
@@ -42,16 +42,16 @@ export async function POST(req: NextRequest) {
     // ── 截取前 2000 字防止超限 ──
     const excerpt = post.content.slice(0, 2000)
 
-    // ── 调用 DeepSeek 官方 API ──
-    const resp = await fetch(DEEPSEEK_BASE_URL, {
+    // ── 调用 MiMo API（OpenAI 兼容格式） ──
+    const resp = await fetch(`${MIMO_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        'Authorization': `Bearer ${MIMO_API_KEY}`,
       },
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        max_tokens: 300,
+        model: MIMO_MODEL,
+        max_tokens: 1000,
         messages: [
           {
             role: 'system',
@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
 
     if (!resp.ok) {
       const errText = await resp.text()
-      console.error('[ai/comment] DeepSeek 调用失败:', errText)
-      return NextResponse.json({ error: 'DeepSeek 调用失败', detail: errText }, { status: 502 })
+      console.error('[ai/comment] MiMo 调用失败:', errText)
+      return NextResponse.json({ error: 'MiMo 调用失败', detail: errText }, { status: 502 })
     }
 
     const data = await resp.json()

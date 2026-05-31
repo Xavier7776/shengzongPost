@@ -5,9 +5,9 @@
 import { NextRequest } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 
-const DEEPSEEK_API_KEY  = process.env.DEEPSEEK_API_KEY ?? ''
-const DEEPSEEK_MODEL    = process.env.DEEPSEEK_MODEL ?? 'deepseek-v4-flash'
-const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/chat/completions'
+const MIMO_API_KEY  = process.env.XIAOMI_API_KEY ?? ''
+const MIMO_MODEL    = process.env.MIMO_MODEL ?? 'mimo-v2.5-pro'
+const MIMO_BASE_URL = process.env.XIAOMI_BASE_URL ?? 'https://api.xiaomimimo.com/v1'
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   draft: `你是一位专业的技术博客写手。根据用户给出的主题和要点，生成一篇结构清晰、内容有深度的中文博客文章草稿。
@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
 
-  if (!DEEPSEEK_API_KEY) {
-    return new Response(JSON.stringify({ error: 'DEEPSEEK_API_KEY 未配置' }), { status: 503 })
+  if (!MIMO_API_KEY) {
+    return new Response(JSON.stringify({ error: 'XIAOMI_API_KEY 未配置' }), { status: 503 })
   }
 
   const { mode, prompt, content, title } = await req.json()
@@ -62,15 +62,15 @@ export async function POST(req: NextRequest) {
     userMessage = `文章标题：${title || '（未填写）'}\n\n文章内容：\n${plainText.slice(0, 3000)}`
   }
 
-  const upstream = await fetch(DEEPSEEK_BASE_URL, {
+  const upstream = await fetch(`${MIMO_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      'Authorization': `Bearer ${MIMO_API_KEY}`,
     },
     body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      max_tokens: 2000,
+      model: MIMO_MODEL,
+      max_tokens: 4000,
       stream: true,
       messages: [
         { role: 'system', content: SYSTEM_PROMPTS[mode] },
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
   if (!upstream.ok) {
     const err = await upstream.text()
-    console.error('[ai/write] DeepSeek error:', err)
+    console.error('[ai/write] MiMo error:', err)
     return new Response(JSON.stringify({ error: 'AI 服务调用失败', detail: err }), { status: 502 })
   }
 

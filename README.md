@@ -92,9 +92,10 @@ CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
 
-# DeepSeek AI（用于 AI 写作助手和自动评论）
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxx
-DEEPSEEK_MODEL=deepseek-chat
+# Xiaomi MiMo AI（用于 AI 写作助手和自动评论）
+XIAOMI_API_KEY=your-api-key
+XIAOMI_BASE_URL=https://api.xiaomimimo.com/v1
+MIMO_MODEL=mimo-v2.5-pro
 AI_COMMENT_SECRET=any-random-string
 ```
 

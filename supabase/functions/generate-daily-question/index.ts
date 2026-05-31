@@ -59,19 +59,21 @@ serve(async (req) => {
 
     // Try AI generation first
     let questionText: string | null = null;
-    const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
+    const mimoKey = Deno.env.get('XIAOMI_API_KEY');
+    const mimoBaseUrl = Deno.env.get('XIAOMI_BASE_URL') ?? 'https://api.xiaomimimo.com/v1';
+    const mimoModel = Deno.env.get('MIMO_MODEL') ?? 'mimo-v2.5-pro';
 
-    if (deepseekKey) {
+    if (mimoKey) {
       try {
         const usedList = Array.from(usedTexts).join('、');
-        const aiResponse = await fetch('https://api.deepseek.com/chat/completions', {
+        const aiResponse = await fetch(`${mimoBaseUrl}/chat/completions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${deepseekKey}`,
+            'Authorization': `Bearer ${mimoKey}`,
           },
           body: JSON.stringify({
-            model: 'deepseek-chat',
+            model: mimoModel,
             messages: [
               {
                 role: 'system',
@@ -83,7 +85,7 @@ serve(async (req) => {
               },
             ],
             temperature: 1.0,
-            max_tokens: 100,
+            max_tokens: 500,
           }),
         });
 
@@ -139,7 +141,7 @@ serve(async (req) => {
       JSON.stringify({
         message: 'Question generated',
         question: inserted,
-        ai_used: !!deepseekKey && questionText !== null,
+        ai_used: !!mimoKey && questionText !== null,
         date: today,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

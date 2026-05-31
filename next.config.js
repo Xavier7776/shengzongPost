@@ -12,6 +12,8 @@ const nextConfig = {
       },
     ],
   },
+  // 解决 isomorphic-dompurify 的 ESM 兼容性问题
+  serverComponentsExternalPackages: ['isomorphic-dompurify'],
 }
 
 module.exports = nextConfig
