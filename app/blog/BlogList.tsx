@@ -197,6 +197,13 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
 }
 
 // ── 卡片组件（带入场动画 + hover 微交互）──────────────────────────
+function isNew(dateStr: string): boolean {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  return diffDays <= 3
+}
+
 function BlogCardItem({ post, index, highlightQuery }: { post: PostMeta; index: number; highlightQuery?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(false)
@@ -234,12 +241,19 @@ function BlogCardItem({ post, index, highlightQuery }: { post: PostMeta; index: 
     >
       <Link href={`/blog/${post.slug}`} className="group block">
         <article className="flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 hover:-translate-y-1 transition-all duration-300 p-5">
-          {/* 标签角标 */}
-          {firstTag && (
-            <span className="text-[10px] font-black tracking-widest uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md inline-block mb-3 w-fit">
-              {firstTag}
-            </span>
-          )}
+          {/* 标签角标 + NEW 标记 */}
+          <div className="flex items-center gap-2 mb-3">
+            {firstTag && (
+              <span className="text-[10px] font-black tracking-widest uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md w-fit">
+                {firstTag}
+              </span>
+            )}
+            {isNew(post.created_at) && (
+              <span className="bg-gradient-to-r from-orange-400 to-amber-400 text-white text-[9px] font-extrabold tracking-wider px-2 py-0.5 rounded-full shadow-md shadow-orange-200/50 animate-bounce">
+                NEW
+              </span>
+            )}
+          </div>
 
           {/* 文字内容 */}
           <div className="flex flex-col flex-1">

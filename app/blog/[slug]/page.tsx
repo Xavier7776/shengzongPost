@@ -1,22 +1,17 @@
 // 路径：app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { getPostBySlug, getAdjacentPosts } from '@/lib/db'
-import CommentSection from '@/components/sections/CommentSection'
-import PostActions from '@/components/sections/PostActions'
-import ViewTracker from '@/components/sections/ViewTracker'
-import AuthorCard from '@/components/sections/AuthorCard'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
-import AttachmentList from '@/components/sections/AttachmentList'
-import TableOfContents from '@/components/sections/TableOfContents'
-import CodeCopyButton from '@/components/sections/CodeCopyButton'
-import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
-import ShareButtons from '@/components/sections/ShareButtons'
-import PostNavigation from '@/components/sections/PostNavigation'
 import KeyboardShortcuts from '@/components/sections/KeyboardShortcuts'
 import BackToTop from '@/components/ui/BackToTop'
 import ReadingHistory from '@/components/sections/ReadingHistory'
+import { Skeleton, SkeletonText, SkeletonAvatar } from '@/components/ui/Skeleton'
+import PostHeader from './PostHeader'
+import PostContent from './PostContent'
+import PostComments from './PostComments'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -30,99 +25,69 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${post.title} — ARC.`, description: post.excerpt }
 }
 
-// ── 旧 Markdown 兼容渲染（仅用于历史文章） ────────────────────────
-function renderInline(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/)
-  return parts.map((part, i) =>
-    part.startsWith('**') && part.endsWith('**')
-      ? <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>
-      : part
+// ── 骨架屏组件 ────────────────────────────────────────────────
+function PostHeaderSkeleton() {
+  return (
+    <header className="mb-12">
+      <Skeleton className="h-4 w-28 mb-4" />
+      <Skeleton className="h-12 w-full mb-2" />
+      <Skeleton className="h-12 w-2/3 mb-8" />
+      <div className="flex items-center gap-3 mb-8">
+        <SkeletonAvatar size={40} />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+      <Skeleton className="h-5 w-full mb-2" />
+      <Skeleton className="h-5 w-3/4 mb-8" />
+      <div className="flex gap-2">
+        <Skeleton className="h-6 w-16 rounded-md" />
+        <Skeleton className="h-6 w-20 rounded-md" />
+      </div>
+    </header>
   )
 }
 
-function renderMarkdown(content: string) {
-  const lines = content.split('\n')
-  const elements: React.ReactNode[] = []
-  let i = 0
-  while (i < lines.length) {
-    const line = lines[i]
-    const trimmed = line.trim()
-    if (!trimmed) { i++; continue }
-    if (trimmed.startsWith('## ')) {
-      elements.push(<h2 key={i} className="text-2xl font-black text-gray-900 mt-14 mb-5 tracking-tight border-b border-gray-100 pb-3">{trimmed.slice(3)}</h2>)
-      i++; continue
-    }
-    if (trimmed.startsWith('### ')) {
-      elements.push(<h3 key={i} className="text-lg font-black text-gray-800 mt-10 mb-3 tracking-tight">{trimmed.slice(4)}</h3>)
-      i++; continue
-    }
-    const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
-    if (imgMatch) {
-      const [, alt, url, caption] = imgMatch
-      elements.push(
-        <figure key={i} className="my-10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt={alt} className="w-full rounded-2xl object-contain shadow-md" style={{ maxHeight: 420 }} />
-          {caption && <figcaption className="text-center text-xs text-gray-400 mt-3 font-medium tracking-wide">{caption}</figcaption>}
-        </figure>
-      )
-      i++; continue
-    }
-    if (trimmed.startsWith('> ')) {
-      elements.push(
-        <blockquote key={i} className="border-l-4 border-blue-400 pl-5 py-1 my-6 bg-blue-50 rounded-r-xl">
-          <p className="text-blue-800 italic leading-relaxed text-base">{renderInline(trimmed.slice(2))}</p>
-        </blockquote>
-      )
-      i++; continue
-    }
-    if (trimmed.startsWith('```')) {
-      const lang = trimmed.slice(3).trim()
-      const codeLines: string[] = []
-      i++
-      while (i < lines.length && !lines[i].trim().startsWith('```')) { codeLines.push(lines[i]); i++ }
-      elements.push(
-        <div key={i} className="my-8 rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-          {lang && <div className="bg-gray-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">{lang}</div>}
-          <pre className="bg-gray-950 text-green-400 p-6 overflow-x-auto text-sm leading-relaxed font-mono"><code>{codeLines.join('\n')}</code></pre>
+function PostContentSkeleton() {
+  return (
+    <div>
+      <SkeletonText lines={4} className="mb-6" />
+      <Skeleton className="h-4 w-1/2 mb-8" />
+      <SkeletonText lines={5} className="mb-6" />
+      <Skeleton className="h-40 w-full mb-8" />
+      <SkeletonText lines={3} />
+    </div>
+  )
+}
+
+function PostCommentsSkeleton() {
+  return (
+    <>
+      <div className="mt-16 pt-8 border-t border-gray-100">
+        <div className="flex gap-3 mb-6">
+          <Skeleton className="h-9 w-24 rounded-lg" />
+          <Skeleton className="h-9 w-24 rounded-lg" />
         </div>
-      )
-      i++; continue
-    }
-    if (trimmed.startsWith('- ')) {
-      const items: string[] = []
-      while (i < lines.length && lines[i].trim().startsWith('- ')) { items.push(lines[i].trim().slice(2)); i++ }
-      elements.push(
-        <ul key={i} className="my-6 space-y-2">
-          {items.map((item, j) => (
-            <li key={j} className="flex items-start gap-3 text-gray-600 leading-relaxed">
-              <span className="mt-2 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-              <span>{renderInline(item)}</span>
-            </li>
-          ))}
-        </ul>
-      )
-      continue
-    }
-    if (trimmed.match(/^\d+\. /)) {
-      const items: string[] = []
-      while (i < lines.length && lines[i].trim().match(/^\d+\. /)) { items.push(lines[i].trim().replace(/^\d+\. /, '')); i++ }
-      elements.push(
-        <ol key={i} className="my-6 space-y-2">
-          {items.map((item, j) => (
-            <li key={j} className="flex items-start gap-3 text-gray-600 leading-relaxed">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center mt-0.5">{j + 1}</span>
-              <span>{renderInline(item)}</span>
-            </li>
-          ))}
-        </ol>
-      )
-      continue
-    }
-    elements.push(<p key={i} className="text-gray-600 leading-[1.9] text-[1.05rem]">{renderInline(trimmed)}</p>)
-    i++
-  }
-  return elements
+        <div className="flex gap-3">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
+        </div>
+      </div>
+      <div className="mt-8 grid grid-cols-2 gap-4">
+        <Skeleton className="h-20 rounded-xl" />
+        <Skeleton className="h-20 rounded-xl" />
+      </div>
+      <div className="mt-16">
+        <Skeleton className="h-6 w-32 mb-6" />
+        <div className="space-y-4">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+      </div>
+    </>
+  )
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
@@ -131,9 +96,6 @@ export default async function BlogPostPage({ params }: PageProps) {
     getAdjacentPosts(params.slug),
   ])
   if (!post) notFound()
-
-  // 新文章（Tiptap 存的 HTML）以 < 开头；旧文章是 Markdown
-  const isHtml = post.content.trimStart().startsWith('<')
 
   return (
     <>
@@ -149,57 +111,20 @@ export default async function BlogPostPage({ params }: PageProps) {
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
           返回博客列表
         </Link>
-        
+
         <article>
-          <header className="mb-12">
-            <time className="text-blue-600 font-mono text-sm mb-4 block">{post.created_at.slice(0, 10)}</time>
-            {/* 标题：更大，单行显示 */}
-            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-black tracking-tight leading-[1.15] text-gray-900 mb-8">
-              {post.title}
-            </h1>
-            {post.author_name && (
-              <AuthorCard
-                name={post.author_name}
-                avatar={post.author_avatar ?? null}
-                bio={post.author_bio ?? null}
-                authorId={post.author_id ?? null}
-              />
-            )}
-            <p className="text-gray-500 text-lg leading-relaxed mb-8">{post.excerpt}</p>
-            <div className="flex gap-3 flex-wrap">
-              {post.tags.map(t => (
-                <span key={t} className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-md">{t}</span>
-              ))}
-            </div>
-          </header>
+          <Suspense fallback={<PostHeaderSkeleton />}>
+            <PostHeader slug={params.slug} />
+          </Suspense>
 
-          {isHtml ? (
-            <div
-              className="post-content"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
-          ) : (
-            <div className="space-y-5">{renderMarkdown(post.content)}</div>
-          )}
-
-          <AttachmentList attachments={(post as any).attachments ?? []} />
+          <Suspense fallback={<PostContentSkeleton />}>
+            <PostContent slug={params.slug} />
+          </Suspense>
         </article>
 
-        <ViewTracker slug={params.slug} />
-        <CodeCopyButton />
-        <ImageLazyLoad />
-        
-        {/* 文章底部操作区 */}
-        <div className="mt-16 pt-8 border-t border-gray-100">
-          <PostActions slug={params.slug} />
-          <ShareButtons title={post.title} slug={params.slug} />
-        </div>
-        
-        <PostNavigation prev={prev} next={next} />
-        
-        <div className="mt-16">
-          <CommentSection slug={params.slug} />
-        </div>
+        <Suspense fallback={<PostCommentsSkeleton />}>
+          <PostComments slug={params.slug} />
+        </Suspense>
       </div>
     </div>
     </>

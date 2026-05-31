@@ -21,6 +21,7 @@ interface Post {
 interface BlogCardProps {
   post: Post
   index: number
+  showNew?: boolean // 是否显示 NEW 标记
 }
 
 function readingTime(excerpt: string) {
@@ -41,7 +42,15 @@ const GRADIENTS = [
   'from-indigo-900 via-blue-800 to-sky-700',
 ]
 
-export default function BlogCard({ post, index }: BlogCardProps) {
+// 判断是否是新文章（7天内发布）
+function isNew(dateStr: string): boolean {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  return diffDays <= 3
+}
+
+export default function BlogCard({ post, index, showNew = false }: BlogCardProps) {
   const [ref, isVisible] = useScrollReveal()
   const href = post.slug ? `/blog/${post.slug}` : `/blog/${post.id}`
   const gradient = GRADIENTS[index % GRADIENTS.length]
@@ -72,14 +81,19 @@ export default function BlogCard({ post, index }: BlogCardProps) {
                 <div className={`w-full h-full bg-gradient-to-br ${gradient}`} />
               )}
 
-              {/* 分类角标 */}
-              {firstTag && (
-                <div className="absolute top-3 left-3">
+              {/* 分类角标 + NEW 标记 */}
+              <div className="absolute top-3 left-3 flex items-center gap-2">
+                {firstTag && (
                   <span className="text-[10px] font-black tracking-widest uppercase bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg border border-white/20">
                     {firstTag}
                   </span>
-                </div>
-              )}
+                )}
+                {showNew && isNew(post.date) && (
+                  <span className="bg-gradient-to-r from-orange-400 to-amber-400 text-white text-[9px] font-extrabold tracking-wider px-2 py-0.5 rounded-full shadow-md shadow-orange-200/50 animate-bounce">NEW
+
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* 文字内容 */}

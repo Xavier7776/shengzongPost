@@ -132,6 +132,43 @@ body::before {
 .post-content a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
 .post-content img { border-radius: 1rem; width: 100% !important; max-width: 100% !important; height: auto !important; object-fit: contain; box-shadow: 0 4px 6px -1px rgb(0 0 0/0.1); margin: 2rem 0; display: block; }
 
+/* ── Skills Detail Content ──────────────────────────────────────── */
+.skill-content h2 { font-size: 1.5rem; font-weight: 900; color: #111827; margin: 3.5rem 0 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid #f3f4f6; letter-spacing: -0.02em; }
+.skill-content h3 { font-size: 1.125rem; font-weight: 900; color: #1f2937; margin: 2.5rem 0 0.75rem; letter-spacing: -0.01em; }
+.skill-content p  { color: #4b5563; line-height: 1.9; font-size: 1.05rem; margin: 0.75rem 0; }
+.skill-content strong { font-weight: 700; color: #111827; }
+.skill-content em { font-style: italic; }
+.skill-content ul { list-style: none; padding: 0; margin: 1.5rem 0; }
+.skill-content ul li { display: flex; gap: 0.75rem; align-items: flex-start; color: #4b5563; line-height: 1.7; margin: 0.4rem 0; }
+.skill-content ul li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; flex-shrink: 0; margin-top: 0.6rem; display: block; }
+.skill-content ol { padding: 0; margin: 1.5rem 0; counter-reset: list-counter; }
+.skill-content ol li { display: flex; gap: 0.75rem; align-items: flex-start; color: #4b5563; line-height: 1.7; margin: 0.4rem 0; counter-increment: list-counter; }
+.skill-content ol li::before { content: counter(list-counter); width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #eff6ff; color: #1d4ed8; font-size: 0.75rem; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.skill-content blockquote { border-left: 4px solid #60a5fa; padding: 0.25rem 0 0.25rem 1.25rem; margin: 1.5rem 0; background: #eff6ff; border-radius: 0 0.75rem 0.75rem 0; }
+.skill-content blockquote p { color: #1e40af; font-style: italic; margin: 0; }
+.skill-content code { background: #f1f5f9; color: #e11d48; padding: 0.15rem 0.4rem; border-radius: 0.35rem; font-size: 0.875em; font-family: ui-monospace, monospace; }
+.skill-content pre { background: #030712; border-radius: 1rem; padding: 1.5rem; margin: 2rem 0; overflow-x: auto; }
+.skill-content pre code { background: none; font-size: 0.875rem; padding: 0; color: #e6edf3; }
+.skill-content hr { border: none; border-top: 2px solid #f3f4f6; margin: 2.5rem 0; }
+.skill-content a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
+.skill-content img { border-radius: 1rem; width: 100% !important; max-width: 100% !important; height: auto !important; object-fit: contain; box-shadow: 0 4px 6px -1px rgb(0 0 0/0.1); margin: 2rem 0; display: block; }
+.skill-content table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; border-radius: 0.75rem; overflow: hidden; font-size: 0.9rem; }
+.skill-content th { background: #f8fafc; color: #1e293b; font-weight: 800; padding: 0.6rem 1rem; text-align: left; border: 1px solid #e2e8f0; }
+.skill-content td { padding: 0.55rem 1rem; border: 1px solid #e2e8f0; color: #4b5563; vertical-align: top; }
+.skill-content tr:nth-child(even) { background: #f8fafc; }
+
+@media (max-width: 640px) {
+  .skill-content h2 { font-size: 1.25rem; margin: 2.5rem 0 1rem; }
+  .skill-content h3 { font-size: 1rem; margin: 2rem 0 0.5rem; }
+  .skill-content p  { font-size: 0.95rem; line-height: 1.8; }
+  .skill-content pre { padding: 1rem; margin: 1.5rem -0.5rem; border-radius: 0.75rem; }
+  .skill-content pre code { font-size: 0.8rem; }
+  .skill-content blockquote { padding: 0.2rem 0 0.2rem 1rem; margin: 1rem 0; }
+  .skill-content img { margin: 1.5rem 0; border-radius: 0.75rem; }
+  .skill-content table { font-size: 0.8rem; }
+  .skill-content th, .skill-content td { padding: 0.4rem 0.6rem; }
+}
+
 /* ── 表格样式（编辑器 + 博客渲染端通用）──────────────────────────── */
 .ProseMirror table, .post-content table {
   border-collapse: collapse; width: 100%; margin: 1.5rem 0;

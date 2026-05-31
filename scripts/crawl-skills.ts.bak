@@ -1,0 +1,278 @@
+// scripts/crawl-skills.ts
+// GitHub 爬虫脚本：搜索 awesome-ai-agents 仓库，解析 README，提取技能信息
+// 运行方式：npx tsx scripts/crawl-skills.ts
+
+import { neon } from '@neondatabase/serverless'
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const GITHUB_API = 'https://api.github.com'
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN
+
+const SEARCH_QUERIES = [
+  'awesome-ai-agents',
+  'awesome-llm-agents',
+  'ai-agent-tools',
+  'llm-agent-framework',
+]
+
+const MAX_ITEMS = 30
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  coding: ['code', 'programming', 'developer', 'ide', 'debug', 'refactor', 'test', 'api', 'sdk', 'coding', 'copilot', 'autocomplete', 'lint', 'compiler'],
+  research: ['research', 'paper', 'academic', 'analysis', 'data', 'study', 'science', 'arxiv', 'scholar', 'literature'],
+  creative: ['creative', 'design', 'art', 'music', 'write', 'content', 'image', 'video', 'generate', 'paint', 'draw', 'storytelling'],
+  automation: ['automation', 'workflow', 'pipeline', 'agent', 'bot', 'task', 'orchestrat', 'rpa', 'scheduling', 'ci/cd'],
+  productivity: ['productivity', 'management', 'organization', 'planning', 'schedule', 'todo', 'note', 'calendar', 'crm'],
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function classifySkill(text: string): string {
+  const lower = text.toLowerCase()
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some(kw => lower.includes(kw))) return category
+  }
+  return 'other'
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 200)
+}
+
+function extractTags(text: string): string[] {
+  const tagPatterns = [
+    /agent/i, /llm/i, /gpt/i, /openai/i, /claude/i, /gemini/i,
+    /langchain/i, /autogen/i, /crewai/i, /tool/i, /rag/i,
+    /vector/i, /embedding/i, /chat/i, /assistant/i, /automation/i,
+    /workflow/i, /coding/i, /research/i, /creative/i,
+  ]
+  const tags: string[] = []
+  for (const pat of tagPatterns) {
+    if (pat.test(text)) tags.push(pat.source.replace(/[/\\^$|]/g, '').replace(/i$/, '').toLowerCase())
+  }
+  return Array.from(new Set(tags)).slice(0, 8)
+}
+
+interface GitHubRepo {
+  name: string
+  full_name: string
+  description: string | null
+  html_url: string
+  stargazers_count: number
+  owner: { login: string }
+}
+
+interface GitHubReadme {
+  content: string
+  encoding: string
+}
+
+async function githubFetch(url: string): Promise<Response> {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'mindstack-skills-crawler',
+  }
+  if (GITHUB_TOKEN) headers.Authorization = `token ${GITHUB_TOKEN}`
+
+  const res = await fetch(url, { headers })
+  if (!res.ok) {
+    throw new Error(`GitHub API ${res.status}: ${url}`)
+  }
+  return res
+}
+
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// ─── Crawl Logic ──────────────────────────────────────────────────────────────
+
+async function searchRepos(query: string, perPage = 10): Promise<GitHubRepo[]> {
+  const url = `${GITHUB_API}/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${perPage}`
+  const res = await githubFetch(url)
+  const data = await res.json()
+  return data.items || []
+}
+
+async function getReadme(owner: string, repo: string): Promise<string | null> {
+  try {
+    const res = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/readme`)
+    const data: GitHubReadme = await res.json()
+    if (data.encoding === 'base64') {
+      return Buffer.from(data.content, 'base64').toString('utf-8')
+    }
+    return data.content
+  } catch {
+    return null
+  }
+}
+
+interface SkillEntry {
+  name: string
+  slug: string
+  description: string
+  content: string
+  source_url: string
+  source_type: string
+  stars: number
+  tags: string[]
+  category: string
+  cover_image: string | null
+}
+
+function parseReadmeLinks(readme: string, repoUrl: string, repoStars: number): SkillEntry[] {
+  const entries: SkillEntry[] = []
+
+  // Match markdown links: [name](url) - description
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)\s*[-–—:]?\s*(.*)/g
+  let match
+
+  while ((match = linkRegex.exec(readme)) !== null) {
+    const name = match[1].trim()
+    const url = match[2].trim()
+    const desc = match[3].trim()
+
+    // Skip internal anchors, images, badges
+    if (url.startsWith('#') || url.startsWith('mailto:') || /\.(png|jpg|gif|svg)/i.test(url)) continue
+    // Skip links to the repo itself
+    if (url === repoUrl || url.startsWith(repoUrl + '#')) continue
+
+    // Must be an external link
+    if (!url.startsWith('http')) continue
+
+    // Clean description: remove trailing markdown
+    const cleanDesc = desc
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[*_`]/g, '')
+      .trim()
+      .slice(0, 500)
+
+    const combinedText = `${name} ${cleanDesc}`
+
+    entries.push({
+      name: name.slice(0, 255),
+      slug: slugify(name),
+      description: cleanDesc || null,
+      content: `Source: ${repoUrl}\n\n${readme.slice(0, 5000)}`,
+      source_url: url,
+      source_type: 'github',
+      stars: repoStars,
+      tags: extractTags(combinedText),
+      category: classifySkill(combinedText),
+      cover_image: null,
+    })
+  }
+
+  return entries
+}
+
+// ─── Database ─────────────────────────────────────────────────────────────────
+
+if (!process.env.DATABASE_URL) {
+  console.error('Missing DATABASE_URL')
+  process.exit(1)
+}
+const sql = neon(process.env.DATABASE_URL)
+
+async function upsertSkill(data: SkillEntry): Promise<void> {
+  await sql`
+    INSERT INTO skills (name, slug, description, content, source_url, source_type, stars, tags, category, cover_image)
+    VALUES (
+      ${data.name},
+      ${data.slug},
+      ${data.description},
+      ${data.content},
+      ${data.source_url},
+      ${data.source_type},
+      ${data.stars},
+      ${data.tags},
+      ${data.category},
+      ${data.cover_image}
+    )
+    ON CONFLICT (source_url) DO UPDATE SET
+      name = EXCLUDED.name,
+      slug = EXCLUDED.slug,
+      description = COALESCE(EXCLUDED.description, skills.description),
+      content = COALESCE(EXCLUDED.content, skills.content),
+      source_type = EXCLUDED.source_type,
+      stars = EXCLUDED.stars,
+      tags = EXCLUDED.tags,
+      category = EXCLUDED.category,
+      updated_at = NOW()
+  `
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+async function main() {
+  console.log(`[crawl-skills] Starting crawl at ${new Date().toISOString()}`)
+  console.log(`[crawl-skills] GITHUB_TOKEN: ${GITHUB_TOKEN ? 'configured' : 'NOT SET (rate limited)'}`)
+
+  const allEntries: SkillEntry[] = []
+  const seenUrls = new Set<string>()
+
+  for (const query of SEARCH_QUERIES) {
+    if (allEntries.length >= MAX_ITEMS) break
+
+    console.log(`[crawl-skills] Searching: "${query}"`)
+    let repos: GitHubRepo[] = []
+    try {
+      repos = await searchRepos(query, 5)
+    } catch (err) {
+      console.error(`[crawl-skills] Search failed for "${query}":`, err)
+      continue
+    }
+
+    for (const repo of repos) {
+      if (allEntries.length >= MAX_ITEMS) break
+
+      console.log(`[crawl-skills] Processing: ${repo.full_name} (${repo.stargazers_count} stars)`)
+
+      // Rate limit: wait between requests
+      await sleep(GITHUB_TOKEN ? 500 : 2000)
+
+      const readme = await getReadme(repo.owner.login, repo.name)
+      if (!readme) {
+        console.log(`[crawl-skills] No README found for ${repo.full_name}`)
+        continue
+      }
+
+      const entries = parseReadmeLinks(readme, repo.html_url, repo.stargazers_count)
+      console.log(`[crawl-skills] Found ${entries.length} links in ${repo.full_name}`)
+
+      for (const entry of entries) {
+        if (allEntries.length >= MAX_ITEMS) break
+        if (seenUrls.has(entry.source_url)) continue
+        seenUrls.add(entry.source_url)
+        allEntries.push(entry)
+      }
+    }
+  }
+
+  console.log(`[crawl-skills] Total entries to upsert: ${allEntries.length}`)
+
+  let success = 0
+  let failed = 0
+
+  for (const entry of allEntries) {
+    try {
+      await upsertSkill(entry)
+      success++
+    } catch (err) {
+      console.error(`[crawl-skills] Failed to upsert "${entry.name}":`, err)
+      failed++
+    }
+  }
+
+  console.log(`[crawl-skills] Done. Success: ${success}, Failed: ${failed}`)
+}
+
+main().catch(err => {
+  console.error('[crawl-skills] Fatal error:', err)
+  process.exit(1)
+})
