@@ -138,26 +138,23 @@ export default async function BlogPostPage({ params }: PageProps) {
   return (
     <>
     <ReadingProgressBar />
-    <TableOfContents contentSelector=".post-content, .space-y-5" />
     <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
     <BackToTop />
     <ReadingHistory slug={params.slug} title={post.title} />
 
-    {/* 优化后的文章布局：更宽的内容区域 */}
-    <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-24 animate-in">
-      <Link href="/blog" className="flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-16 group font-bold uppercase tracking-widest text-xs">
-        <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
-        返回博客列表
-      </Link>
-      
-      {/* 文章主体：左侧内容 + 右侧目录 */}
-      <div className="flex gap-12">
-        {/* 左侧：文章内容 */}
-        <article className="flex-1 min-w-0">
-          <header className="mb-14">
+    {/* 全宽布局：内容居中，最大宽度 900px */}
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="max-w-[900px] mx-auto px-6 lg:px-8">
+        <Link href="/blog" className="inline-flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-12 group font-bold uppercase tracking-widest text-xs">
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
+          返回博客列表
+        </Link>
+        
+        <article>
+          <header className="mb-12">
             <time className="text-blue-600 font-mono text-sm mb-4 block">{post.created_at.slice(0, 10)}</time>
-            {/* 标题优化：更大的字体，避免换行 */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-gray-900 mb-6 break-words">
+            {/* 标题：更大，单行显示 */}
+            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-black tracking-tight leading-[1.15] text-gray-900 mb-8">
               {post.title}
             </h1>
             {post.author_name && (
@@ -168,7 +165,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 authorId={post.author_id ?? null}
               />
             )}
-            <p className="text-gray-500 text-lg leading-relaxed mb-8 max-w-3xl">{post.excerpt}</p>
+            <p className="text-gray-500 text-lg leading-relaxed mb-8">{post.excerpt}</p>
             <div className="flex gap-3 flex-wrap">
               {post.tags.map(t => (
                 <span key={t} className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-md">{t}</span>
@@ -177,34 +174,33 @@ export default async function BlogPostPage({ params }: PageProps) {
           </header>
 
           {isHtml ? (
-            // 新文章：Tiptap 输出的 HTML，样式由 globals.css .post-content 控制
             <div
-              className="post-content prose prose-lg max-w-none"
+              className="post-content"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
           ) : (
-            // 旧文章：保留原有 Markdown 解析，不受影响
-            <div className="space-y-5 max-w-none">{renderMarkdown(post.content)}</div>
+            <div className="space-y-5">{renderMarkdown(post.content)}</div>
           )}
 
           <AttachmentList attachments={(post as any).attachments ?? []} />
         </article>
 
-        {/* 右侧：目录导航（仅在大屏幕显示） */}
-        <aside className="hidden xl:block w-64 flex-shrink-0">
-          <div className="sticky top-24">
-            <TableOfContents contentSelector=".post-content, .space-y-5" />
-          </div>
-        </aside>
+        <ViewTracker slug={params.slug} />
+        <CodeCopyButton />
+        <ImageLazyLoad />
+        
+        {/* 文章底部操作区 */}
+        <div className="mt-16 pt-8 border-t border-gray-100">
+          <PostActions slug={params.slug} />
+          <ShareButtons title={post.title} slug={params.slug} />
+        </div>
+        
+        <PostNavigation prev={prev} next={next} />
+        
+        <div className="mt-16">
+          <CommentSection slug={params.slug} />
+        </div>
       </div>
-
-      <ViewTracker slug={params.slug} />
-      <CodeCopyButton />
-      <ImageLazyLoad />
-      <PostActions slug={params.slug} />
-      <ShareButtons title={post.title} slug={params.slug} />
-      <PostNavigation prev={prev} next={next} />
-      <CommentSection slug={params.slug} />
     </div>
     </>
   )
