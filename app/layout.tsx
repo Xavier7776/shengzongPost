@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import CursorGlow from '@/components/ui/CursorGlow'
+import CursorFollower from '@/components/ui/CursorFollower'
 import SiteShell from '@/components/layout/SiteShell'
 import Providers from './providers'
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="overflow-x-hidden">
         <Providers>
           <CursorGlow />
+          <CursorFollower />
           <SiteShell>{children}</SiteShell>
         </Providers>
       </body>

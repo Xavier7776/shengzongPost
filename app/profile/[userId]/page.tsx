@@ -241,6 +241,12 @@ function UserProfileContent() {
   const [loadingLikedPosts, setLoadingLikedPosts] = useState(false)
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
 
+  // 显示更多状态（默认只展示5篇）
+  const [showAllPosts, setShowAllPosts] = useState(false)
+  const [showAllLikes, setShowAllLikes] = useState(false)
+  const [showAllBookmarks, setShowAllBookmarks] = useState(false)
+  const INITIAL_POST_COUNT = 5
+
   // 关注列表折叠状态
   const initTab = (searchParams.get('tab') as 'followers' | 'following') ?? 'followers'
   const [showList, setShowList]   = useState(!!searchParams.get('tab'))
@@ -572,21 +578,54 @@ function UserProfileContent() {
                   ? <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 text-gray-300 animate-spin" /></div>
                   : posts.length === 0
                   ? <EmptyState icon={FileText} text="还没有发布任何文章" />
-                  : posts.map(p => <PostCardDesktop key={p.id} post={p} />)
+                  : <>
+                      {(showAllPosts ? posts : posts.slice(0, INITIAL_POST_COUNT)).map(p => <PostCardDesktop key={p.id} post={p} />)}
+                      {posts.length > INITIAL_POST_COUNT && (
+                        <button
+                          onClick={() => setShowAllPosts(v => !v)}
+                          className="w-full py-4 text-sm font-bold text-blue-600 hover:bg-blue-50/60 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          {showAllPosts ? '收起' : `显示更多（${posts.length - INITIAL_POST_COUNT} 篇）`}
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showAllPosts ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
+                    </>
               )}
               {activeTab === 'likes' && (
                 loadingLikedPosts
                   ? <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 text-gray-300 animate-spin" /></div>
                   : likedPosts.length === 0
                   ? <EmptyState icon={Heart} text="还没有点赞任何文章" />
-                  : likedPosts.map(p => <PostCardDesktop key={p.id} post={p} />)
+                  : <>
+                      {(showAllLikes ? likedPosts : likedPosts.slice(0, INITIAL_POST_COUNT)).map(p => <PostCardDesktop key={p.id} post={p} />)}
+                      {likedPosts.length > INITIAL_POST_COUNT && (
+                        <button
+                          onClick={() => setShowAllLikes(v => !v)}
+                          className="w-full py-4 text-sm font-bold text-blue-600 hover:bg-blue-50/60 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          {showAllLikes ? '收起' : `显示更多（${likedPosts.length - INITIAL_POST_COUNT} 篇）`}
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showAllLikes ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
+                    </>
               )}
               {activeTab === 'bookmarks' && isMe && (
                 loadingBookmarks
                   ? <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 text-gray-300 animate-spin" /></div>
                   : bookmarks.length === 0
                   ? <EmptyState icon={Bookmark} text="还没有收藏任何文章" />
-                  : bookmarks.map(p => <PostCardDesktop key={p.id} post={p} />)
+                  : <>
+                      {(showAllBookmarks ? bookmarks : bookmarks.slice(0, INITIAL_POST_COUNT)).map(p => <PostCardDesktop key={p.id} post={p} />)}
+                      {bookmarks.length > INITIAL_POST_COUNT && (
+                        <button
+                          onClick={() => setShowAllBookmarks(v => !v)}
+                          className="w-full py-4 text-sm font-bold text-blue-600 hover:bg-blue-50/60 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          {showAllBookmarks ? '收起' : `显示更多（${bookmarks.length - INITIAL_POST_COUNT} 篇）`}
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showAllBookmarks ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
+                    </>
               )}
               {activeTab === 'history' && isMe && (
                 historyItems.length === 0
@@ -810,7 +849,18 @@ function UserProfileContent() {
               ? <div className="flex flex-col items-center gap-2 py-10 text-gray-300">
                   <FileText className="w-6 h-6" /><p className="text-sm">还没有发布任何文章</p>
                 </div>
-              : posts.map(p => <PostCardMobile key={p.id} post={p} />)
+              : <>
+                  {(showAllPosts ? posts : posts.slice(0, INITIAL_POST_COUNT)).map(p => <PostCardMobile key={p.id} post={p} />)}
+                  {posts.length > INITIAL_POST_COUNT && (
+                    <button
+                      onClick={() => setShowAllPosts(v => !v)}
+                      className="w-full py-3 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-blue-600 hover:bg-blue-50/60 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      {showAllPosts ? '收起' : `显示更多（${posts.length - INITIAL_POST_COUNT} 篇）`}
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showAllPosts ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </>
           )}
 
           {activeTab === 'likes' && (
@@ -820,7 +870,18 @@ function UserProfileContent() {
               ? <div className="flex flex-col items-center gap-2 py-10 text-gray-300">
                   <Heart className="w-6 h-6" /><p className="text-sm">还没有点赞任何文章</p>
                 </div>
-              : likedPosts.map(p => <PostCardMobile key={p.id} post={p} />)
+              : <>
+                  {(showAllLikes ? likedPosts : likedPosts.slice(0, INITIAL_POST_COUNT)).map(p => <PostCardMobile key={p.id} post={p} />)}
+                  {likedPosts.length > INITIAL_POST_COUNT && (
+                    <button
+                      onClick={() => setShowAllLikes(v => !v)}
+                      className="w-full py-3 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-blue-600 hover:bg-blue-50/60 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      {showAllLikes ? '收起' : `显示更多（${likedPosts.length - INITIAL_POST_COUNT} 篇）`}
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showAllLikes ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </>
           )}
 
           {activeTab === 'bookmarks' && isMe && (
@@ -830,7 +891,18 @@ function UserProfileContent() {
               ? <div className="flex flex-col items-center gap-2 py-10 text-gray-300">
                   <Bookmark className="w-6 h-6" /><p className="text-sm">还没有收藏任何文章</p>
                 </div>
-              : bookmarks.map(p => <PostCardMobile key={p.id} post={p} />)
+              : <>
+                  {(showAllBookmarks ? bookmarks : bookmarks.slice(0, INITIAL_POST_COUNT)).map(p => <PostCardMobile key={p.id} post={p} />)}
+                  {bookmarks.length > INITIAL_POST_COUNT && (
+                    <button
+                      onClick={() => setShowAllBookmarks(v => !v)}
+                      className="w-full py-3 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-blue-600 hover:bg-blue-50/60 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      {showAllBookmarks ? '收起' : `显示更多（${bookmarks.length - INITIAL_POST_COUNT} 篇）`}
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showAllBookmarks ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </>
           )}
 
           {activeTab === 'history' && isMe && (

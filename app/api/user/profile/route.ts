@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { sql, getUserById, getUserEquippedFrame, getPoints } from '@/lib/db'
+import { sql, getUserById, getUserEquippedFrame, getUserEquippedCursorEffect, getPoints } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,13 +36,17 @@ export async function GET(req: NextRequest) {
       location, website, github_url, twitter_url, motto, tech_stack, title, equipped_frame
       FROM users WHERE id=${userId} LIMIT 1`
     if (!rows[0]) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
-    const equippedFrame = await getUserEquippedFrame(userId)
-    const points = await getPoints(userId)
+    const [equippedFrame, equippedCursor, points] = await Promise.all([
+      getUserEquippedFrame(userId),
+      getUserEquippedCursorEffect(userId),
+      getPoints(userId),
+    ])
     const row = rows[0] as Record<string, unknown>
     return NextResponse.json({
       ...row,
       points,
       equipped_frame_css_key: equippedFrame?.css_key ?? null,
+      equipped_cursor_effect: equippedCursor ?? null,   // 跟随效果仅自己可见
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
     console.error('[profile GET]', err)

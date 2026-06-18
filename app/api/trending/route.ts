@@ -1,0 +1,40 @@
+// app/api/trending/route.ts
+// GET /api/trending?period=daily&limit=30
+import { NextRequest, NextResponse } from 'next/server'
+import { getTrending, getGrowthRanking, getTrendingLanguages } from '@/lib/db-trending'
+
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+
+    const period = (searchParams.get('period') || 'daily') as 'daily' | 'weekly' | 'growth'
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '30', 10)))
+
+    if (!['daily', 'weekly', 'growth'].includes(period)) {
+      return NextResponse.json({ error: 'Invalid period' }, { status: 400 })
+    }
+
+    let result
+    if (period === 'growth') {
+      const trending = await getGrowthRanking(limit)
+      result = { trending, crawledAt: trending[0]?.crawled_at || null }
+    } else {
+      result = await getTrending(period, limit)
+    }
+
+    const languages = await getTrendingLanguages(period)
+
+    return NextResponse.json({
+      trending: result.trending,
+      period,
+      crawledAt: result.crawledAt,
+      total: result.trending.length,
+      languages,
+    })
+  } catch (err) {
+    console.error('[trending GET]', err)
+    return NextResponse.json({ error: '读取失败' }, { status: 500 })
+  }
+}

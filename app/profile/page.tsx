@@ -13,6 +13,7 @@ import {
   MapPin, Link2, Github, Twitter, Quote, Plus, Star
 } from 'lucide-react'
 import FrameSelector from '@/components/shop/FrameSelector'
+import CursorSelector from '@/components/shop/CursorSelector'
 import AvatarFrame from '@/components/ui/AvatarFrame'
 
 interface ProfileData {
@@ -637,7 +638,16 @@ export default function ProfilePage() {
 
       // ── 外观显示 ──
       case 'display': return (
-        <FrameSelector currentAvatarUrl={form.avatar} />
+        <div className="space-y-8">
+          <div>
+            <h3 className="text-sm font-black text-slate-800 mb-1">头像框</h3>
+            <FrameSelector currentAvatarUrl={form.avatar} />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-slate-800 mb-4">鼠标效果</h3>
+            <CursorSelector />
+          </div>
+        </div>
       )
 
       default: return null

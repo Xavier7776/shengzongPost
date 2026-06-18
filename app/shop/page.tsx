@@ -1,4 +1,4 @@
-import FrameShop from '@/components/shop/FrameShop'
+import ShopTabs from '@/components/shop/ShopTabs'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
@@ -16,7 +16,7 @@ export default function ShopPage() {
           返回个人中心
         </Link>
         <h1 className="text-2xl font-black text-slate-900 mb-6">积分商城</h1>
-        <FrameShop />
+        <ShopTabs />
       </div>
     </div>
   )
