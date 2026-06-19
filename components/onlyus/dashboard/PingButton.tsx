@@ -50,15 +50,6 @@ export default function PingButton() {
     return () => unsubscribe()
   }, [profile?.id, subscribeToIncoming, unsubscribe])
 
-  // 收到 ping 时触发动画
-  useEffect(() => {
-    if (!incomingPing) return
-    setShowIncoming(true)
-    burstParticles(true)
-    const t = setTimeout(() => { setShowIncoming(false); clearIncoming() }, 2500)
-    return () => clearTimeout(t)
-  }, [incomingPing, clearIncoming, burstParticles])
-
   // Canvas 粒子动画
   const burstParticles = useCallback((incoming = false) => {
     const canvas = canvasRef.current
@@ -83,6 +74,15 @@ export default function PingButton() {
       })
     }
   }, [])
+
+  // 收到 ping 时触发动画
+  useEffect(() => {
+    if (!incomingPing) return
+    setShowIncoming(true)
+    burstParticles(true)
+    const t = setTimeout(() => { setShowIncoming(false); clearIncoming() }, 2500)
+    return () => clearTimeout(t)
+  }, [incomingPing, clearIncoming, burstParticles])
 
   // 粒子渲染循环
   useEffect(() => {

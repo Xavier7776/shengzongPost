@@ -1,5 +1,6 @@
 // app/skills/page.tsx
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import TrendingTabs from './TrendingTabs'
 import TrendingList from './TrendingList'
 
@@ -13,14 +14,17 @@ export const metadata: Metadata = {
 export default async function SkillsPage({
   searchParams,
 }: {
-  searchParams: { trending_tab?: string }
+  searchParams: Promise<{ trending_tab?: string }>
 }) {
-  const trendingTab = (searchParams.trending_tab || 'daily') as 'daily' | 'weekly' | 'growth'
+  const { trending_tab } = await searchParams
+  const trendingTab = (trending_tab || 'daily') as 'daily' | 'weekly' | 'growth'
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-24 animate-in">
       <div className="mb-8">
-        <TrendingTabs />
+        <Suspense fallback={null}>
+          <TrendingTabs />
+        </Suspense>
       </div>
       <TrendingList period={trendingTab} />
     </div>
