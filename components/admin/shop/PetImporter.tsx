@@ -236,11 +236,13 @@ function ImportResultCard({ result }: { result: ImportResult }) {
       <div className="flex gap-4 items-start">
         <div className="flex-shrink-0 w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
           {result.spriteUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={result.spriteUrl} alt={result.name} className="w-full h-full object-contain" />
           )}
         </div>
         {result.posterUrl && (
           <div className="flex-shrink-0 w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={result.posterUrl} alt={result.name} className="w-full h-full object-contain" />
           </div>
         )}
@@ -499,6 +501,7 @@ function PetCard({ pet, onImport, isImporting, lastResult }: {
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
       <div className="relative aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
         {imgSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={imgSrc} alt={pet.displayName}
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
         ) : (
@@ -526,6 +529,7 @@ function PetCard({ pet, onImport, isImporting, lastResult }: {
           {ownerName && (
             <div className="flex items-center gap-1 flex-shrink-0" title={ownerName}>
               {pet.ownerAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={pet.ownerAvatarUrl} alt={ownerName}
                   className="w-5 h-5 rounded-full object-cover ring-1 ring-gray-100"
                   onError={(e) => {
@@ -703,6 +707,7 @@ function ExistingCard({ effect, onChanged }: { effect: AdminCursorEffect; onChan
       <div className="flex gap-3 p-3">
         <div className="flex-shrink-0 w-20 h-20 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
           {img ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={img} alt={effect.name} className="w-full h-full object-contain" />
           ) : (
             <span className="text-3xl">{effect.emoji || '👻'}</span>

@@ -51,6 +51,7 @@ export default function DrawingPage() {
       })
     }, 1000)
     return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.round, game?.status, skipRound])
 
   // ── 重绘 ──
@@ -75,6 +76,7 @@ export default function DrawingPage() {
 
   useEffect(() => {
     if (game) { localStrokesRef.current = game.strokes; redraw(game.strokes) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.strokes, redraw])
 
   useEffect(() => {

@@ -191,6 +191,7 @@ export default function MoviesPage() {
                     width: '100%', height: 200, overflow: 'hidden',
                     borderRadius: '20px 20px 0 0',
                   }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={movie.poster_url} alt={movie.title} style={{
                       width: '100%', height: '100%', objectFit: 'cover',
                     }} />
@@ -363,6 +364,7 @@ export default function MoviesPage() {
                         textAlign: 'left',
                       }}>
                         {r.poster_path ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img src={tmdbPosterUrl(r.poster_path, 'w92')} alt="" style={{
                             width: 36, height: 52, objectFit: 'cover', borderRadius: 4,
                           }} />

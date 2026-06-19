@@ -195,6 +195,7 @@ export default function SettingsPage() {
                 overflow: 'hidden',
               }}>
                 {partner.avatar_url
+                  // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={partner.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : partner.nickname?.[0]?.toUpperCase()}
               </div>

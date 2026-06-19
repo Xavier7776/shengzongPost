@@ -33,6 +33,7 @@ function MemoryCard({ memory, index }: { memory: Memory; index: number }) {
           width: '100%', height: 120, borderRadius: 10, overflow: 'hidden',
           marginBottom: 12,
         }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={memory.photo_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
       )}
@@ -156,6 +157,7 @@ function MasonryAlbum({ photos, onUpload, onDelete, isUploading, myId, mobile = 
               style={{ breakInside: 'avoid', marginBottom: 10, borderRadius: 12, overflow: 'hidden', cursor: 'pointer', position: 'relative' }}
               onClick={() => setLightbox(photo)}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photo.storage_path} alt={photo.caption ?? ''}
                 style={{ width: '100%', display: 'block', borderRadius: 12 }}
@@ -200,6 +202,7 @@ function MasonryAlbum({ photos, onUpload, onDelete, isUploading, myId, mobile = 
           }}
           onClick={() => setLightbox(null)}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightbox.storage_path} alt=""
             style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 16, objectFit: 'contain' }}
