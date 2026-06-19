@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import TrendingTabs from './TrendingTabs'
 import TrendingList from './TrendingList'
 
-export const revalidate = 3600 // 1小时缓存
+export const dynamic = 'force-dynamic' // searchParams + 数据库查询需要动态渲染
 
 export const metadata: Metadata = {
   title: 'GitHub Trending — MindStack.',

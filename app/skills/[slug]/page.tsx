@@ -7,8 +7,7 @@ import BackToTop from '@/components/ui/BackToTop'
 import type { Metadata } from 'next'
 import { marked } from 'marked'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 3600 // 1小时缓存
+export const dynamic = 'force-dynamic' // 数据库查询需要动态渲染
 
 interface PageProps { params: Promise<{ slug: string }> }
 

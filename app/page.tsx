@@ -7,7 +7,7 @@ import SectionHeading from '@/components/ui/SectionHeading'
 import { getAllPosts } from '@/lib/db'
 import { getSkills } from '@/lib/db-skills'
 
-export const revalidate = 3600 // ISR：每小时重新生成一次
+export const dynamic = 'force-dynamic' // 数据库查询需要动态渲染
 
 export default async function HomePage() {
   const [posts, { skills }] = await Promise.all([
