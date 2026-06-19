@@ -249,7 +249,7 @@ function ImportResultCard({ result }: { result: ImportResult }) {
         <div className="flex-1 text-xs text-gray-500 leading-relaxed">
           <p className="font-bold text-gray-700 mb-2">接下来</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>去 <span className="text-gray-700 font-mono">'现有效果'</span> tab 查看并微调</li>
+            <li>去 <span className="text-gray-700 font-mono">&lsquo;现有效果&rsquo;</span> tab 查看并微调</li>
             <li>访问 <span className="text-gray-700 font-mono">/shop</span> 页面看商城展示</li>
             <li>可以在 <span className="text-gray-700 font-mono">CursorFollower</span> 预览实际跟随效果</li>
           </ul>
@@ -292,7 +292,7 @@ function BrowsePanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
 
-  useEffect(() => { load(page, search) /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page])
+  useEffect(() => { load(page, search) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load(p: number, q: string) {
     const cacheKey = `${p}:${q}`

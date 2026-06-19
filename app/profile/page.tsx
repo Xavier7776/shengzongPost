@@ -127,6 +127,7 @@ export default function ProfilePage() {
   }
 
   // 仅在登录状态变化时拉取 profile，避免 session 更新（如头像上传）触发不必要的重拉
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchProfile() }, [status])
 
   // 页面重新可见时刷新积分等数据
@@ -136,6 +137,7 @@ export default function ProfilePage() {
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
 
   useEffect(() => {

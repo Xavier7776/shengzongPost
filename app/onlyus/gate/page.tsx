@@ -203,6 +203,7 @@ export default function OnlyUsGatePage() {
   return (
     <>
       {/* 字体用 <link> 放到 head，不用 @import，避免 SSR hydration 差异 */}
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap"

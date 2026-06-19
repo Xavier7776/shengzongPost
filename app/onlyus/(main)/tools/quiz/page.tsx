@@ -151,6 +151,7 @@ export default function QuizPage() {
       loadScores(coupleId)
       loadHistory(coupleId)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coupleId, userId, questions, tab, findOrJoinSession, startSession, revealSession, setCurrentSession, loadScores, loadHistory])
 
   // ── 订阅 session 实时更新 ──────────────────────────────────
@@ -165,6 +166,7 @@ export default function QuizPage() {
       if (updated.status === 'revealed') setCompatRunning(false)
     })
     return unsub
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSession?.id])
 
   // ── 切换 tab 时重置 ────────────────────────────────────────
