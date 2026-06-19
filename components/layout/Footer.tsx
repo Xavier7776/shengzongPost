@@ -22,15 +22,13 @@ export default function Footer() {
           >
             <Github className="w-5 h-5" />
           </a>
-          <a
-            href="https://www.bing.com"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/search"
             className="text-gray-400 hover:text-gray-900 transition-colors"
-            aria-label="Bing"
+            aria-label="搜索"
           >
             <Search className="w-5 h-5" />
-          </a>
+          </Link>
           <Link
             href="/projects#contact"
             className="text-gray-400 hover:text-gray-900 transition-colors"

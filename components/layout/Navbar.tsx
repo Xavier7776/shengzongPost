@@ -3,9 +3,9 @@
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X, LogOut, User, PenLine, ChevronRight } from 'lucide-react'
+import { Menu, X, LogOut, User, PenLine, ChevronRight, Search } from 'lucide-react'
 import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
 
@@ -29,7 +29,6 @@ const NAV_ITEMS = [
   { label: 'Home',     href: '/' },
   { label: 'Blog',     href: '/blog' },
   { label: 'Skills',   href: '/skills' },
-  { label: 'Gallery',  href: '/gallery' },
   { label: 'Projects', href: '/projects' },
 ]
 
@@ -39,6 +38,7 @@ export default function Navbar() {
   const [visible,    setVisible]    = useState(false)
   const [swinging,   setSwinging]   = useState(false)
   const pathname  = usePathname()
+  const router    = useRouter()
   const drawerRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
 
@@ -72,6 +72,18 @@ export default function Navbar() {
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [])
+
+  // Cmd/Ctrl + K 唤起搜索
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        router.push('/search')
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [router])
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
@@ -133,6 +145,18 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            {/* 搜索按钮 */}
+            <Link
+              href="/search"
+              className="flex items-center gap-2 text-xs font-black tracking-widest text-gray-400 hover:text-gray-900 transition-colors py-2"
+              title="搜索 (Cmd/Ctrl + K)"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden lg:inline">搜索</span>
+              <kbd className="hidden lg:inline-block text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
+                ⌘K
+              </kbd>
+            </Link>
             <UserMenu dark={false} />
           </div>
 
@@ -217,6 +241,21 @@ export default function Navbar() {
                   </Link>
                 )
               })}
+
+              {/* 搜索入口 */}
+              <Link
+                href="/search"
+                onClick={handleClose}
+                className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-gray-400" />
+                  搜索
+                </span>
+                <kbd className="text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
+                  ⌘K
+                </kbd>
+              </Link>
 
               {session && (
                 <>

@@ -44,8 +44,20 @@ export default function CursorShop() {
       })
       const r = await res.json()
       if (!res.ok) { flash('err', r.error ?? '购买失败'); return }
-      fetchShopData()
-      flash('ok', `购买成功「${effect.name}」✨`)
+
+      // 立即更新本地状态：加入已购列表 + 扣除积分
+      setData(prev => prev
+        ? {
+            ...prev,
+            purchased: [...prev.purchased, effect.id],
+            points: typeof r.remainingPoints === 'number' ? r.remainingPoints : prev.points - effect.price,
+          }
+        : prev)
+
+      flash('ok', `购买成功「${effect.name}」，已自动装备 ✨`)
+
+      // 自动装备新购买的效果
+      await handleEquip(effect.id)
     } catch { flash('err', '网络错误') }
     finally { setBusy(null) }
   }
@@ -62,7 +74,13 @@ export default function CursorShop() {
       const r = await res.json()
       if (!res.ok) { flash('err', r.error ?? '操作失败'); return }
       setData(prev => prev ? { ...prev, equippedEffectId: effectId } : prev)
-      flash('ok', effectId ? '装备成功，刷新页面后跟随生效 🎉' : '已卸下')
+      // 通知全局 CursorFollower 重新拉取装备态（无需刷新页面）
+      window.dispatchEvent(new CustomEvent('cursor-equipped', { detail: { effectId } }))
+      if (effectId) {
+        flash('ok', '装备成功，鼠标跟随已生效 🎉')
+      } else {
+        flash('ok', '已卸下')
+      }
     } catch { flash('err', '网络错误') }
     finally { setBusy(null) }
   }

@@ -39,7 +39,7 @@ const EXCLUDE_PATTERNS = [
   '-curated',
 ]
 
-const MAX_ITEMS = 3 // 每天只爬取最热门的 3 个
+const MAX_ITEMS = 9 // 每 3 天爬取 9 条（原每天 3 条，改为每 3 天一次保持总量一致）
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   coding: ['code', 'programming', 'developer', 'ide', 'debug', 'refactor', 'test', 'api', 'sdk', 'coding', 'copilot', 'autocomplete', 'lint', 'compiler'],

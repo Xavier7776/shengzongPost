@@ -1,9 +1,9 @@
 // app/projects/page.tsx
-import { Mail, MapPin, Send, Github, Twitter, Link2, Quote, FileText, Eye, Heart, MessageCircle, Clock, ArrowRight } from 'lucide-react'
+import { Mail, MapPin, Send, Github, Twitter, Link2, Quote, FileText, Eye, Heart, MessageCircle, Clock, ArrowRight, Camera, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import SectionHeading from '@/components/ui/SectionHeading'
 import ContactForm from '@/components/sections/ContactForm'
-import { getUserById, sql } from '@/lib/db'
+import { getUserById, sql, getAllGalleryImages } from '@/lib/db'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -45,6 +45,15 @@ export default async function ProjectsPage() {
     ORDER BY created_at DESC LIMIT 2
   `
   const recentPosts = recentRows as { slug: string; title: string; excerpt: string | null; tags: string[] | null; created_at: string; view_count: number | null; cover_image: string | null }[]
+
+  // ── Gallery 图片（取前 4 张作为入口预览） ──
+  const galleryImages = await getAllGalleryImages()
+  const galleryPreview = galleryImages.slice(0, 4).map(img => ({
+    url: img.url,
+    title: img.title || '无标题',
+    category: img.category || 'Photo',
+  }))
+  const galleryTotal = galleryImages.length
 
   const statItems = [
     { label: '文章', value: stats.total_posts, icon: FileText, color: 'blue' },
@@ -206,6 +215,50 @@ export default async function ProjectsPage() {
 
         </div>
       </div>
+
+      {/* ── Gallery 视觉存档入口（全宽） ── */}
+      {galleryPreview.length > 0 && (
+        <div className="mt-20">
+          <Link
+            href="/gallery"
+            className="group block relative overflow-hidden rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500"
+          >
+            {/* 背景图拼贴 */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-1 h-[280px] md:h-[360px]">
+              {galleryPreview.map((img, i) => (
+                <div key={i} className="relative overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={img.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  {/* 渐变遮罩 */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                </div>
+              ))}
+            </div>
+
+            {/* 文字覆盖层 */}
+            <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-12">
+              <div className="flex items-center gap-2 mb-3">
+                <Camera className="w-5 h-5 text-white" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">Gallery</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-white mb-2">
+                视觉存档
+              </h2>
+              <p className="text-sm md:text-base text-white/70 mb-4 max-w-lg">
+                极简主义摄影与视觉创作存档 · 共 {galleryTotal} 张作品
+              </p>
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <span>进入画廊</span>
+                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* 联系表单 */}
       <div id="contact" className="mt-32 pt-16 border-t border-gray-100">

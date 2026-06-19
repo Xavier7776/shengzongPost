@@ -88,15 +88,43 @@ export default async function SkillDetailPage({ params }: PageProps) {
   const cat = CATEGORY_COLORS[skill.category] ?? CATEGORY_COLORS.other
   const catLabel = CATEGORY_LABELS[skill.category] ?? 'AI 工具'
   const SourceIcon = SOURCE_ICON[skill.source_type] ?? Globe
-  
+
   // 提取特性
   const features = extractFeatures(skill.content || '')
-  
+
   // 将内容转换为 HTML
   const contentHtml = renderMarkdown(skill.content || '')
 
+  // JSON-LD 结构化数据（SoftwareApplication schema）
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: skill.name,
+    description: skill.chinese_summary ?? skill.description ?? undefined,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Cross-Platform',
+    url: skill.source_url,
+    downloadUrl: skill.source_url,
+    dateModified: skill.updated_at,
+    aggregateRating: skill.stars > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: Math.min(5, Math.max(1, Math.round(skill.stars / 1000))).toFixed(1),
+      ratingCount: skill.stars,
+    } : undefined,
+    keywords: skill.tags?.join(', '),
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+  }
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <BackToTop />
 
       <div className="min-h-screen pt-24 pb-16">

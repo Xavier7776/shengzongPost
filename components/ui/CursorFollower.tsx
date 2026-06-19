@@ -18,6 +18,7 @@ interface EquippedEffect {
   state_map: string
   emoji: string
   render_type: 'sprite_sheet' | 'gif'
+  poster_url: string | null
 }
 
 type MotionState = 'idle' | 'runRight' | 'runLeft'
@@ -39,6 +40,15 @@ export default function CursorFollower() {
   const [effect, setEffect] = useState<EquippedEffect | null>(null)
   const [ready, setReady] = useState(false)
 
+  // 拉取当前装备的鼠标效果
+  const fetchEquipped = () => {
+    fetch('/api/user/profile', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => setEffect(d.equipped_cursor_effect ?? null))
+      .catch(() => {}) // 静默失败
+      .finally(() => setReady(true))
+  }
+
   useEffect(() => {
     if (status !== 'authenticated') return
     // 触屏 / 无精确指针设备不渲染
@@ -46,13 +56,24 @@ export default function CursorFollower() {
       setReady(true)
       return
     }
+
     let cancelled = false
     fetch('/api/user/profile', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => { if (!cancelled) setEffect(d.equipped_cursor_effect ?? null) })
       .catch(() => {}) // 静默失败
       .finally(() => { if (!cancelled) setReady(true) })
-    return () => { cancelled = true }
+
+    // 监听商城装备/卸下事件，实时切换效果（无需刷新页面）
+    const onCursorEquipped = () => {
+      if (!cancelled) fetchEquipped()
+    }
+    window.addEventListener('cursor-equipped', onCursorEquipped)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('cursor-equipped', onCursorEquipped)
+    }
   }, [status])
 
   if (!ready || !effect) return null
@@ -157,13 +178,14 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
   }, [effect])
 
   const hasSprite = !!effect.sprite_url
+  const hasPoster = !!effect.poster_url
   const isGif = effect.render_type === 'gif' && hasSprite
   // 固定渲染尺寸：高 = scale，宽按帧宽高比推算
   const h = effect.scale
   const w = Math.round(effect.scale * effect.frame_width / effect.frame_height)
   // codex-pets 资产用 runRight/runLeft 行自带朝向，不做 CSS 翻转；emoji 兜底才翻转
-  // GIF 模式无方向状态，不翻转
-  const flip = !hasSprite && motion === 'runLeft' ? -1 : 1
+  // GIF/poster 模式无方向状态，不翻转
+  const flip = !hasSprite && !hasPoster && motion === 'runLeft' ? -1 : 1
   const row = hasSprite && !isGif ? resolveRow(effect.state_map, motion) : 0
 
   const sprite = useMemo<SpriteFrame>(
@@ -193,9 +215,39 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
           width={w}
           height={h}
         />
+      ) : hasPoster ? (
+        // poster_url 模式：静态海报图 + bob 动画（无 sprite_url 时的首选）
+        <PosterFollower posterUrl={effect.poster_url!} width={w} height={h} idle={motion === 'idle'} flip={flip} />
       ) : (
         <EmojiFallback emoji={effect.emoji} size={h} flip={flip} idle={motion === 'idle'} />
       )}
+    </div>
+  )
+}
+
+function PosterFollower({ posterUrl, width, height, idle, flip }: { posterUrl: string; width: number; height: number; idle: boolean; flip: number }) {
+  return (
+    <div
+      style={{
+        width, height,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transform: `scaleX(${flip})`,
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={posterUrl}
+        alt=""
+        draggable={false}
+        style={{
+          width, height,
+          objectFit: 'contain',
+          pointerEvents: 'none',
+          animation: idle ? 'cursor-bob 1.6s ease-in-out infinite' : 'none',
+          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
+        }}
+      />
+      <style>{`@keyframes cursor-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }`}</style>
     </div>
   )
 }

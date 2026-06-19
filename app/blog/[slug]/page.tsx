@@ -97,8 +97,37 @@ export default async function BlogPostPage({ params }: PageProps) {
   ])
   if (!post) notFound()
 
+  // JSON-LD 结构化数据（Article schema）
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    image: post.cover_image ?? undefined,
+    datePublished: post.created_at,
+    dateModified: post.updated_at,
+    author: {
+      '@type': 'Person',
+      name: post.author_name ?? 'ARC',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'MindStack',
+      logo: { '@type': 'ImageObject', url: '/logo.png' },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `/blog/${params.slug}`,
+    },
+    keywords: post.tags?.join(', '),
+  }
+
   return (
     <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <ReadingProgressBar />
     <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
     <BackToTop />

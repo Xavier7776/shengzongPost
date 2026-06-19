@@ -41,15 +41,25 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(total / pageSize)
 
-  // 提取所有热门标签
+  // 提取所有热门标签（带计数，用于标签云）
   const allTags = useMemo(() => {
     const count: Record<string, number> = {}
     posts.forEach(p => p.tags?.forEach(t => { count[t] = (count[t] ?? 0) + 1 }))
     return Object.entries(count)
       .sort((a, b) => b[1] - a[1])
-      .map(([tag]) => tag)
-      .slice(0, 8)
+      .map(([tag, cnt]) => ({ tag, count: cnt }))
+      .slice(0, 12)
   }, [posts])
+
+  // 标签字号映射（根据文章数量）
+  const tagFontSize = (count: number) => {
+    const max = Math.max(...allTags.map(t => t.count), 1)
+    const ratio = count / max
+    if (ratio > 0.75) return 'text-base font-black'
+    if (ratio > 0.5)  return 'text-sm font-bold'
+    if (ratio > 0.25) return 'text-xs font-bold'
+    return 'text-[10px] font-bold'
+  }
 
   const processed = useMemo(() => {
     let list = [...posts]
@@ -110,6 +120,32 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
         )}
       </div>
 
+      {/* 标签云 */}
+      {allTags.length > 0 && (
+        <div className="mb-6 p-5 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl">
+          <div className="flex items-center gap-2 mb-3">
+            <Tag className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">标签云</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {allTags.map(({ tag, count }) => (
+              <button
+                key={tag}
+                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                className={`uppercase tracking-wider transition-all duration-200 hover:scale-110 ${
+                  activeTag === tag
+                    ? 'text-blue-600 underline underline-offset-4'
+                    : 'text-gray-500 hover:text-blue-600'
+                } ${tagFontSize(count)}`}
+              >
+                {tag}
+                <span className="ml-0.5 text-[9px] text-gray-300 font-mono align-super">{count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 标签筛选 + 排序 */}
       <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
         {/* 标签 */}
@@ -124,7 +160,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
                 全部
               </button>
             )}
-            {allTags.map(tag => (
+            {allTags.map(({ tag }) => (
               <button
                 key={tag}
                 onClick={() => setActiveTag(activeTag === tag ? null : tag)}
