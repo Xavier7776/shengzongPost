@@ -73,6 +73,7 @@ export default function HeartLineConnect({
         fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
       }}>
         {url
+          // eslint-disable-next-line @next/next/no-img-element
           ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : name[0]?.toUpperCase()}
       </div>

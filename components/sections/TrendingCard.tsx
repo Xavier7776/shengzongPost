@@ -139,6 +139,7 @@ export default function TrendingCard({ item, index, maxStars }: TrendingCardProp
                   <div className="h-12 w-px bg-gray-200" />
                   <div className="flex items-center gap-2">
                     {item.owner_avatar && (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.owner_avatar}
                         alt={item.full_name}
@@ -237,6 +238,7 @@ export default function TrendingCard({ item, index, maxStars }: TrendingCardProp
 
             {/* 头像 */}
             {item.owner_avatar && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={item.owner_avatar}
                 alt={item.full_name}

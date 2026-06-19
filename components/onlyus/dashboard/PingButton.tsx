@@ -57,7 +57,7 @@ export default function PingButton() {
     burstParticles(true)
     const t = setTimeout(() => { setShowIncoming(false); clearIncoming() }, 2500)
     return () => clearTimeout(t)
-  }, [incomingPing, clearIncoming])
+  }, [incomingPing, clearIncoming, burstParticles])
 
   // Canvas 粒子动画
   const burstParticles = useCallback((incoming = false) => {
