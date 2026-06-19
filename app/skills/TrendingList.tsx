@@ -1,10 +1,10 @@
 'use client'
 // app/skills/TrendingList.tsx
 // 深色仪表盘风格：顶部数据概览 + Top3 领奖台 + 4-30 紧凑列表
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import TrendingCard from '@/components/sections/TrendingCard'
 import TrendingStats from '@/components/sections/TrendingStats'
-import { Loader2, BarChart3 } from 'lucide-react'
+import { Loader2, BarChart3, RefreshCw } from 'lucide-react'
 
 interface TrendingItem {
   id: number
@@ -34,31 +34,80 @@ const PERIOD_LABELS: Record<string, string> = {
   growth: 'Star 增速',
 }
 
+// 模块级缓存：跨组件实例共享，切换 period 不丢失已加载数据
+// staleTime 内视为新鲜，不触发后台刷新；maxAge 内可立即显示
+const STALE_TIME = 5 * 60 * 1000  // 5 分钟
+const MAX_AGE = 60 * 60 * 1000     // 1 小时内可立即显示旧数据
+const cache = new Map<string, { items: TrendingItem[]; crawledAt: string | null; ts: number }>()
+
 export default function TrendingList({ period }: TrendingListProps) {
-  const [items, setItems] = useState<TrendingItem[]>([])
-  const [loading, setLoading] = useState(true)
+  // lazy initializer：首次渲染直接命中缓存，避免 loading 闪烁
+  const [items, setItems] = useState<TrendingItem[]>(() => cache.get(period)?.items ?? [])
+  const [loading, setLoading] = useState(() => !cache.has(period))
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [crawledAt, setCrawledAt] = useState<string | null>(null)
+  const [crawledAt, setCrawledAt] = useState<string | null>(() => cache.get(period)?.crawledAt ?? null)
+  // 防止 StrictMode 双调用 + 竞态
+  const inflight = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
+    const cached = cache.get(period)
+    const now = Date.now()
 
-    fetch(`/api/trending?period=${period}&limit=30`)
+    // 命中缓存：立即展示，避免 loading 闪烁
+    if (cached) {
+      setItems(cached.items)
+      setCrawledAt(cached.crawledAt)
+      setError(null)
+
+      // 仍在新鲜期内：无需任何网络请求
+      if (now - cached.ts < STALE_TIME) {
+        setLoading(false)
+        setRefreshing(false)
+        return
+      }
+      // 已过期但未超 maxAge：立即显示旧数据 + 后台静默刷新
+      setLoading(false)
+      setRefreshing(true)
+    } else {
+      // 无缓存：显示 loading
+      setLoading(true)
+      setRefreshing(false)
+    }
+
+    // 取消上一次未完成的请求（竞态保护）
+    if (inflight.current) inflight.current.abort()
+    const controller = new AbortController()
+    inflight.current = controller
+
+    fetch(`/api/trending?period=${period}&limit=30`, { signal: controller.signal })
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch')
         return res.json()
       })
       .then(data => {
-        setItems(data.trending || [])
-        setCrawledAt(data.crawledAt)
+        const nextItems = data.trending || []
+        const nextCrawledAt = data.crawledAt
+        setItems(nextItems)
+        setCrawledAt(nextCrawledAt)
+        cache.set(period, { items: nextItems, crawledAt: nextCrawledAt, ts: Date.now() })
         setLoading(false)
+        setRefreshing(false)
+        setError(null)
       })
       .catch(err => {
+        if (err.name === 'AbortError') return  // 被新请求取代，忽略
         console.error('Trending fetch error:', err)
-        setError('加载失败，请稍后重试')
-        setLoading(false)
+        // 已有缓存时不清空数据，只提示刷新失败
+        if (cache.has(period)) {
+          setRefreshing(false)
+        } else {
+          setError('加载失败，请稍后重试')
+          setLoading(false)
+        }
       })
+
+    return () => controller.abort()
   }, [period])
 
   // 计算 maxStars 用于进度条比例
@@ -104,12 +153,18 @@ export default function TrendingList({ period }: TrendingListProps) {
       {/* 更新时间 */}
       {crawledAt && (
         <div className="flex items-center justify-between mb-6">
-          <p className="text-xs text-gray-400 font-mono">
+          <p className="text-xs text-gray-400 font-mono flex items-center gap-2">
             <span className="text-gray-300">更新于</span>{' '}
             {new Date(crawledAt).toLocaleDateString('zh-CN')}{' '}
             {new Date(crawledAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-            <span className="text-gray-200 mx-2">·</span>
+            <span className="text-gray-200 mx-1">·</span>
             <span className="text-gray-500">共 {items.length} 个项目</span>
+            {refreshing && (
+              <span className="inline-flex items-center gap-1 text-blue-500 ml-1">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <span className="text-[10px]">同步中</span>
+              </span>
+            )}
           </p>
           <span className="text-[10px] font-bold tracking-widest uppercase text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">
             {PERIOD_LABELS[period]}
