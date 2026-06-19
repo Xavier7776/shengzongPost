@@ -126,7 +126,8 @@ export default function ProfilePage() {
       .catch(() => setLoading(false))
   }
 
-  useEffect(() => { fetchProfile() }, [status, session])
+  // 仅在登录状态变化时拉取 profile，避免 session 更新（如头像上传）触发不必要的重拉
+  useEffect(() => { fetchProfile() }, [status])
 
   // 页面重新可见时刷新积分等数据
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function ProfilePage() {
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [status, session])
+  }, [status])
 
   useEffect(() => {
     if (form.id > 0) {
@@ -166,6 +167,8 @@ export default function ProfilePage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? '上传失败'); return }
       setField('avatar', data.url)
+      // 立即更新 session，让导航栏头像同步刷新
+      await update({ image: data.url })
     } catch { setError('网络错误，请重试') }
     finally  { setUploadingAvatar(false) }
   }

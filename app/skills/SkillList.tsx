@@ -100,7 +100,7 @@ export default function SkillList({ skills, total, page, pageSize, categories }:
   const isFiltering = query.trim().length > 0 || activeCategory !== null || activeSource !== 'all'
 
   return (
-    <div>
+    <div className="max-w-6xl mx-auto px-6 py-24 animate-in">
       <SectionHeading>AI Skills</SectionHeading>
 
       {/* 搜索框 */}

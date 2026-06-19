@@ -1,0 +1,197 @@
+[
+  {
+    "slug": "ai-agents-architecture-evolution",
+    "title": "大语言模型驱动的智能体架构演进趋势分析",
+    "excerpt": "从Chatbot到Autonomous Agent，LLM驱动的智能体架构经历了怎样的演变？本文系统梳理了ReAct、Reflexion、Multi-Agent等主流架构的设计思想与适用场景。",
+    "tags": [
+      "AI",
+      "AGENT"
+    ],
+    "cover_filename": "Calm_bright_gradient__pale_tea_2026-06-19T02-34-17_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844538/blog-cover/wdimqvfoqdsdabouk5qh.png",
+    "order": 1,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/01-ai-agents-architecture-evolution.html"
+  },
+  {
+    "slug": "llm-context-window-optimization",
+    "title": "大模型上下文窗口优化技术全景",
+    "excerpt": "128K甚至1M上下文窗口已成标配，但长文本处理仍面临注意力瓶颈。本文分析RoPE缩放、ALiBi、Ring Attention等核心优化技术。",
+    "tags": [
+      "LLM",
+      "OPTIMIZATION"
+    ],
+    "cover_filename": "Bright_serene_gradient__pale_p_2026-06-19T02-35-28_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844536/blog-cover/ja4cxi2axjdababyiofm.png",
+    "order": 2,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/02-llm-context-window-optimization.html"
+  },
+  {
+    "slug": "vector-database-comparison-2024",
+    "title": "2024年向量数据库选型指南：Milvus vs Qdrant vs Weaviate",
+    "excerpt": "RAG系统的核心组件——向量数据库，各主流方案性能如何？本文通过索引构建时间、查询延迟、内存占用三个维度进行横向对比。",
+    "tags": [
+      "VECTOR DB",
+      "RAG"
+    ],
+    "cover_filename": "Abstract_soft_gradient_backgro_2026-06-19T02-25-48_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844528/blog-cover/achk5realmno4i1r6epo.png",
+    "order": 3,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/03-vector-database-comparison.html"
+  },
+  {
+    "slug": "rust-for-python-developers",
+    "title": "Python开发者为何应该学习Rust：性能与安全的平衡之道",
+    "excerpt": "Rust的所有权模型、零成本抽象和 fearless concurrency 使其成为Python生态的理想补充。本文从Python视角讲解Rust核心概念。",
+    "tags": [
+      "RUST",
+      "PYTHON"
+    ],
+    "cover_filename": "Abstract_soft_gradient__powder_2026-06-19T02-25-48_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844521/blog-cover/gcmmj62yb4n3ljmwe0en.png",
+    "order": 4,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/04-rust-for-python-developers.html"
+  },
+  {
+    "slug": "edge-computing-llm-deployment",
+    "title": "边缘设备部署大模型：量化、剪枝与推理加速实战",
+    "excerpt": "在手机和嵌入式设备上运行LLM已成为现实。本文介绍INT4/INT8量化、GGML格式、llama.cpp等关键技术栈。",
+    "tags": [
+      "EDGE AI",
+      "QUANTIZATION"
+    ],
+    "cover_filename": "Abstract_mesh_gradient__coral__2026-06-19T02-26-34_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844513/blog-cover/ce7lg8r4i5wrrbyl7ti4.png",
+    "order": 5,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/05-edge-computing-llm.html"
+  },
+  {
+    "slug": "kubernetes-networking-deep-dive",
+    "title": "Kubernetes网络模型深度解析：从CNI到Service Mesh",
+    "excerpt": "Pod-to-Pod通信、Service负载均衡、Ingress路由——K8s网络模型层层拆解，附带iptables和eBPF实现原理。",
+    "tags": [
+      "KUBERNETES",
+      "NETWORKING"
+    ],
+    "cover_filename": "Soft_glow_gradient__pale_laven_2026-06-19T02-33-45_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844565/blog-cover/c7kpetydsgx6tmxkloey.png",
+    "order": 6,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/06-kubernetes-networking.html"
+  },
+  {
+    "slug": "webassembly-future-of-web-performance",
+    "title": "WebAssembly与WebGPU：Web前端性能的下一波浪潮",
+    "excerpt": "Wasm GC提案推进、WebGPU跨平台图形API、WASI标准成熟——Web平台正在突破浏览器沙箱的限制。",
+    "tags": [
+      "WEBASSEMBLY",
+      "WEBGPU"
+    ],
+    "cover_filename": "Dreamy_light_gradient__pale_or_2026-06-19T02-34-17_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844539/blog-cover/pf5odbyt4skyfvm1sdgc.png",
+    "order": 7,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/07-webassembly-webgpu.html"
+  },
+  {
+    "slug": "distributed-tracing-observability",
+    "title": "分布式追踪与可观测性：OpenTelemetry最佳实践",
+    "excerpt": "微服务架构下，日志、指标、追踪三位一体构成可观测性基石。本文详解OpenTelemetry的集成方式与采样策略。",
+    "tags": [
+      "OBSERVABILITY",
+      "MICROSERVICES"
+    ],
+    "cover_filename": "Abstract_soft_gradient__ice_bl_2026-06-19T02-26-24_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844518/blog-cover/vc51deejofskddlgnyw8.png",
+    "order": 8,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/08-distributed-tracing.html"
+  },
+  {
+    "slug": "typescript-advanced-patterns",
+    "title": "TypeScript高级类型体操：从Conditional Types到Template Literals",
+    "excerpt": "深入TypeScript的类型系统——条件类型、模板字面量类型、infer关键字的妙用，写出更安全、更优雅的泛型代码。",
+    "tags": [
+      "TYPESCRIPT",
+      "PROGRAMMING"
+    ],
+    "cover_filename": "Gentle_bright_gradient__pale_m_2026-06-19T02-33-45_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844542/blog-cover/slum8kg845kmrt6jwjyv.png",
+    "order": 9,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/09-typescript-advanced-patterns.html"
+  },
+  {
+    "slug": "graph-rag-knowledge-graphs",
+    "title": "Graph RAG：知识图谱与大模型的融合实践",
+    "excerpt": "传统RAG在复杂推理任务中存在局限。Graph RAG引入知识图谱的结构化信息，显著提升回答的准确性和可追溯性。",
+    "tags": [
+      "GRAPH RAG",
+      "KNOWLEDGE GRAPH"
+    ],
+    "cover_filename": "Abstract_soft_gradient__warm_t_2026-06-19T02-25-48_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844526/blog-cover/c7o12dldcxdfsi3u2r4s.png",
+    "order": 10,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/10-graph-rag.html"
+  },
+  {
+    "slug": "eBPF-system-programming",
+    "title": "eBPF革命：无需修改内核即可扩展Linux系统能力",
+    "excerpt": "从网络包过滤到安全监控，eBPF让开发者在内核态运行沙箱程序。本文通过实际案例演示 Cilium 和 Pixie 的使用。",
+    "tags": [
+      "EBPF",
+      "LINUX"
+    ],
+    "cover_filename": "Glowing_light_gradient__soft_m_2026-06-19T02-35-28_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844547/blog-cover/cubsmumb3fadcrh5nqgj.png",
+    "order": 11,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/11-ebpf-system-programming.html"
+  },
+  {
+    "slug": "multi-modal-ai-2024",
+    "title": "多模态AI技术综述：从CLIP到GPT-4V的视觉理解进化",
+    "excerpt": "文本到图像、图像到文本、视频理解——多模态模型如何打破模态壁垒？本文回顾CLIP、Flamingo、LLaVA等里程碑工作。",
+    "tags": [
+      "MULTI-MODAL",
+      "VISION"
+    ],
+    "cover_filename": "Bright_mist_gradient__pale_sag_2026-06-19T02-34-50_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844532/blog-cover/vsvmbznumkuyqu8m11qu.png",
+    "order": 12,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/12-multi-modal-ai.html"
+  },
+  {
+    "slug": "serverless-vs-containers",
+    "title": "Serverless vs Containers：云原生架构的理性选择",
+    "excerpt": "FaaS冷启动、容器编排复杂度——两者并非互斥。本文从延迟敏感型、批处理、长期运行等场景分析选型策略。",
+    "tags": [
+      "SERVERLESS",
+      "CLOUD NATIVE"
+    ],
+    "cover_filename": "Abstract_soft_gradient__soft_p_2026-06-19T02-26-34_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844522/blog-cover/l5pwqbvo23pm3ppyfb3i.png",
+    "order": 13,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/13-serverless-vs-containers.html"
+  },
+  {
+    "slug": "prompt-engineering-techniques",
+    "title": "提示工程进阶：Chain-of-Thought、ToT与GoT的数学直觉",
+    "excerpt": "从CoT到Tree-of-Thought再到Graph-of-Thought，提示工程技术不断突破LLM推理能力的边界。本文给出理论分析与实践对比。",
+    "tags": [
+      "PROMPT ENGINEERING",
+      "LLM"
+    ],
+    "cover_filename": "Abstract_gradient_background___2026-06-19T02-26-34_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844512/blog-cover/ijk7c9kwqlg3oxwuaj3l.png",
+    "order": 14,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/14-prompt-engineering.html"
+  },
+  {
+    "slug": "data-pipeline-modern-stack",
+    "title": "现代数据管道技术栈：从Kafka到dbt的端到端实践",
+    "excerpt": "实时流处理、CDC变更捕获、ELT转换——构建可靠的数据管道需要哪些组件？本文给出从Source到Dashboard的完整方案。",
+    "tags": [
+      "DATA ENGINEERING",
+      "KAFKA"
+    ],
+    "cover_filename": "Pure_airy_gradient__soft_pearl_2026-06-19T02-35-28_no_watermark.png",
+    "cover_url": "https://res.cloudinary.com/dazxe954m/image/upload/v1781844556/blog-cover/icf4g5zvnqrcjwmuefrd.png",
+    "order": 15,
+    "html_path": "E:\\chromeDownload\\arc-portfolio\\blog/15-data-pipeline-modern-stack.html"
+  }
+]

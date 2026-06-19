@@ -249,7 +249,7 @@ export default function TrendingCard({ item, index, maxStars }: TrendingCardProp
               <h3 className="text-sm font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                 {item.full_name}
               </h3>
-              <p className="text-xs text-gray-400 truncate mt-0.5">
+              <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mt-0.5">
                 {item.description || 'No description'}
               </p>
             </div>
@@ -274,6 +274,17 @@ export default function TrendingCard({ item, index, maxStars }: TrendingCardProp
               )}
             </div>
           </div>
+
+          {/* Topics 标签 */}
+          {item.topics && item.topics.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2 ml-14">
+              {item.topics.slice(0, 4).map(topic => (
+                <span key={topic} className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-gray-50 text-gray-400 border border-gray-100">
+                  {topic}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Stars 进度条（底部细线） */}
           <div className="mt-3 h-0.5 bg-gray-100 rounded-full overflow-hidden">

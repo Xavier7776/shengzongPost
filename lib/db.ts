@@ -56,7 +56,8 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
 }
 export async function getAllPostsAdmin(): Promise<PostMeta[]> {
   const rows = await sql`
-    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,u.name as author_name
+    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,p.author_id,
+           u.name as author_name, u.avatar as author_avatar
     FROM posts p LEFT JOIN users u ON u.id = p.author_id
     ORDER BY p.created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]

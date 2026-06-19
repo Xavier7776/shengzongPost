@@ -45,10 +45,18 @@ body::before {
   .animate-in {
     animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
+  .animate-footer-fade {
+    animation: footerFade 0.6s ease-out 0.5s both;
+  }
 }
 
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes footerFade {
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 

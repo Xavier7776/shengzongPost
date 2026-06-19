@@ -53,9 +53,10 @@ export async function POST(req: NextRequest) {
       console.warn('[avatar] Cloudinary 失败，使用本地:', cldErr)
     }
 
-    await sql`UPDATE users SET avatar=${avatarUrl} WHERE id=${userId}`
-
-    return NextResponse.json({ url: avatarUrl, localUrl })
+    // 加版本号防止浏览器缓存旧头像，同时写入 DB 确保重新登录后也拿到最新 URL
+    const cacheBustUrl = `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
+    await sql`UPDATE users SET avatar=${cacheBustUrl} WHERE id=${userId}`
+    return NextResponse.json({ url: cacheBustUrl, localUrl })
   } catch (err) {
     console.error('[avatar upload]', err)
     return NextResponse.json({ error: '上传失败，请重试' }, { status: 500 })

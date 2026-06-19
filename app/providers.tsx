@@ -5,7 +5,7 @@ import { PointsToastProvider } from '@/components/ui/PointsToast'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider refetchOnWindowFocus={true}>
       <PointsToastProvider>
         {children}
       </PointsToastProvider>

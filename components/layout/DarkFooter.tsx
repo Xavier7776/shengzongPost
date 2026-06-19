@@ -29,15 +29,13 @@ export default function DarkFooter() {
           >
             <Github className="w-5 h-5" />
           </a>
-          <a
-            href="https://www.bing.com"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/search"
             className="dark-footer-icon"
-            aria-label="Bing"
+            aria-label="搜索"
           >
             <Search className="w-5 h-5" />
-          </a>
+          </Link>
           <Link
             href="/projects#contact"
             className="dark-footer-icon"

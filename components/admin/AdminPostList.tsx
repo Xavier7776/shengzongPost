@@ -27,6 +27,7 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
   const [activeStatus, setActiveStatus] = useState<'all' | 'published' | 'draft'>('all')
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(new Set())
   const [batchLoading, setBatchLoading] = useState(false)
+  const [tagsExpanded, setTagsExpanded] = useState(false)
 
   // 聚合所有 tags
   const allTags = useMemo(() => {
@@ -34,6 +35,10 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
     posts.forEach(p => p.tags?.forEach(t => set.add(t)))
     return Array.from(set).sort()
   }, [posts])
+
+  const VISIBLE_TAGS = 6
+  const visibleTags = tagsExpanded ? allTags : allTags.slice(0, VISIBLE_TAGS)
+  const hasMoreTags = allTags.length > VISIBLE_TAGS
 
   const filtered = useMemo(() => posts.filter(p => {
     if (activeTag && !p.tags?.includes(activeTag)) return false
@@ -108,7 +113,7 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
         {allTags.length > 0 && <span className="w-px h-5 bg-gray-200" />}
 
         {/* Tag 筛选 */}
-        {allTags.map(tag => (
+        {visibleTags.map(tag => (
           <button
             key={tag}
             onClick={() => setActiveTag(activeTag === tag ? null : tag)}
@@ -122,6 +127,14 @@ export default function AdminPostList({ posts }: { posts: PostMeta[] }) {
             {activeTag === tag && <X className="w-3 h-3" />}
           </button>
         ))}
+        {hasMoreTags && (
+          <button
+            onClick={() => setTagsExpanded(v => !v)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+          >
+            {tagsExpanded ? '收起' : `+${allTags.length - VISIBLE_TAGS} 更多`}
+          </button>
+        )}
 
         {/* 结果数 */}
         <span className="ml-auto text-xs text-gray-400 font-mono">

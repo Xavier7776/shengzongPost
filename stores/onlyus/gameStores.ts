@@ -89,24 +89,86 @@ export function checkWin(board: Board, r: number, c: number, player: Stone): [nu
 
 // Drawing
 export interface Stroke { points: { x: number; y: number }[]; color: string; width: number }
-export interface DrawingGame { id: string; couple_id: string; drawer: string; guesser: string; word: string; strokes: Stroke[]; guess_text: string | null; status: 'drawing' | 'guessing' | 'correct' | 'skipped'; round: number; drawer_score: number; guesser_score: number; hint_revealed: number }
-const WORDS = ['苹果','太阳','月亮','星星','汽车','飞机','房子','猫','狗','鱼','花','树','山','河','海','雨','雪','风','火','水','爱心','礼物','蛋糕','气球','钻石']
+export interface DrawingGame {
+  id: string; couple_id: string; drawer: string; guesser: string; word: string;
+  strokes: Stroke[]; guess_text: string | null;
+  status: 'drawing' | 'correct' | 'skipped';
+  round: number; drawer_score: number; guesser_score: number;
+  hint_revealed: number; wrong_guesses: number;
+  skip_requested: boolean; hint_requested: boolean;
+}
+const WORDS = [
+  '猫咪','小狗','金鱼','小鸟','兔子','熊猫','老虎','狮子','大象','长颈鹿',
+  '企鹅','蝴蝶','螃蟹','海豚','鲨鱼','考拉','袋鼠','刺猬',
+  '苹果','香蕉','蛋糕','汉堡','披萨','面条','寿司','冰淇淋','糖果','巧克力',
+  '甜甜圈','草莓','西瓜','葡萄','柠檬',
+  '手机','电脑','雨伞','眼镜','钥匙','钟表','灯泡','剪刀','书本','铅笔',
+  '相机','耳机','帽子','闹钟',
+  '太阳','月亮','星星','云朵','彩虹','闪电','雪花','树木','花朵','山川',
+  '海洋','火焰','龙卷风',
+  '汽车','飞机','火车','轮船','自行车','热气球','火箭','潜艇',
+  '房子','城堡','桥梁','灯塔','金字塔','摩天轮',
+  '礼物','气球','钻石','爱心','王冠','风筝','足球','篮球','雪人','机器人',
+  '吉他','钢琴','沙漏','魔方',
+]
 const rw = () => WORDS[Math.floor(Math.random() * WORDS.length)]
-interface DrawingState { game: DrawingGame | null; myRole: 'drawer' | 'guesser'; isLoading: boolean; channel: RealtimeChannel | null; loadOrCreateGame: (coupleId: string, myId: string, partnerId: string) => Promise<void>; addStroke: (stroke: Stroke) => Promise<void>; clearCanvas: () => Promise<void>; submitGuess: (guess: string) => Promise<void>; nextRound: () => Promise<void>; subscribeToGame: () => void; unsubscribe: () => void }
+const MAX_WRONG = 3
+function normalize(s: string): string {
+  return s.trim().replace(/\s+/g, '').replace(/[，。！？、,.!?]/g, '').toLowerCase()
+}
+interface DrawingState {
+  game: DrawingGame | null; myRole: 'drawer' | 'guesser'; myId: string;
+  isLoading: boolean; channel: RealtimeChannel | null;
+  loadOrCreateGame: (coupleId: string, myId: string, partnerId: string) => Promise<void>;
+  addStroke: (stroke: Stroke) => Promise<void>;
+  clearCanvas: () => Promise<void>;
+  submitGuess: (guess: string) => Promise<void>;
+  requestHint: () => Promise<void>;
+  skipRound: () => Promise<void>;
+  nextRound: () => Promise<void>;
+  subscribeToGame: () => void;
+  unsubscribe: () => void;
+}
 export const useDrawingStore = create<DrawingState>((set, get) => ({
-  game: null, myRole: 'drawer', isLoading: false, channel: null,
+  game: null, myRole: 'drawer', myId: '', isLoading: false, channel: null,
   loadOrCreateGame: async (coupleId, myId, partnerId) => {
-    set({ isLoading: true }); const s = getSupabaseClient()
-    const { data: ex } = await s.from('drawing_games').select('*').eq('couple_id', coupleId).in('status', ['drawing','guessing']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+    set({ isLoading: true, myId }); const s = getSupabaseClient()
+    const { data: ex } = await s.from('drawing_games').select('*').eq('couple_id', coupleId).in('status', ['drawing']).order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (ex) { set({ game: ex as DrawingGame, myRole: ex.drawer === myId ? 'drawer' : 'guesser', isLoading: false }); return }
     const roles = Math.random() < 0.5 ? { drawer: myId, guesser: partnerId } : { drawer: partnerId, guesser: myId }
-    const { data: c } = await s.from('drawing_games').insert({ couple_id: coupleId, ...roles, word: rw(), strokes: [], status: 'drawing', round: 1, drawer_score: 0, guesser_score: 0, hint_revealed: 0 }).select().single()
+    const { data: c } = await s.from('drawing_games').insert({ couple_id: coupleId, ...roles, word: rw(), strokes: [], status: 'drawing', round: 1, drawer_score: 0, guesser_score: 0, hint_revealed: 0, wrong_guesses: 0, skip_requested: false, hint_requested: false }).select().single()
     if (c) set({ game: c as DrawingGame, myRole: c.drawer === myId ? 'drawer' : 'guesser', isLoading: false })
   },
   addStroke: async (stroke) => { const { game } = get(); if (!game) return; const s = getSupabaseClient(); const ns = [...game.strokes, stroke]; await s.from('drawing_games').update({ strokes: ns }).eq('id', game.id); set({ game: { ...game, strokes: ns } }) },
   clearCanvas: async () => { const { game } = get(); if (!game) return; const s = getSupabaseClient(); await s.from('drawing_games').update({ strokes: [] }).eq('id', game.id); set({ game: { ...game, strokes: [] } }) },
-  submitGuess: async (guess) => { const { game } = get(); if (!game) return; const s = getSupabaseClient(); const ok = guess.trim() === game.word; const u: any = { guess_text: guess.trim(), status: ok ? 'correct' : 'guessing' }; if (ok) u.guesser_score = game.guesser_score + 1; await s.from('drawing_games').update(u).eq('id', game.id); set({ game: { ...game, ...u } }) },
-  nextRound: async () => { const { game } = get(); if (!game) return; const s = getSupabaseClient(); const { data } = await s.from('drawing_games').update({ drawer: game.guesser, guesser: game.drawer, word: rw(), strokes: [], guess_text: null, status: 'drawing', round: game.round + 1, hint_revealed: 0 }).eq('id', game.id).select().single(); if (data) set({ game: data as DrawingGame, myRole: data.drawer === game.drawer ? 'guesser' : 'drawer' }) },
-  subscribeToGame: () => { const { game } = get(); if (!game) return; const s = getSupabaseClient(); const { channel: ex } = get(); if (ex) s.removeChannel(ex); const ch = s.channel(`drawing-web-${game.id}`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'drawing_games', filter: `id=eq.${game.id}` }, (p: any) => { if (p.new) { const u = p.new as DrawingGame; set({ game: u, myRole: u.drawer === get().game?.drawer ? 'drawer' : 'guesser' }) } }).subscribe(); set({ channel: ch }) },
+  submitGuess: async (guess) => {
+    const { game } = get(); if (!game || game.status !== 'drawing') return
+    const s = getSupabaseClient(); const ok = normalize(guess) === normalize(game.word)
+    const u: Record<string, unknown> = { guess_text: guess.trim() }
+    if (ok) { u.status = 'correct'; u.guesser_score = game.guesser_score + 1 }
+    else { const wg = (game.wrong_guesses || 0) + 1; u.wrong_guesses = wg; if (wg >= MAX_WRONG) u.status = 'skipped' }
+    await s.from('drawing_games').update(u).eq('id', game.id); set({ game: { ...game, ...u } as DrawingGame })
+  },
+  requestHint: async () => {
+    const { game } = get(); if (!game || game.status !== 'drawing') return
+    const next = game.hint_revealed + 1; if (next >= game.word.length) return
+    const s = getSupabaseClient(); await s.from('drawing_games').update({ hint_revealed: next }).eq('id', game.id)
+    set({ game: { ...game, hint_revealed: next } })
+  },
+  skipRound: async () => {
+    const { game } = get(); if (!game || game.status !== 'drawing') return
+    const s = getSupabaseClient(); await s.from('drawing_games').update({ status: 'skipped', skip_requested: true }).eq('id', game.id)
+    set({ game: { ...game, status: 'skipped', skip_requested: true } })
+  },
+  nextRound: async () => {
+    const { game, myId } = get(); if (!game) return; const s = getSupabaseClient()
+    const { data } = await s.from('drawing_games').update({ drawer: game.guesser, guesser: game.drawer, word: rw(), strokes: [], guess_text: null, status: 'drawing', round: game.round + 1, hint_revealed: 0, wrong_guesses: 0, skip_requested: false, hint_requested: false }).eq('id', game.id).select().single()
+    if (data) set({ game: data as DrawingGame, myRole: data.drawer === myId ? 'drawer' : 'guesser' })
+  },
+  subscribeToGame: () => {
+    const { game, myId } = get(); if (!game) return; const s = getSupabaseClient(); const { channel: ex } = get(); if (ex) s.removeChannel(ex)
+    const ch = s.channel(`drawing-web-${game.id}`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'drawing_games', filter: `id=eq.${game.id}` }, (p: { new: DrawingGame }) => { if (p.new) set({ game: p.new, myRole: p.new.drawer === myId ? 'drawer' : 'guesser' }) }).subscribe()
+    set({ channel: ch })
+  },
   unsubscribe: () => { const s = getSupabaseClient(); const { channel } = get(); if (channel) { s.removeChannel(channel); set({ channel: null }) } },
 }))
