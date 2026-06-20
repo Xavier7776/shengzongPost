@@ -27,6 +27,18 @@ export default function UserMenu({ dark = false }: UserMenuProps) {
     }
   }, [status])
 
+  // 监听头像框装备/卸下事件，实时刷新
+  useEffect(() => {
+    const onFrameEquipped = () => {
+      fetch('/api/user/profile')
+        .then(r => r.json())
+        .then(d => setFrameCssKey(d.equipped_frame_css_key ?? null))
+        .catch(() => {})
+    }
+    window.addEventListener('frame-equipped', onFrameEquipped)
+    return () => window.removeEventListener('frame-equipped', onFrameEquipped)
+  }, [])
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)

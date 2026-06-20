@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import SpriteCanvas, { type SpriteFrame } from './SpriteCanvas'
+import SpriteCSS, { type SpriteFrame, type SpriteCSSHandle } from './SpriteCSS'
 
 /** 从 /api/user/profile 拿到的装备态（仅需要的字段） */
 interface EquippedEffect {
@@ -21,7 +21,7 @@ interface EquippedEffect {
   poster_url: string | null
 }
 
-type MotionState = 'idle' | 'runRight' | 'runLeft'
+type MotionState = 'idle' | 'runRight' | 'runLeft' | 'waiting' | 'waving'
 
 /** 解析 state_map JSON，取运动状态对应的行号，缺省回退 idle(0) */
 function resolveRow(stateMap: string, state: MotionState): number {
@@ -29,6 +29,8 @@ function resolveRow(stateMap: string, state: MotionState): number {
     const map = JSON.parse(stateMap) as Record<string, number>
     if (state === 'runRight' && typeof map.runRight === 'number') return map.runRight
     if (state === 'runLeft' && typeof map.runLeft === 'number') return map.runLeft
+    if (state === 'waiting' && typeof map.waiting === 'number') return map.waiting
+    if (state === 'waving' && typeof map.waving === 'number') return map.waving
     return typeof map.idle === 'number' ? map.idle : 0
   } catch {
     return 0
@@ -82,6 +84,7 @@ export default function CursorFollower() {
 
 function FollowerLayer({ effect }: { effect: EquippedEffect }) {
   const wrapRef = useRef<HTMLDivElement>(null)
+  const spriteRef = useRef<SpriteCSSHandle>(null)
   // 初始位置放在屏幕中心，避免鼠标不动时角色永远在屏幕外
   const initX = typeof window !== 'undefined' ? window.innerWidth / 2 : 400
   const initY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300
@@ -91,14 +94,19 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
   const lastDx = useRef(0)
   const hasMoved = useRef(false)
   const motionRef = useRef<MotionState>('idle')
-  const [motion, setMotion] = useState<MotionState>('idle')
   const rafRef = useRef(0)
+  // waving 状态：点击触发，播放完 waving 动画后自动回到 idle
+  const wavingUntil = useRef(0)
 
   // 光标右下偏移，避免遮挡指针
   const OFFSET_X = 24
   const OFFSET_Y = 24
   // 静止超过该毫秒数判定为 idle
   const IDLE_MS = 400
+  // 静止超过该毫秒数判定为 waiting（角色开始张望/挥手）
+  const WAITING_MS = 1800
+  // waving 动画播放时长（ms），到期自动回到 idle
+  const WAVING_DURATION = 1400
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -121,18 +129,40 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
     }
     window.addEventListener('mousemove', onMove, { passive: true })
 
+    // 点击触发 waving（挥手），播放 WAVING_DURATION 后自动回到 idle
+    const onClick = () => {
+      wavingUntil.current = performance.now() + WAVING_DURATION
+    }
+    window.addEventListener('click', onClick, { passive: true })
+
     const apply = (x: number, y: number) => {
       const el = wrapRef.current
       if (!el) return
       el.style.transform = `translate3d(${x + OFFSET_X}px, ${y + OFFSET_Y}px, 0)`
     }
 
+    /** 通过 ref 直接切换精灵图行（方向/状态），不触发 React 重渲染 */
+    const updateMotion = (st: MotionState) => {
+      if (st === motionRef.current) return
+      motionRef.current = st
+      const row = resolveRow(effect.state_map, st)
+      spriteRef.current?.setRow(row)
+    }
+
     const loop = () => {
       const now = performance.now()
-      // 运动状态判定
+      // 优先级：waving（点击触发）> 运动判定 > waiting（长时间静止）> idle
       let st: MotionState
-      if (now - lastMoveAt.current > IDLE_MS || !hasMoved.current) {
-        st = 'idle'
+      if (now < wavingUntil.current) {
+        st = 'waving'
+      } else if (!hasMoved.current || now - lastMoveAt.current > IDLE_MS) {
+        // 静止判定：先 idle，超过 WAITING_MS 进入 waiting
+        const idleFor = now - lastMoveAt.current
+        if (hasMoved.current && idleFor > WAITING_MS) {
+          st = 'waiting'
+        } else {
+          st = 'idle'
+        }
       } else if (lastDx.current > 1) {
         st = 'runRight'
       } else if (lastDx.current < -1) {
@@ -140,10 +170,7 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
       } else {
         st = 'idle'
       }
-      if (st !== motionRef.current) {
-        motionRef.current = st
-        setMotion(st)
-      }
+      updateMotion(st)
 
       if (!reduced) {
         // lerp 平滑跟随
@@ -171,6 +198,7 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
 
     return () => {
       window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('click', onClick)
       document.removeEventListener('visibilitychange', onVis)
       cancelAnimationFrame(rafRef.current)
     }
@@ -185,13 +213,14 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
   const w = Math.round(effect.scale * effect.frame_width / effect.frame_height)
   // codex-pets 资产用 runRight/runLeft 行自带朝向，不做 CSS 翻转；emoji 兜底才翻转
   // GIF/poster 模式无方向状态，不翻转
-  const flip = !hasSprite && !hasPoster && motion === 'runLeft' ? -1 : 1
-  const row = hasSprite && !isGif ? resolveRow(effect.state_map, motion) : 0
+  const initialRow = hasSprite && !isGif ? resolveRow(effect.state_map, 'idle') : 0
 
-  const sprite = useMemo<SpriteFrame>(
-    () => ({ url: effect.sprite_url!, cols: effect.cols, rows: effect.rows, fps: effect.fps }),
-    [effect.sprite_url, effect.cols, effect.rows, effect.fps]
-  )
+  const sprite = {
+    url: effect.sprite_url!,
+    cols: effect.cols,
+    rows: effect.rows,
+    fps: effect.fps,
+  } satisfies SpriteFrame
 
   return (
     <div
@@ -209,29 +238,31 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
           style={{ width: w, height: h, objectFit: 'contain', pointerEvents: 'none' }}
         />
       ) : hasSprite ? (
-        <SpriteCanvas
+        <SpriteCSS
+          ref={spriteRef}
           sprite={sprite}
-          row={row}
+          row={initialRow}
+          frameWidth={effect.frame_width}
+          frameHeight={effect.frame_height}
           width={w}
           height={h}
         />
       ) : hasPoster ? (
         // poster_url 模式：静态海报图 + bob 动画（无 sprite_url 时的首选）
-        <PosterFollower posterUrl={effect.poster_url!} width={w} height={h} idle={motion === 'idle'} flip={flip} />
+        <PosterFollower posterUrl={effect.poster_url!} width={w} height={h} />
       ) : (
-        <EmojiFallback emoji={effect.emoji} size={h} flip={flip} idle={motion === 'idle'} />
+        <EmojiFallback emoji={effect.emoji} size={h} />
       )}
     </div>
   )
 }
 
-function PosterFollower({ posterUrl, width, height, idle, flip }: { posterUrl: string; width: number; height: number; idle: boolean; flip: number }) {
+function PosterFollower({ posterUrl, width, height }: { posterUrl: string; width: number; height: number }) {
   return (
     <div
       style={{
         width, height,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transform: `scaleX(${flip})`,
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -243,7 +274,7 @@ function PosterFollower({ posterUrl, width, height, idle, flip }: { posterUrl: s
           width, height,
           objectFit: 'contain',
           pointerEvents: 'none',
-          animation: idle ? 'cursor-bob 1.6s ease-in-out infinite' : 'none',
+          animation: 'cursor-bob 1.6s ease-in-out infinite',
           filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
         }}
       />
@@ -252,20 +283,19 @@ function PosterFollower({ posterUrl, width, height, idle, flip }: { posterUrl: s
   )
 }
 
-function EmojiFallback({ emoji, size, flip, idle }: { emoji: string; size: number; flip: number; idle: boolean }) {
+function EmojiFallback({ emoji, size }: { emoji: string; size: number }) {
   return (
     <div
       style={{
         width: size, height: size,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transform: `scaleX(${flip})`,
       }}
     >
       <span
         style={{
           fontSize: size * 0.85,
           display: 'inline-block',
-          animation: idle ? 'cursor-bob 1.6s ease-in-out infinite' : 'none',
+          animation: 'cursor-bob 1.6s ease-in-out infinite',
           filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
         }}
       >

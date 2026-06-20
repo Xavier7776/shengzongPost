@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
       frame_height: fh,
       scale: 96,
       follow_easing: 0.13,
-      state_map: '{"idle":0,"runRight":1,"runLeft":2}',
+      state_map: '{"idle":0,"runRight":1,"runLeft":2,"waving":3,"jumping":4,"failed":5,"waiting":6,"running":7,"review":8}',
       emoji,
       render_type: 'sprite_sheet',
       poster_url: localPosterUrl,

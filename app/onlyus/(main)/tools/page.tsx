@@ -1,10 +1,21 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useIsMobile } from '@/lib/hooks'
 
-const TOOLS = [
+interface Tool {
+  href: string
+  emoji: string
+  title: string
+  desc: string
+  color: string
+  bg: string
+  border: string
+  category: 'play' | 'life' | 'record'
+}
+
+const TOOLS: Tool[] = [
   {
     href: '/onlyus/tools/roulette',
     emoji: '🎡',
@@ -13,6 +24,7 @@ const TOOLS = [
     color: '#F5A623',
     bg: 'rgba(245,166,35,0.08)',
     border: 'rgba(245,166,35,0.18)',
+    category: 'play',
   },
   {
     href: '/onlyus/tools/counter',
@@ -22,6 +34,7 @@ const TOOLS = [
     color: '#C4785A',
     bg: 'rgba(196,120,90,0.08)',
     border: 'rgba(196,120,90,0.18)',
+    category: 'record',
   },
   {
     href: '/onlyus/tools/gomoku',
@@ -31,6 +44,7 @@ const TOOLS = [
     color: '#3D2318',
     bg: 'rgba(61,35,24,0.06)',
     border: 'rgba(61,35,24,0.14)',
+    category: 'play',
   },
   {
     href: '/onlyus/tools/expense',
@@ -40,6 +54,7 @@ const TOOLS = [
     color: '#7EB8D4',
     bg: 'rgba(126,184,212,0.08)',
     border: 'rgba(126,184,212,0.18)',
+    category: 'life',
   },
   {
     href: '/onlyus/tools/drawing',
@@ -49,6 +64,7 @@ const TOOLS = [
     color: '#E8849C',
     bg: 'rgba(232,132,156,0.08)',
     border: 'rgba(232,132,156,0.18)',
+    category: 'play',
   },
   {
     href: '/onlyus/tools/calendar',
@@ -58,6 +74,7 @@ const TOOLS = [
     color: '#7BB87E',
     bg: 'rgba(123,184,126,0.08)',
     border: 'rgba(123,184,126,0.18)',
+    category: 'life',
   },
   {
     href: '/onlyus/tools/quiz',
@@ -67,6 +84,7 @@ const TOOLS = [
     color: '#9B8EC4',
     bg: 'rgba(155,142,196,0.08)',
     border: 'rgba(155,142,196,0.18)',
+    category: 'play',
   },
   {
     href: '/onlyus/tools/pet',
@@ -76,6 +94,7 @@ const TOOLS = [
     color: '#D4A05E',
     bg: 'rgba(212,160,94,0.08)',
     border: 'rgba(212,160,94,0.18)',
+    category: 'play',
   },
   {
     href: '/onlyus/tools/movies',
@@ -85,10 +104,18 @@ const TOOLS = [
     color: '#E8849C',
     bg: 'rgba(232,132,156,0.08)',
     border: 'rgba(232,132,156,0.18)',
+    category: 'record',
   },
 ]
 
-function ToolCard({ tool, index, mobile = false }: { tool: typeof TOOLS[0]; index: number; mobile?: boolean }) {
+const CATEGORIES = [
+  { id: 'all',    label: '全部', emoji: '✨' },
+  { id: 'play',   label: '一起玩', emoji: '🎮' },
+  { id: 'life',   label: '生活', emoji: '🌿' },
+  { id: 'record', label: '记录', emoji: '📝' },
+] as const
+
+function ToolCard({ tool, index, mobile = false }: { tool: Tool; index: number; mobile?: boolean }) {
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -171,6 +198,18 @@ function ToolCard({ tool, index, mobile = false }: { tool: typeof TOOLS[0]; inde
 
 export default function ToolsPage() {
   const isMobile = useIsMobile()
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<string>('all')
+
+  const filtered = useMemo(() => {
+    return TOOLS.filter(t => {
+      const matchCat = category === 'all' || t.category === category
+      const q = query.trim().toLowerCase()
+      const matchQuery = !q || t.title.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q)
+      return matchCat && matchQuery
+    })
+  }, [query, category])
+
   return (
     <>
       <style>{`
@@ -179,7 +218,7 @@ export default function ToolsPage() {
       `}</style>
 
       <div style={{ minHeight: '100%', padding: isMobile ? '20px 16px 80px' : '40px 40px 60px', maxWidth: 860, margin: '0 auto' }}>
-        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 36 }}>
+        <div style={{ animation: 'card-rise 0.45s ease both', marginBottom: 24 }}>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(196,120,90,0.6)', margin: '0 0 6px' }}>
             专属工具箱
           </p>
@@ -188,11 +227,124 @@ export default function ToolsPage() {
           </h1>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 14 }}>
-          {TOOLS.map((tool, i) => (
-            <ToolCard key={tool.href} tool={tool} index={i} mobile={isMobile} />
-          ))}
+        {/* 搜索框 */}
+        <div style={{ marginBottom: 16, animation: 'card-rise 0.45s ease 60ms both' }}>
+          <div style={{
+            position: 'relative',
+            background: 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: 14,
+            border: '1px solid rgba(196,120,90,0.12)',
+            transition: 'border-color 0.2s ease',
+          }}>
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{
+                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                color: 'rgba(196,120,90,0.5)', pointerEvents: 'none',
+              }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="搜索工具..."
+              style={{
+                width: '100%',
+                padding: '12px 14px 12px 40px',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 13,
+                color: '#3D2318',
+                borderRadius: 14,
+              }}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'rgba(196,120,90,0.1)', border: 'none',
+                  width: 22, height: 22, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: 'rgba(196,120,90,0.6)',
+                  fontSize: 14, lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* 分类筛选 */}
+        <div style={{
+          display: 'flex', gap: 8, marginBottom: 24,
+          flexWrap: 'wrap',
+          animation: 'card-rise 0.45s ease 100ms both',
+        }}>
+          {CATEGORIES.map(cat => {
+            const active = category === cat.id
+            const count = cat.id === 'all'
+              ? TOOLS.length
+              : TOOLS.filter(t => t.category === cat.id).length
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategory(cat.id)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 20,
+                  border: `1px solid ${active ? 'rgba(196,120,90,0.3)' : 'rgba(196,120,90,0.12)'}`,
+                  background: active
+                    ? 'linear-gradient(135deg, rgba(196,120,90,0.12), rgba(232,132,156,0.08))'
+                    : 'rgba(255,255,255,0.5)',
+                  color: active ? '#C4785A' : 'rgba(61,35,24,0.5)',
+                  fontSize: 12,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: active ? 600 : 400,
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{cat.emoji}</span>
+                {cat.label}
+                <span style={{
+                  fontSize: 10, opacity: 0.6,
+                  background: active ? 'rgba(196,120,90,0.15)' : 'rgba(196,120,90,0.08)',
+                  padding: '1px 6px', borderRadius: 8,
+                }}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* 工具网格 */}
+        {filtered.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 14 }}>
+            {filtered.map((tool, i) => (
+              <ToolCard key={tool.href} tool={tool} index={i} mobile={isMobile} />
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            textAlign: 'center', padding: '60px 20px',
+            color: 'rgba(61,35,24,0.3)',
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic', fontSize: 14,
+          }}>
+            没有找到匹配的工具
+          </div>
+        )}
       </div>
     </>
   )

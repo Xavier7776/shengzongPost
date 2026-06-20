@@ -28,7 +28,7 @@ const SWING_STYLE = `
 const NAV_ITEMS = [
   { label: 'Home',     href: '/' },
   { label: 'Blog',     href: '/blog' },
-  { label: 'Skills',   href: '/skills' },
+  { label: 'Trending', href: '/skills' },
   { label: 'Projects', href: '/projects' },
 ]
 

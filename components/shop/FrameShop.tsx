@@ -149,6 +149,8 @@ export default function FrameShop() {
       if (!res.ok) { flash('err', r.error ?? '操作失败'); return }
       setData(prev => prev ? { ...prev, equippedFrameId: frameId } : prev)
       flash('ok', frameId ? '装备成功 🎉' : '已卸下')
+      // 通知全局组件（UserMenu 等）刷新头像框
+      window.dispatchEvent(new CustomEvent('frame-equipped', { detail: { frameId } }))
     } catch { flash('err', '网络错误') }
     finally { setBusy(null) }
   }

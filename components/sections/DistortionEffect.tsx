@@ -113,9 +113,9 @@ export default function DistortionEffect() {
       ctx.font = `400 ${texH * 0.038}px 'Courier New', monospace`
       ctx.fillStyle = 'rgba(0,0,0,0.30)'
       ctx.textAlign = 'center'
-      ctx.fillText('train.py — GRDIformer', termX + termW / 2, dotY + texH * 0.016)
+      ctx.fillText('mindstack — site status', termX + termW / 2, dotY + texH * 0.016)
 
-      // log 内容
+      // log 内容：网站状态面板
       const monoSize = texH * 0.041
       ctx.font = `400 ${monoSize}px 'Courier New', monospace`
       ctx.textAlign = 'left'
@@ -137,19 +137,17 @@ export default function DistortionEffect() {
         ly += lineH
       }
 
-      logLine([['$ ', C.green], ['python train.py --model GRDIformer', C.white]])
-      logLine([['  --dataset Electricity --epochs 30', C.muted]])
+      logLine([['$ ', C.green], ['mindstack --status', C.white]])
       ly += lineH * 0.3
-      logLine([['[INFO]', C.cyan], [' Loading dataset...', C.muted]])
-      logLine([['  train: 18880  val: 2632  test: 5260', C.dim]])
+      logLine([['[INFO]', C.cyan], [' Stack: ', C.muted], ['Next.js 16 · React 19', C.yellow]])
+      logLine([['         ', C.dim], ['Tailwind 4 · Supabase · Three.js', C.dim]])
       ly += lineH * 0.3
-      logLine([['[INFO]', C.cyan], [' Model params: ', C.muted], ['2.31M', C.yellow]])
-      logLine([['  MS-STD  RCM  PVA  → RevIN + GLU', C.dim]])
+      logLine([['[INFO]', C.cyan], [' Sections: ', C.muted], ['Blog · Trending · Projects', C.white]])
+      logLine([['[INFO]', C.cyan], [' Features: ', C.muted], ['Cursor Pets · Avatar Frames', C.white]])
       ly += lineH * 0.3
-      logLine([['Epoch ', C.muted], ['01', C.white], ['/30', C.dim]])
-      logLine([['  loss: ', C.dim], ['0.4821', C.yellow], ['  lr: 1e-4', C.dim]])
-      logLine([['Epoch ', C.muted], ['10', C.white], ['/30', C.dim]])
-
+      logLine([['  ✓ ', C.green], ['distortion footer deployed', C.muted]])
+      logLine([['  ✓ ', C.green], ['trending cache: stale-while-revalidate', C.muted]])
+      logLine([['  → ', C.purple], ['more coming soon...', C.muted]])
 
       // 光标
       ctx.fillStyle = C.green

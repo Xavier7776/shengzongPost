@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
 import { useIsMobile } from '@/lib/hooks'
 import DaysCounter from '@/components/onlyus/dashboard/DaysCounter'
@@ -13,6 +14,14 @@ import MorningCard from '@/components/onlyus/dashboard/MorningCard'
 import MoodSummaryCard from '@/components/onlyus/dashboard/MoodSummaryCard'
 import CountdownWidget from '@/components/onlyus/dashboard/CountdownWidget'
 import CareMessageToast from '@/components/onlyus/weather/CareMessageToast'
+
+// 首页快捷工具入口（常用 4 个，一键直达）
+const QUICK_TOOLS = [
+  { href: '/onlyus/tools/drawing', emoji: '🎨', label: '画画猜猜', color: '#E8849C' },
+  { href: '/onlyus/tools/gomoku',  emoji: '⚫', label: '五子棋',   color: '#3D2318' },
+  { href: '/onlyus/tools/roulette',emoji: '🎡', label: '转盘',     color: '#F5A623' },
+  { href: '/onlyus/tools/quiz',    emoji: '❓', label: '默契问答', color: '#9B8EC4' },
+]
 
 // 默认城市坐标（fallback）
 const DEFAULT_COORDS = { lat: 39.9042, lon: 116.4074, city: '北京' }
@@ -134,6 +143,65 @@ export default function OnlyUsHomePage() {
             </div>
             <div className="onlyus-card" style={{ animationDelay: '320ms' }}>
               <GoodnightCard />
+            </div>
+            <div className="onlyus-card" style={{ animationDelay: '360ms' }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.45)',
+                backdropFilter: 'blur(16px)',
+                borderRadius: 20,
+                border: '1px solid rgba(196,120,90,0.1)',
+                padding: '16px 18px',
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginBottom: 12,
+                }}>
+                  <p style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: 11, letterSpacing: '0.3em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(196,120,90,0.7)',
+                    margin: 0,
+                  }}>
+                    快捷入口
+                  </p>
+                  <Link
+                    href="/onlyus/tools"
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: 11, color: 'rgba(196,120,90,0.6)',
+                      textDecoration: 'none',
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    全部
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  {QUICK_TOOLS.map(t => (
+                    <Link key={t.href} href={t.href} style={{ textDecoration: 'none' }}>
+                      <div style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        padding: '10px 4px',
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.4)',
+                        border: '1px solid rgba(196,120,90,0.08)',
+                      }}>
+                        <span style={{ fontSize: 20, marginBottom: 4 }}>{t.emoji}</span>
+                        <span style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: 10, color: 'rgba(61,35,24,0.6)',
+                        }}>
+                          {t.label}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="onlyus-card" style={{
               animationDelay: '380ms',
@@ -266,6 +334,87 @@ export default function OnlyUsHomePage() {
           {/* 晚安打卡 — 占 5 列 */}
           <div className="onlyus-card" style={{ gridColumn: 'span 5', animationDelay: '320ms' }}>
             <GoodnightCard />
+          </div>
+
+          {/* 快捷工具 — 占 12 列 */}
+          <div className="onlyus-card" style={{ gridColumn: 'span 12', animationDelay: '360ms' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.45)',
+              backdropFilter: 'blur(16px)',
+              borderRadius: 20,
+              border: '1px solid rgba(196,120,90,0.1)',
+              padding: '20px 24px',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginBottom: 14,
+              }}>
+                <p style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 11, letterSpacing: '0.3em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(196,120,90,0.7)',
+                  margin: 0,
+                }}>
+                  快捷入口
+                </p>
+                <Link
+                  href="/onlyus/tools"
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 11, color: 'rgba(196,120,90,0.6)',
+                    textDecoration: 'none',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    transition: 'color 0.2s ease',
+                  }}
+                >
+                  全部工具
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                {QUICK_TOOLS.map(t => (
+                  <Link
+                    key={t.href}
+                    href={t.href}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      padding: '14px 8px',
+                      borderRadius: 14,
+                      background: 'rgba(255,255,255,0.4)',
+                      border: '1px solid rgba(196,120,90,0.08)',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.transform = 'translateY(-3px)'
+                      el.style.borderColor = `${t.color}40`
+                      el.style.background = 'rgba(255,255,255,0.7)'
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.transform = 'translateY(0)'
+                      el.style.borderColor = 'rgba(196,120,90,0.08)'
+                      el.style.background = 'rgba(255,255,255,0.4)'
+                    }}
+                    >
+                      <span style={{ fontSize: 24, marginBottom: 6 }}>{t.emoji}</span>
+                      <span style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 11, color: 'rgba(61,35,24,0.6)',
+                      }}>
+                        {t.label}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* 底部装饰引用 */}
