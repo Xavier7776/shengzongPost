@@ -4,15 +4,15 @@ import FooterLogo from './FooterLogo'
 
 export default function Footer() {
   return (
-    <footer className="py-20 text-center z-10 relative border-t border-gray-100">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="flex items-center justify-center gap-2.5 mb-8">
+    <footer className="py-12 md:py-20 text-center z-10 relative border-t border-gray-100">
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-center gap-2 md:gap-2.5 mb-6 md:mb-8">
           <FooterLogo />
-          <h2 className="text-2xl font-black tracking-tighter">
+          <h2 className="text-xl md:text-2xl font-black tracking-tighter">
             Mind<span className="text-blue-600">Stack</span>
           </h2>
         </div>
-        <div className="flex justify-center space-x-6 mb-8">
+        <div className="flex justify-center space-x-4 md:space-x-6 mb-6 md:mb-8">
           <a
             href="https://github.com/Xavier7776"
             target="_blank"
@@ -37,7 +37,7 @@ export default function Footer() {
             <Mail className="w-5 h-5" />
           </Link>
         </div>
-        <p className="text-xs font-bold tracking-[0.2em] text-gray-300 uppercase">
+        <p className="text-[10px] md:text-xs font-bold tracking-[0.15em] md:tracking-[0.2em] text-gray-300 uppercase">
           © {new Date().getFullYear()} MindStack. Built with Precision.
         </p>
       </div>

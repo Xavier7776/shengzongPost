@@ -150,27 +150,21 @@ export default function TrendingList({ period }: TrendingListProps) {
 
   return (
     <div>
-      {/* 更新时间 */}
-      {crawledAt && (
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-xs text-gray-400 font-mono flex items-center gap-2">
-            <span className="text-gray-300">更新于</span>{' '}
-            {new Date(crawledAt).toLocaleDateString('zh-CN')}{' '}
-            {new Date(crawledAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-            <span className="text-gray-200 mx-1">·</span>
-            <span className="text-gray-500">共 {items.length} 个项目</span>
-            {refreshing && (
-              <span className="inline-flex items-center gap-1 text-blue-500 ml-1">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                <span className="text-[10px]">同步中</span>
-              </span>
-            )}
-          </p>
-          <span className="text-[10px] font-bold tracking-widest uppercase text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">
-            {PERIOD_LABELS[period]}
-          </span>
-        </div>
-      )}
+      {/* 项目数量 + 周期标签 */}
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-xs text-gray-400 font-mono flex items-center gap-2">
+          <span className="text-gray-500">共 {items.length} 个项目</span>
+          {refreshing && (
+            <span className="inline-flex items-center gap-1 text-blue-500 ml-1">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              <span className="text-[10px]">同步中</span>
+            </span>
+          )}
+        </p>
+        <span className="text-[10px] font-bold tracking-widest uppercase text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">
+          {PERIOD_LABELS[period]}
+        </span>
+      </div>
 
       {/* 数据概览面板 */}
       <TrendingStats items={items} period={period} />

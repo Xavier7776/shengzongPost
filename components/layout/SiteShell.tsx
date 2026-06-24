@@ -22,6 +22,8 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith('/dashboard/new') ||
     pathname.startsWith('/dashboard/edit')
   const isOnlyUs = pathname.startsWith('/onlyus')
+  // /skills/research 有自己的工具栏（含用户头像菜单），跳过全局 Navbar/Footer
+  const isResearch = pathname.startsWith('/skills/research')
 
   // 用 IntersectionObserver 检测哨兵元素是否进入视口，只在页脚即将可见时才渲染
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -45,7 +47,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
     return () => observer.disconnect()
   }, [pathname])
 
-  if (isAdmin || isDashboardEditor || isOnlyUs) {
+  if (isAdmin || isDashboardEditor || isOnlyUs || isResearch) {
     return <>{children}</>
   }
 

@@ -645,8 +645,14 @@ export async function addPoints(
 ): Promise<number> {
   // 用 RETURNING 避免额外 SELECT，单条 SQL 完成更新+取值
   const rows = await sql`UPDATE users SET points = GREATEST(points + ${amount}, 0) WHERE id = ${userId} RETURNING points`
-  await sql`INSERT INTO point_transactions(user_id, amount, reason, ref_slug) VALUES(${userId}, ${amount}, ${reason}, ${refSlug ?? null})`
-  return (rows[0] as { points: number })?.points ?? 0
+  const newPoints = (rows[0] as { points: number })?.points ?? 0
+  // 流水记录失败不应影响扣费结果（UPDATE 已提交）
+  try {
+    await sql`INSERT INTO point_transactions(user_id, amount, reason, ref_slug) VALUES(${userId}, ${amount}, ${reason}, ${refSlug ?? null})`
+  } catch (e) {
+    console.error('[addPoints] 流水记录失败（不影响扣费）:', e)
+  }
+  return newPoints
 }
 
 export async function getPoints(userId: number): Promise<number> {
@@ -675,6 +681,76 @@ export async function hasReadPost(userId: number, postSlug: string): Promise<boo
 
 export async function markPostRead(userId: number, postSlug: string): Promise<void> {
   await sql`INSERT INTO point_read_log(user_id, post_slug) VALUES(${userId}, ${postSlug}) ON CONFLICT DO NOTHING`
+}
+
+// ─── Research Reports (深度研究历史) ─────────────────────────────────────────
+
+export interface ResearchReport {
+  id: number
+  user_id: number
+  topic: string
+  model: string
+  language: string
+  status: string
+  report_content: string
+  elapsed_seconds: number
+  created_at: string
+}
+
+export interface ResearchReportMeta {
+  id: number
+  topic: string
+  model: string
+  language: string
+  status: string
+  elapsed_seconds: number
+  created_at: string
+}
+
+/** 获取用户的深度研究历史列表（不含报告正文，避免传输过大） */
+export async function getResearchReports(userId: number, limit = 50): Promise<ResearchReportMeta[]> {
+  const rows = await sql`
+    SELECT id, topic, model, language, status, elapsed_seconds, created_at
+    FROM research_reports
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as ResearchReportMeta[]
+}
+
+/** 获取单条研报详情（含正文） */
+export async function getResearchReportById(userId: number, reportId: number): Promise<ResearchReport | null> {
+  const rows = await sql`
+    SELECT * FROM research_reports
+    WHERE id = ${reportId} AND user_id = ${userId}
+    LIMIT 1
+  `
+  if (!rows[0]) return null
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as ResearchReport
+}
+
+/** 保存一条深度研究结果 */
+export async function createResearchReport(data: {
+  user_id: number
+  topic: string
+  model: string
+  language: string
+  status: string
+  report_content: string
+  elapsed_seconds: number
+}): Promise<ResearchReport> {
+  const rows = await sql`
+    INSERT INTO research_reports(user_id, topic, model, language, status, report_content, elapsed_seconds)
+    VALUES(${data.user_id}, ${data.topic}, ${data.model}, ${data.language}, ${data.status}, ${data.report_content}, ${data.elapsed_seconds})
+    RETURNING *
+  `
+  return serializeRow(rows[0] as Record<string, unknown>) as unknown as ResearchReport
+}
+
+/** 删除一条研报 */
+export async function deleteResearchReport(userId: number, reportId: number): Promise<void> {
+  await sql`DELETE FROM research_reports WHERE id = ${reportId} AND user_id = ${userId}`
 }
 
 // ─── Avatar Frames ──────────────────────────────────────────────────────────

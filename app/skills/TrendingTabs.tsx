@@ -1,7 +1,8 @@
 'use client'
 // app/skills/TrendingTabs.tsx
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Flame, Calendar, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
+import { Flame, Calendar, TrendingUp, Microscope } from 'lucide-react'
 
 const TABS = [
   { key: 'daily', label: '每日热门', icon: Flame },
@@ -21,7 +22,7 @@ export default function TrendingTabs() {
   }
 
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-2 mb-8 flex-wrap">
       {TABS.map(tab => {
         const Icon = tab.icon
         const isActive = currentTab === tab.key
@@ -40,6 +41,16 @@ export default function TrendingTabs() {
           </button>
         )
       })}
+      {/* 深度研究 — 独立页面入口，用分隔线区分 */}
+      <div className="w-px h-5 bg-gray-200 mx-1" />
+      <Link
+        href="/skills/research"
+        className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm hover:shadow-md hover:scale-105"
+      >
+        <Microscope className="w-3.5 h-3.5" />
+        深度研究
+        <span className="text-[8px] font-bold px-1.5 py-0.5 bg-white/20 rounded-full text-white border border-white/30">BETA</span>
+      </Link>
     </div>
   )
 }
