@@ -211,6 +211,7 @@ export default function MultiAgentHub() {
 
   // ── refs ──
   const wsRef = useRef<WebSocket | null>(null)
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
   // 追踪是否已进入 writer 阶段（收到 writing_report 信号后才算）
@@ -441,14 +442,12 @@ export default function MultiAgentHub() {
     ws.onopen = () => {
       addLog('WebSocket 连接成功', 'success')
       // 心跳保活：每 25 秒发一次 ping，避开 Render 30 秒空闲超时
-      const pingInterval = setInterval(() => {
+      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current)
+      pingIntervalRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send('ping')
-        } else {
-          clearInterval(pingInterval)
         }
       }, 25000)
-      wsRef.current && (wsRef.current._pingInterval = pingInterval)
     }
     ws.onmessage = (e) => {
       try { handleMessage(JSON.parse(e.data)) }
@@ -462,9 +461,9 @@ export default function MultiAgentHub() {
     }
     ws.onclose = () => {
       addLog('WebSocket 已断开', 'warn')
-      if (wsRef.current && wsRef.current._pingInterval) {
-        clearInterval(wsRef.current._pingInterval)
-        wsRef.current._pingInterval = null
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current)
+        pingIntervalRef.current = null
       }
     }
     return ws
