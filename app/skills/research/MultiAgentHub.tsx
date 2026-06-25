@@ -438,7 +438,18 @@ export default function MultiAgentHub() {
     const ws = new WebSocket(`${WS_BASE}/ws`)
     wsRef.current = ws
 
-    ws.onopen = () => addLog('WebSocket 连接成功', 'success')
+    ws.onopen = () => {
+      addLog('WebSocket 连接成功', 'success')
+      // 心跳保活：每 25 秒发一次 ping，避开 Render 30 秒空闲超时
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send('ping')
+        } else {
+          clearInterval(pingInterval)
+        }
+      }, 25000)
+      wsRef.current && (wsRef.current._pingInterval = pingInterval)
+    }
     ws.onmessage = (e) => {
       try { handleMessage(JSON.parse(e.data)) }
       catch { addLog(e.data, 'info') }
@@ -449,7 +460,13 @@ export default function MultiAgentHub() {
       setRunStage('idle')
       stopTimer()
     }
-    ws.onclose = () => addLog('WebSocket 已断开', 'warn')
+    ws.onclose = () => {
+      addLog('WebSocket 已断开', 'warn')
+      if (wsRef.current && wsRef.current._pingInterval) {
+        clearInterval(wsRef.current._pingInterval)
+        wsRef.current._pingInterval = null
+      }
+    }
     return ws
   }, [addLog, handleMessage, stopTimer])
 
