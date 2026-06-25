@@ -441,13 +441,13 @@ export default function MultiAgentHub() {
 
     ws.onopen = () => {
       addLog('WebSocket 连接成功', 'success')
-      // 心跳保活：每 25 秒发一次 ping，避开 Render 30 秒空闲超时
+      // 心跳保活：每 20 秒发一次 ping，避开 Render 30 秒空闲超时
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current)
       pingIntervalRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send('ping')
         }
-      }, 25000)
+      }, 20000)
     }
     ws.onmessage = (e) => {
       try { handleMessage(JSON.parse(e.data)) }
