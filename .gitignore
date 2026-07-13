@@ -15,3 +15,8 @@ node_modules
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE / AI 助手配置（含本地记忆、会话缓存，不上传）
+.claude
+.trae
+.workbuddy

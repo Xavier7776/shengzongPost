@@ -4,7 +4,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import TrendingCard from '@/components/sections/TrendingCard'
 import TrendingStats from '@/components/sections/TrendingStats'
-import { Loader2, BarChart3, RefreshCw } from 'lucide-react'
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton'
+import { BarChart3, RefreshCw } from 'lucide-react'
 
 interface TrendingItem {
   id: number
@@ -121,10 +122,48 @@ export default function TrendingList({ period }: TrendingListProps) {
   const rest = useMemo(() => items.filter(i => i.rank > 3), [items])
 
   if (loading) {
+    // 骨架屏：与实际布局结构对齐（统计面板 + Top3 + 列表）
     return (
-      <div className="flex flex-col items-center py-20 gap-3 text-gray-400">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        <p className="text-sm">正在加载 Trending 数据…</p>
+      <div className="space-y-6">
+        {/* 顶部信息条骨架 */}
+        <div className="flex items-center justify-between mb-6">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-5 w-20 rounded-md" />
+        </div>
+        {/* 统计面板骨架 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-7 w-24" />
+            </div>
+          ))}
+        </div>
+        {/* Top3 领奖台骨架 */}
+        <div>
+          <Skeleton className="h-4 w-24 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </div>
+        {/* 排行榜骨架 */}
+        <div>
+          <Skeleton className="h-4 w-32 mb-4" />
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -150,9 +189,16 @@ export default function TrendingList({ period }: TrendingListProps) {
 
   return (
     <div>
-      {/* 项目数量 + 周期标签 */}
+      {/* 更新日期 + 项目数量 + 周期标签 */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-xs text-gray-400 font-mono flex items-center gap-2">
+          {crawledAt && (
+            <>
+              <span className="text-gray-300">更新于</span>{' '}
+              {new Date(crawledAt).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+              <span className="text-gray-200 mx-1">·</span>
+            </>
+          )}
           <span className="text-gray-500">共 {items.length} 个项目</span>
           {refreshing && (
             <span className="inline-flex items-center gap-1 text-blue-500 ml-1">

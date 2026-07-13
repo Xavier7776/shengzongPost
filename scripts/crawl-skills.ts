@@ -225,7 +225,7 @@ function extractKeywords(text: string): string[] {
 
 // ─── GitHub API ───────────────────────────────────────────────────────────────
 
-async function fetchGitHub(url: string): Promise<any> {
+async function fetchGitHub(url: string, retries = 3): Promise<any> {
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'MindStack-Skills-Crawler',
@@ -234,11 +234,53 @@ async function fetchGitHub(url: string): Promise<any> {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`
   }
 
-  const response = await fetch(url, { headers })
-  if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(url, { headers })
+
+    // Rate limit: 403 或 429，且 X-RateLimit-Remaining 为 0
+    if ((response.status === 403 || response.status === 429) && response.headers.has('x-ratelimit-remaining')) {
+      const remaining = parseInt(response.headers.get('x-ratelimit-remaining') || '1')
+      if (remaining === 0) {
+        const resetUnix = parseInt(response.headers.get('x-ratelimit-reset') || '0')
+        const nowSec = Math.floor(Date.now() / 1000)
+        const waitSec = Math.max(resetUnix - nowSec + 2, 5) // 至少等 5 秒，加 2 秒缓冲
+
+        if (attempt >= retries) {
+          throw new Error(`GitHub API rate limit exceeded, waited ${retries} times (last wait: ${waitSec}s)`)
+        }
+
+        console.log(`Rate limited. Waiting ${waitSec}s (reset at ${new Date(resetUnix * 1000).toISOString()})...`)
+        await new Promise(resolve => setTimeout(resolve, waitSec * 1000))
+        continue
+      }
+    }
+
+    if (!response.ok) {
+      // 其他错误也重试一次
+      if (attempt < retries) {
+        const waitMs = (attempt + 1) * 2000
+        console.log(`GitHub API ${response.status} (attempt ${attempt + 1}), retrying in ${waitMs}ms...`)
+        await new Promise(resolve => setTimeout(resolve, waitMs))
+        continue
+      }
+      const body = await response.text().catch(() => '')
+      throw new Error(`GitHub API error: ${response.status} ${response.statusText} — ${body.slice(0, 200)}`)
+    }
+
+    const json = await response.json()
+    
+    // 403 但没 rate-limit 头 — 可能是 token 过期或权限不足（Secondary rate limit）
+    if (!response.ok && attempt < retries) {
+      const waitMs = (attempt + 1) * 3000
+      console.log(`GitHub secondary rate limit, retrying in ${waitMs}ms...`)
+      await new Promise(resolve => setTimeout(resolve, waitMs))
+      continue
+    }
+    
+    return json
   }
-  return response.json()
+  
+  throw new Error('GitHub API request failed after all retries')
 }
 
 async function searchRepositories(query: string, page = 1, perPage = 10): Promise<any[]> {
@@ -308,9 +350,20 @@ async function crawlSkills(): Promise<Skill[]> {
       // 生成中文简介
       const chineseSummary = generateChineseSummary(repo.name, cleanDesc, category, readme)
 
+      // 生成唯一 slug：重名时追加 "-by-owner"
+      let baseSlug = slugify(repo.name)
+      let slug = baseSlug
+      if (seenUrls.size > 0) {
+        // 检查是否已有同名 slug（简单去重 — 用 owner 做后缀）
+        const existingSlugs = skills.map(s => s.slug)
+        if (existingSlugs.includes(slug)) {
+          slug = `${baseSlug}-by-${slugify(repo.owner.login)}`
+        }
+      }
+
       const skill: Skill = {
         name: repo.name,
-        slug: slugify(repo.name),
+        slug,
         description: cleanDesc,
         chinese_summary: chineseSummary,
         content: readme.slice(0, 5000),

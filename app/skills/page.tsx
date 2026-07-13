@@ -7,7 +7,9 @@ import SkillTrendingSwitch from './SkillTrendingSwitch'
 import SkillList from './SkillList'
 import { getSkills, getSkillCategories } from '@/lib/db-skills'
 
-export const dynamic = 'force-dynamic' // searchParams + 数据库查询需要动态渲染
+// Skills 页面：Trending 视图客户端 fetch（已有模块级缓存），Skills 视图服务端查询
+// 用 ISR 60 秒缓存加速二次访问
+export const revalidate = 60
 
 export const metadata: Metadata = {
   title: 'Skills & Trending — MindStack.',

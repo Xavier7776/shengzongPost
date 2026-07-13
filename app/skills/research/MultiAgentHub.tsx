@@ -155,11 +155,22 @@ interface HistoryReport {
   created_at: string
 }
 
-// ── 后端地址：优先用环境变量，否则用本地默认 ──────────────
-const WS_BASE = process.env.NEXT_PUBLIC_GPT_RESEARCHER_URL || 'ws://localhost:8000'
-
 // ── 积分费用 ──────────────────────────────────────────────
 const RESEARCH_COST = 2000
+
+// 获取后端 WebSocket 地址（服务端私有环境变量，不打包进客户端 bundle）
+async function fetchWsUrl(): Promise<string> {
+  try {
+    const res = await fetch('/api/research/ws-url', { cache: 'no-store' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.url) return data.url
+    }
+  } catch (err) {
+    console.error('[fetchWsUrl]', err)
+  }
+  return ''
+}
 
 export default function MultiAgentHub() {
   const { data: session } = useSession()
@@ -171,7 +182,7 @@ export default function MultiAgentHub() {
   const [viewMode, setViewMode] = useState<'visual' | 'list'>('visual')
 
   // ── 配置参数 ──
-  const [taskTopic, setTaskTopic] = useState('分析小米公司 2024 年财报，重点关注营收增长、手机业务、IoT 业务和汽车业务的表现，给出投资建议')
+  const [taskTopic, setTaskTopic] = useState('分析苹果公司2026年财报，重点关注营收增长、手机业务等方面的表现，给出投资建议')
   const [selectedModel, setSelectedModel] = useState('mimo-v2.5-pro')
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
   const [maxSections, setMaxSections] = useState(5)
@@ -211,7 +222,7 @@ export default function MultiAgentHub() {
 
   // ── refs ──
   const wsRef = useRef<WebSocket | null>(null)
-  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
   // 追踪是否已进入 writer 阶段（收到 writing_report 信号后才算）
@@ -432,22 +443,25 @@ export default function MultiAgentHub() {
   }, [addLog, setNodeActive, stopTimer, fetchPoints, saveReportToDB])
 
   // ── 连接 WebSocket ──
-  const connectWS = useCallback(() => {
+  const connectWS = useCallback(async () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return wsRef.current
 
-    addLog(`正在连接 ${WS_BASE}/ws ...`, 'system')
-    const ws = new WebSocket(`${WS_BASE}/ws`)
+    // 通过 API 获取后端地址，避免在客户端 bundle 中暴露
+    const wsBase = await fetchWsUrl()
+    if (!wsBase) {
+      addLog('无法获取后端服务地址，请先登录', 'error')
+      setErrorMsg('无法获取后端服务地址，请确认已登录')
+      setRunStage('idle')
+      stopTimer()
+      return null
+    }
+
+    addLog('正在连接后端研究服务...', 'system')
+    const ws = new WebSocket(`${wsBase}/ws`)
     wsRef.current = ws
 
     ws.onopen = () => {
       addLog('WebSocket 连接成功', 'success')
-      // 心跳保活：每 20 秒发一次 ping，避开 Render 30 秒空闲超时
-      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current)
-      pingIntervalRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send('ping')
-        }
-      }, 20000)
     }
     ws.onmessage = (e) => {
       try { handleMessage(JSON.parse(e.data)) }
@@ -461,10 +475,6 @@ export default function MultiAgentHub() {
     }
     ws.onclose = () => {
       addLog('WebSocket 已断开', 'warn')
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current)
-        pingIntervalRef.current = null
-      }
     }
     return ws
   }, [addLog, handleMessage, stopTimer])
@@ -542,7 +552,8 @@ export default function MultiAgentHub() {
       },
     }
 
-    const ws = connectWS()
+    const ws = await connectWS()
+    if (!ws) return // 获取地址失败或连接异常，已由 connectWS 处理错误
     const sendTask = () => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send('start ' + JSON.stringify(message))
@@ -1604,10 +1615,10 @@ export default function MultiAgentHub() {
               <div className="bg-white border border-gray-100 rounded-2xl p-6 space-y-4 text-xs">
                 <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <div>
-                    <span className="font-bold text-gray-700 block">后端服务地址</span>
-                    <span className="text-gray-400 block mt-0.5">gpt-researcher WebSocket 地址</span>
+                    <span className="font-bold text-gray-700 block">后端服务连接</span>
+                    <span className="text-gray-400 block mt-0.5">通过鉴权 API 动态获取，地址不暴露在前端</span>
                   </div>
-                  <code className="text-[10px] bg-gray-50 px-2 py-1 rounded font-mono text-gray-600">{WS_BASE}</code>
+                  <span className="text-[10px] bg-green-50 text-green-600 border border-green-100 px-2 py-1 rounded-md font-mono">已保护</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <div>
