@@ -2,8 +2,11 @@
 import { neon } from '@neondatabase/serverless'
 
 if (!process.env.DATABASE_URL) throw new Error('Missing DATABASE_URL')
-// fetchOptions.cache='no-store' 确保每次查询走真实数据库，避免 Next.js fetch 缓存导致数据过期
-export const sql = neon(process.env.DATABASE_URL, { fetchOptions: { cache: 'no-store' as RequestCache } })
+// 不设置 cache: 'no-store'，让 Next.js 按 ISR 策略缓存
+// - ISR 页面（revalidate=N）：按 N 秒周期缓存，重新生成时查询数据库
+// - API 路由：POST/PATCH/DELETE 天然动态；GET 路由若调用 requireAdminApi/getServerSession
+//   会自动变动态（内部读取 cookies/headers）；公开 GET 路由需显式声明 force-dynamic
+export const sql = neon(process.env.DATABASE_URL)
 
 // ─── serializer ───────────────────────────────────────────────────────────────
 function serializeRow(row: Record<string, unknown>): Record<string, unknown> {

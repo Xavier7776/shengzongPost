@@ -2,8 +2,8 @@
 import { neon } from '@neondatabase/serverless'
 
 if (!process.env.DATABASE_URL) throw new Error('Missing DATABASE_URL')
-// 与 lib/db.ts 保持一致：确保每次查询走真实数据库
-export const sql = neon(process.env.DATABASE_URL, { fetchOptions: { cache: 'no-store' as RequestCache } })
+// 与 lib/db.ts 保持一致：不设置 cache，让 Next.js 按 ISR 策略缓存
+export const sql = neon(process.env.DATABASE_URL)
 
 // ─── serializer ───────────────────────────────────────────────────────────────
 function serializeRow(row: Record<string, unknown>): Record<string, unknown> {

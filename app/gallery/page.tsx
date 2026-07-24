@@ -3,8 +3,8 @@ import { getAllGalleryImages } from '@/lib/db'
 import type { Metadata } from 'next'
 import GalleryClient from './GalleryClient'
 
+// 图库页需要实时展示最新上传，force-dynamic 已足够，revalidate=0 是冗余声明
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 export const metadata: Metadata = {
   title: '视觉存档 — MindStack.',
