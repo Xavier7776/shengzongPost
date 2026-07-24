@@ -15,3 +15,7 @@ CREATE TABLE IF NOT EXISTS post_attachments (
   uploaded_by INTEGER     NOT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- 3. projects 表（个人项目）新增 attachments 字段（JSONB 数组，存 md 文件附件元数据）
+--    结构同 posts.attachments：[{ url, filename, size }]
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS attachments JSONB NOT NULL DEFAULT '[]'::jsonb;

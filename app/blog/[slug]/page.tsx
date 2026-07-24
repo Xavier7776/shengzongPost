@@ -14,8 +14,7 @@ import PostContent from './PostContent'
 import PostComments from './PostComments'
 import type { Metadata } from 'next'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const revalidate = 60 // 启用 ISR：60s 失效；文章更新时 revalidateTag('post-${slug}') 立即刷新
 
 interface PageProps { params: { slug: string } }
 

@@ -24,6 +24,9 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   const isOnlyUs = pathname.startsWith('/onlyus')
   // /skills/research 有自己的工具栏（含用户头像菜单），跳过全局 Navbar/Footer
   const isResearch = pathname.startsWith('/skills/research')
+  // /work/[slug] 详情页有自己的顶部导航条（普通文档流，跟随滚动）
+  // 避免 fixed Navbar 遮挡内容，跳过全局 Navbar/Footer
+  const isWorkDetail = /^\/work\/[^/]+/.test(pathname)
 
   // 用 IntersectionObserver 检测哨兵元素是否进入视口，只在页脚即将可见时才渲染
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -47,8 +50,30 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
     return () => observer.disconnect()
   }, [pathname])
 
+  if (isWorkDetail) {
+    // /work/[slug] 详情页：
+    // - 渲染全局 Navbar（Navbar 内部已对 /work/[slug] 改用 relative 定位，跟随页面滚动）
+    // - 渲染全局 Footer（DistortionEffect）
+    // - 不用 overflow-x-hidden：它会创建滚动容器，破坏详情页 TOC 的 sticky 定位
+    return (
+      <div
+        className="min-h-screen flex flex-col"
+        style={{ background: '#FAFAF8' }}
+      >
+        <Navbar />
+        <main className="relative z-10 flex-1">{children}</main>
+        <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
+        {showFooter ? (
+          <DistortionEffect />
+        ) : (
+          <div style={{ height: FOOTER_PLACEHOLDER_H }} aria-hidden />
+        )}
+      </div>
+    )
+  }
+
   if (isAdmin || isDashboardEditor || isOnlyUs || isResearch) {
-    return <>{children}</>
+    return <div className="min-h-screen">{children}</div>
   }
 
   return (

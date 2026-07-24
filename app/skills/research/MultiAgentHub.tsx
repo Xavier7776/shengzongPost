@@ -17,15 +17,30 @@ const MODEL_GROUPS = [
   {
     label: 'OpenAI',
     models: [
-      { value: 'gpt-4o', label: 'GPT-4o', badge: '推荐' },
-      { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+      { value: 'gpt-5.1', label: 'GPT-5.1', badge: '推荐' },
+      { value: 'gpt-5.1-mini', label: 'GPT-5.1 Mini' },
+      { value: 'gpt-5.4', label: 'GPT-5.4', badge: '前沿' },
+    ],
+  },
+  {
+    label: 'Anthropic Claude',
+    models: [
+      { value: 'claude-opus-4-6', label: 'Claude Opus 4.6', badge: '推荐' },
+      { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
     ],
   },
   {
     label: 'DeepSeek',
     models: [
-      { value: 'deepseek-chat', label: 'DeepSeek Chat', badge: '热门' },
-      { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner' },
+      { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash', badge: '热门' },
+      { value: 'deepseek-v4-thinking', label: 'DeepSeek V4 Thinking' },
+    ],
+  },
+  {
+    label: '通义千问 Qwen',
+    models: [
+      { value: 'qwen3.7-max', label: 'Qwen3.7 Max' },
+      { value: 'qwen3.7-plus', label: 'Qwen3.7 Plus' },
     ],
   },
   {
@@ -1324,21 +1339,7 @@ export default function MultiAgentHub() {
                     rows={4}
                     placeholder="请输入研究主题..."
                   />
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {[
-                      { label: '🍷 贵州茅台估值', text: '深度剖析贵州茅台2025年估值模型、产品价格体系与品牌护城河' },
-                      { label: '🚗 新能源车格局', text: '新能源汽车行业2026年终大盘点：比亚迪、特斯拉与蔚小理竞争壁垒及市占预测' },
-                      { label: '📱 小米人车家生态', text: '小米集团2024财报深度挖掘：聚焦人车家全生态变现能力与汽车毛利表现' },
-                    ].map(t => (
-                      <button
-                        key={t.label}
-                        onClick={() => setTaskTopic(t.text)}
-                        className="text-xs px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+
                 </div>
 
                 {/* 模型 + 语言 + 章节数 */}

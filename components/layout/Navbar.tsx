@@ -26,10 +26,11 @@ const SWING_STYLE = `
 }`
 
 const NAV_ITEMS = [
-  { label: 'Home',     href: '/' },
-  { label: 'Blog',     href: '/blog' },
-  { label: 'Trending', href: '/skills' },
-  { label: 'Projects', href: '/projects' },
+  { label: '首页',     href: '/' },
+  { label: '博客',     href: '/blog' },
+  { label: '热门',     href: '/skills' },
+  { label: '个人项目', href: '/work' },
+  { label: '关于',     href: '/projects' },
 ]
 
 export default function Navbar() {
@@ -106,12 +107,13 @@ export default function Navbar() {
   const userId  = (session?.user as { id?: string })?.id
   const initial = name.charAt(0).toUpperCase()
 
+  // /work/[slug] 详情页：Navbar 不 fixed，跟随页面滚动（普通文档流）
+  const isWorkDetail = /^\/work\/[^/]+/.test(pathname)
+
   return (
     <>
       {/* ── 顶栏 ── */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled ? 'bg-white/80 backdrop-blur-xl border-b border-gray-100 py-4' : 'bg-transparent py-6'
-      }`}>
+      <nav className={`${isWorkDetail ? 'relative bg-white border-b border-gray-100 py-4' : 'fixed top-0 left-0 right-0 z-50 transition-all duration-500 ' + (isScrolled ? 'bg-white/80 backdrop-blur-xl border-b border-gray-100 py-4' : 'bg-transparent py-6')}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
 
           {/* Logo */}

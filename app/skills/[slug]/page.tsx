@@ -7,7 +7,7 @@ import BackToTop from '@/components/ui/BackToTop'
 import type { Metadata } from 'next'
 import { marked } from 'marked'
 
-export const dynamic = 'force-dynamic' // 数据库查询需要动态渲染
+export const revalidate = 3600 // Skills 是爬虫数据，更新频率低，1 小时 ISR 缓存
 
 interface PageProps { params: Promise<{ slug: string }> }
 

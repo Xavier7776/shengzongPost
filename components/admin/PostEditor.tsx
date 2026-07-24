@@ -7,7 +7,7 @@ import {
   ChevronRight, FileText, PenLine, AlignLeft, ImagePlus,
   Bold, Italic, Heading2, Heading3, List, ListOrdered,
   Quote, Code, Minus, Link as LinkIcon, Undo, Redo, Code2,
-  Table, Youtube, Clock, Paperclip
+  Table, Youtube, Clock, Paperclip, Wand2, Upload
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -69,12 +69,14 @@ interface Props {
     author_id?: number | null; attachments?: Attachment[]
   }
 }
-type AiMode = 'draft' | 'continue' | 'excerpt'
+type AiMode = 'draft' | 'continue' | 'excerpt' | 'rewrite'
+type AiProvider = 'mimo' | 'gemini'
 
 const AI_MODES: { key: AiMode; label: string; desc: string; icon: React.ReactNode }[] = [
   { key: 'draft',    label: '生成草稿', desc: '描述主题，AI 帮你写出完整草稿',  icon: <FileText className="w-4 h-4" /> },
   { key: 'continue', label: '续写内容', desc: '基于已有内容，AI 接着写后续段落', icon: <PenLine  className="w-4 h-4" /> },
   { key: 'excerpt',  label: '生成摘要', desc: '根据正文，AI 自动生成列表页摘要', icon: <AlignLeft className="w-4 h-4" /> },
+  { key: 'rewrite',  label: '改写选中', desc: '选中编辑器中的文字，AI 按你的指令改写并替换', icon: <Wand2 className="w-4 h-4" /> },
 ]
 
 function mdToHtml(md: string): string {
@@ -119,6 +121,7 @@ export default function PostEditor({ mode, initialData }: Props) {
   const [coverUploadError, setCoverUploadError] = useState('')
   const [aiOpen, setAiOpen]       = useState(false)
   const [aiMode, setAiMode]       = useState<AiMode>('draft')
+  const [aiProvider, setAiProvider] = useState<AiProvider>('mimo')
   const [aiPrompt, setAiPrompt]   = useState('')
   const [aiResult, setAiResult]   = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -224,10 +227,32 @@ export default function PostEditor({ mode, initialData }: Props) {
     const url      = addAttUrl.trim()
     setAddAttError('')
     if (!filename) { setAddAttError('请填写文件名'); return }
-    if (!url)      { setAddAttError('请填写蓝奏云链接'); return }
+    if (!url)      { setAddAttError('请填写链接'); return }
     if (!/^https?:\/\//i.test(url)) { setAddAttError('链接格式不正确，请以 http(s):// 开头'); return }
     setAttachments(prev => [...prev, { url, filename, size: 0 }])
     setAddAttFilename(''); setAddAttUrl(''); setAddAttOpen(false)
+  }
+
+  // ── 上传 md 文件到 Cloudinary（resource_type=raw），成功后追加到 attachments ──
+  const [mdUploading, setMdUploading] = useState(false)
+  async function handleUploadMd(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 允许重复选择同一文件
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setAddAttError('文件不能超过 10MB'); return }
+    setMdUploading(true); setAddAttError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload-md', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? '上传失败')
+      setAttachments(prev => [...prev, { url: data.url, filename: data.filename, size: data.size }])
+    } catch (err) {
+      setAddAttError(err instanceof Error ? err.message : '上传失败')
+    } finally {
+      setMdUploading(false)
+    }
   }
 
   function removeAttachment(index: number) {
@@ -272,10 +297,20 @@ export default function PostEditor({ mode, initialData }: Props) {
     setAiLoading(true); setAiResult(''); setAiError('')
     abortRef.current = new AbortController()
     try {
-      const res = await fetch('/api/ai/write', {
+      // rewrite 模式：取编辑器选中文本作为 selection 传给后端
+      const sel = editor?.state.selection
+      const selection = aiMode === 'rewrite' && sel && !sel.empty
+        ? editor!.state.doc.textBetween(sel.from, sel.to, '\n')
+        : ''
+      if (aiMode === 'rewrite' && !selection) {
+        setAiError('请先在编辑器中选中要改写的文字')
+        return
+      }
+      const route = aiProvider === 'gemini' ? '/api/ai/write-gemini' : '/api/ai/write'
+      const res = await fetch(route, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         signal: abortRef.current.signal,
-        body: JSON.stringify({ mode: aiMode, prompt: aiPrompt, content: editor?.getHTML() ?? '', title }),
+        body: JSON.stringify({ mode: aiMode, prompt: aiPrompt, content: editor?.getHTML() ?? '', title, selection }),
       })
       if (!res.ok) { const d = await res.json(); setAiError(d.error ?? 'AI 调用失败'); return }
       const reader = res.body!.getReader(); const decoder = new TextDecoder(); let buffer = ''
@@ -298,6 +333,19 @@ export default function PostEditor({ mode, initialData }: Props) {
     if (aiMode === 'draft') editor?.commands.setContent(aiResult)
     else if (aiMode === 'continue') editor?.commands.insertContentAt(editor.state.doc.content.size, aiResult)
     else if (aiMode === 'excerpt') setExcerpt(aiResult)
+    else if (aiMode === 'rewrite') {
+      // 替换编辑器选中文本：保留选区位置，插入改写后的内容
+      // 若选区已消失（点击侧边栏导致失焦），则插入到文档末尾
+      const { selection } = editor!.state
+      if (!selection.empty) {
+        editor?.chain().focus()
+          .deleteRange({ from: selection.from, to: selection.to })
+          .insertContentAt(selection.from, aiResult)
+          .run()
+      } else {
+        editor?.commands.insertContentAt(editor.state.doc.content.size, aiResult)
+      }
+    }
     setAiResult('')
   }
 
@@ -408,15 +456,36 @@ export default function PostEditor({ mode, initialData }: Props) {
         </div>
 
         {/* ── 附件区域 ── */}
-        {(attachments.length > 0 || addAttOpen) && (
+        {(attachments.length > 0 || addAttOpen || mdUploading) && (
           <div className="md:col-span-3">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">
-              附件{attachments.length > 0 && `（${attachments.length}）`}
-            </label>
+            <div className="flex items-center gap-2 mb-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                附件{attachments.length > 0 && `（${attachments.length}）`}
+              </label>
+              {/* 上传 md 文件按钮 */}
+              <label className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer">
+                <Upload className="w-3 h-3" />
+                {mdUploading ? '上传中…' : '上传 md'}
+                <input
+                  type="file"
+                  accept=".md,text/markdown,text/plain"
+                  className="hidden"
+                  onChange={handleUploadMd}
+                  disabled={mdUploading}
+                />
+              </label>
+              {/* 添加外链按钮 */}
+              <button type="button"
+                onClick={() => setAddAttOpen(v => !v)}
+                className="flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:text-orange-700">
+                <Paperclip className="w-3 h-3" />
+                {addAttOpen ? '收起外链' : '添加外链'}
+              </button>
+            </div>
 
             {addAttOpen && (
               <div className="mb-2 p-3 rounded-xl bg-orange-50 border border-orange-200 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-400">填写蓝奏云链接</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-400">添加外部链接</p>
                 <div className="flex flex-col gap-2">
                   <input
                     value={addAttFilename}
@@ -427,7 +496,7 @@ export default function PostEditor({ mode, initialData }: Props) {
                   <input
                     value={addAttUrl}
                     onChange={e => setAddAttUrl(e.target.value)}
-                    placeholder="蓝奏云链接，如：https://wwbfh.lanzoul.com/xxxxxx"
+                    placeholder="链接，如：https://example.com/file.pdf"
                     className="w-full text-xs text-gray-800 bg-white border border-orange-200 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-400 transition"
                   />
                 </div>
@@ -450,6 +519,11 @@ export default function PostEditor({ mode, initialData }: Props) {
                   <div key={i} className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-700">
                     <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="truncate max-w-[160px] font-medium" title={att.filename}>{att.filename}</span>
+                    {att.size > 0 && (
+                      <span className="text-[10px] text-orange-400 flex-shrink-0">
+                        {(att.size / 1024).toFixed(1)}KB
+                      </span>
+                    )}
                     <a href={att.url} target="_blank" rel="noopener noreferrer"
                       className="flex-1 min-w-0 text-blue-500 hover:underline truncate text-[10px]" title={att.url}>
                       {att.url}
@@ -623,6 +697,22 @@ export default function PostEditor({ mode, initialData }: Props) {
               </div>
               <button onClick={() => setAiOpen(false)} className="text-gray-300 hover:text-gray-600 transition-colors"><X className="w-4 h-4" /></button>
             </div>
+
+            {/* 模型 provider 切换 */}
+            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mr-1">模型</span>
+              {(['mimo', 'gemini'] as const).map(p => (
+                <button key={p} onClick={() => setAiProvider(p)}
+                  className={`flex-1 text-xs font-bold py-1.5 rounded-lg transition-colors ${
+                    aiProvider === p
+                      ? 'bg-violet-100 text-violet-700'
+                      : 'text-gray-500 hover:bg-gray-50'
+                  }`}>
+                  {p === 'mimo' ? 'MiMo' : 'Gemini'}
+                </button>
+              ))}
+            </div>
+
             <div className="px-4 py-3 border-b border-gray-100 space-y-1.5">
               {AI_MODES.map(m => (
                 <button key={m.key} onClick={() => { setAiMode(m.key); setAiResult(''); setAiError('') }}
@@ -640,6 +730,14 @@ export default function PostEditor({ mode, initialData }: Props) {
               )}
               {aiMode === 'continue' && <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将基于编辑器中的现有内容进行续写</p>}
               {aiMode === 'excerpt'  && <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">将根据文章标题和正文自动生成摘要</p>}
+              {aiMode === 'rewrite'  && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-violet-500">改写指令</p>
+                  <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} placeholder="如：更简洁、更正式、修复语法、改成口语化..." rows={3}
+                    className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-violet-400 resize-none transition" />
+                  <p className="text-[10px] text-gray-400 leading-relaxed">提示：先在编辑器中选中要改写的文字，再点「开始改写」。改写结果会替换原选中文本。</p>
+                </div>
+              )}
               {aiError && <p className="text-xs text-red-500 mt-2">{aiError}</p>}
               <div className="flex gap-2 mt-2.5">
                 {aiLoading ? (
@@ -650,7 +748,7 @@ export default function PostEditor({ mode, initialData }: Props) {
                 ) : (
                   <button onClick={handleAiGenerate}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black bg-violet-600 hover:bg-violet-700 text-white transition-colors">
-                    <Sparkles className="w-3.5 h-3.5" />{aiResult ? '重新生成' : '开始生成'}
+                    <Sparkles className="w-3.5 h-3.5" />{aiResult ? '重新生成' : (aiMode === 'rewrite' ? '开始改写' : '开始生成')}
                   </button>
                 )}
                 {aiResult && !aiLoading && aiMode !== 'excerpt' && (
@@ -684,7 +782,7 @@ export default function PostEditor({ mode, initialData }: Props) {
                 )}
                 {aiResult && !aiLoading && aiMode !== 'excerpt' && (
                   <button onClick={handleApply} className="w-full py-2.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                    插入到编辑器
+                    {aiMode === 'rewrite' ? '替换选中文本' : '插入到编辑器'}
                   </button>
                 )}
                 {aiResult && !aiLoading && aiMode === 'excerpt' && (

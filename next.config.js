@@ -48,6 +48,8 @@ const nextConfig = {
   // 隐藏版本信息
   productionBrowserSourceMaps: false,
   images: {
+    // 优先输出 AVIF/WebP，体积更小、加载更快
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -56,6 +58,22 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'user-images.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'test.fukit.cn',
       },
     ],
   },

@@ -7,7 +7,7 @@ import SectionHeading from '@/components/ui/SectionHeading'
 import { getAllPosts } from '@/lib/db'
 import { getSkills } from '@/lib/db-skills'
 
-export const dynamic = 'force-dynamic' // 数据库查询需要动态渲染
+export const revalidate = 60 // 启用 ISR：60s 失效，命中缓存时零数据库往返；写文章时 revalidateTag('posts') 立即刷新
 
 export default async function HomePage() {
   const [posts, { skills }] = await Promise.all([

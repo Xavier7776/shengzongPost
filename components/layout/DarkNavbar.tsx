@@ -12,10 +12,11 @@ import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
 
 const NAV_ITEMS = [
-  { label: 'home',     href: '/' },
-  { label: 'blog',     href: '/blog' },
-  { label: 'skills',   href: '/skills' },
-  { label: 'projects', href: '/projects' },
+  { label: '首页',     href: '/' },
+  { label: '博客',     href: '/blog' },
+  { label: '热门',     href: '/skills' },
+  { label: '个人项目', href: '/work' },
+  { label: '关于',     href: '/projects' },
 ]
 
 export default function DarkNavbar() {

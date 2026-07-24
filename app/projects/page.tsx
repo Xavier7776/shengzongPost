@@ -1,4 +1,5 @@
 // app/projects/page.tsx
+import Image from 'next/image'
 import { Mail, MapPin, Send, Github, Twitter, Link2, Quote, FileText, Eye, Heart, MessageCircle, Clock, ArrowRight, Camera, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import SectionHeading from '@/components/ui/SectionHeading'
@@ -6,7 +7,8 @@ import ContactForm from '@/components/sections/ContactForm'
 import { getUserById, sql, getAllGalleryImages } from '@/lib/db'
 import type { Metadata } from 'next'
 
-export const dynamic = 'force-dynamic'
+// 关于我页面：内容变更频率低，启用 ISR（60s 失效）替代 force-dynamic，减少数据库压力
+export const revalidate = 60
 
 export const metadata: Metadata = {
   title: '个人主页 - MindStack',
@@ -28,26 +30,25 @@ export default async function ProjectsPage() {
   const website = user?.website || null
   const techStack = user?.tech_stack || []
 
-  // ── 查询统计数据 ──
-  const [statsRow] = await sql`
-    SELECT
-      (SELECT COUNT(*)::int FROM posts WHERE published=true) as total_posts,
-      (SELECT COALESCE(SUM(view_count),0)::int FROM posts WHERE published=true) as total_views,
-      (SELECT COUNT(*)::int FROM post_reactions WHERE type='like') as total_likes,
-      (SELECT COUNT(*)::int FROM comments WHERE status='approved') as total_comments
-  `
-  const stats = statsRow as { total_posts: number; total_views: number; total_likes: number; total_comments: number }
-
-  // ── 最近 5 篇文章 ──
-  const recentRows = await sql`
-    SELECT slug, title, excerpt, tags, created_at, view_count, cover_image
-    FROM posts WHERE published=true
-    ORDER BY created_at DESC LIMIT 2
-  `
+  // ── 并行查询：三个查询互不依赖，用 Promise.all 替代顺序 await ──
+  const [statsRows, recentRows, galleryImages] = await Promise.all([
+    sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM posts WHERE published=true) as total_posts,
+        (SELECT COALESCE(SUM(view_count),0)::int FROM posts WHERE published=true) as total_views,
+        (SELECT COUNT(*)::int FROM post_reactions WHERE type='like') as total_likes,
+        (SELECT COUNT(*)::int FROM comments WHERE status='approved') as total_comments
+    `,
+    sql`
+      SELECT slug, title, excerpt, tags, created_at, view_count, cover_image
+      FROM posts WHERE published=true
+      ORDER BY created_at DESC LIMIT 2
+    `,
+    getAllGalleryImages(),
+  ])
+  const statsRow = statsRows[0] as { total_posts: number; total_views: number; total_likes: number; total_comments: number }
   const recentPosts = recentRows as { slug: string; title: string; excerpt: string | null; tags: string[] | null; created_at: string; view_count: number | null; cover_image: string | null }[]
 
-  // ── Gallery 图片（取前 4 张作为入口预览） ──
-  const galleryImages = await getAllGalleryImages()
   const galleryPreview = galleryImages.slice(0, 4).map(img => ({
     url: img.url,
     title: img.title || '无标题',
@@ -56,10 +57,10 @@ export default async function ProjectsPage() {
   const galleryTotal = galleryImages.length
 
   const statItems = [
-    { label: '文章', value: stats.total_posts, icon: FileText, color: 'blue' },
-    { label: '浏览', value: stats.total_views, icon: Eye, color: 'purple' },
-    { label: '点赞', value: stats.total_likes, icon: Heart, color: 'rose' },
-    { label: '评论', value: stats.total_comments, icon: MessageCircle, color: 'amber' },
+    { label: '文章', value: statsRow.total_posts, icon: FileText, color: 'blue' },
+    { label: '浏览', value: statsRow.total_views, icon: Eye, color: 'purple' },
+    { label: '点赞', value: statsRow.total_likes, icon: Heart, color: 'rose' },
+    { label: '评论', value: statsRow.total_comments, icon: MessageCircle, color: 'amber' },
   ]
 
   return (
@@ -71,9 +72,15 @@ export default async function ProjectsPage() {
         <div className="lg:col-span-1">
           <div className="lg:sticky lg:top-32 space-y-12">
             <div>
-              <div className="w-32 h-32 rounded-3xl bg-gray-200 mb-8 overflow-hidden transform transition-all duration-700 hover:rotate-6 hover:scale-110 shadow-xl border-4 border-white">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={avatar} alt={name} className="w-full h-full object-cover" />
+              <div className="w-32 h-32 rounded-3xl bg-gray-200 mb-8 overflow-hidden transform transition-all duration-700 hover:rotate-6 hover:scale-110 shadow-xl border-4 border-white relative">
+                <Image
+                  src={avatar}
+                  alt={name}
+                  fill
+                  sizes="128px"
+                  className="object-cover"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               <h3 className="text-2xl font-black mb-2">{name}</h3>
               <p className="text-gray-500 font-medium mb-2">{title}</p>
@@ -227,11 +234,12 @@ export default async function ProjectsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-1 h-[280px] md:h-[360px]">
               {galleryPreview.map((img, i) => (
                 <div key={i} className="relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={img.url}
                     alt={img.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                   {/* 渐变遮罩 */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -261,7 +269,8 @@ export default async function ProjectsPage() {
       )}
 
       {/* 联系表单 */}
-      <div id="contact" className="mt-32 pt-16 border-t border-gray-100">
+      <div id="contact" className="mt-32 pt-16 border-t border-gray-100" style={{ scrollMarginTop: '100px' }}>
+        {/* scrollMarginTop: 100px 让 #contact 锚点跳转时避开 fixed Navbar（约 72px）*/}
         <div className="max-w-2xl mx-auto">
           <div className="mb-12 text-center">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-3">

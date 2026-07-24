@@ -1,14 +1,25 @@
 // app/api/download/route.ts
 // 流式代理下载：直接把 Cloudinary 的响应 body stream 转发给浏览器
 // 不缓冲整个文件到内存，绕开 Vercel 4.5MB 响应体限制
+//
+// 支持任意文件类型：根据 filename 后缀动态判断 Content-Type
+//   - .md  → text/markdown
+//   - .pdf → application/pdf（默认）
+//   - 其他 → application/octet-stream
 
 import { NextRequest } from 'next/server'
 
 export const runtime = 'edge' // edge runtime 无响应体大小限制
 
+function getContentType(filename: string): string {
+  if (/\.md$/i.test(filename)) return 'text/markdown; charset=utf-8'
+  if (/\.pdf$/i.test(filename)) return 'application/pdf'
+  return 'application/octet-stream'
+}
+
 export async function GET(req: NextRequest) {
   const url      = req.nextUrl.searchParams.get('url')
-  const filename = req.nextUrl.searchParams.get('filename') ?? 'attachment.pdf'
+  const filename = req.nextUrl.searchParams.get('filename') ?? 'attachment'
 
   if (!url) {
     return new Response(JSON.stringify({ error: '缺少 url 参数' }), { status: 400 })
@@ -32,7 +43,7 @@ export async function GET(req: NextRequest) {
     return new Response(upstream.body, {
       status: 200,
       headers: {
-        'Content-Type':        'application/pdf',
+        'Content-Type':        getContentType(filename),
         'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
         'Cache-Control':       'private, max-age=3600',
       },
