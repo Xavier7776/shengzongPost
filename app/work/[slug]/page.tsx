@@ -98,6 +98,22 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const hasContent = !!project.content?.trim()
   const toc = hasContent ? extractToc(project.content!) : []
   const contentHtml = hasContent ? renderMarkdown(project.content!) : ''
+  // 自动注入 PDF 附件：有正文内容 或 附件中有 MD 文件时，都注入 PDF 项
+  // PDF 内容来源（在 /work/[slug]/pdf 路由处理）：优先 fetch 附件 MD 文件 → 回退 project.content
+  // PDF 文件名与 MD 附件文件名一致（去掉 .md 后缀加 .pdf），无 MD 附件时回退到 project.name
+  const mdAttachment = (project.attachments ?? []).find(
+    att => att.size > 0 && /\.md$/i.test(att.filename)
+  )
+  const hasMdAttachment = !!mdAttachment
+  const pdfFilename = mdAttachment
+    ? mdAttachment.filename.replace(/\.md$/i, '.pdf')
+    : `${project.name}.pdf`
+  const finalAttachments = (hasContent || hasMdAttachment)
+    ? [
+        { url: `/work/${project.slug}/pdf`, filename: pdfFilename, size: 0 },
+        ...(project.attachments ?? []),
+      ]
+    : (project.attachments ?? [])
 
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
@@ -213,15 +229,15 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             dangerouslySetInnerHTML={{ __html: contentHtml }}
           />
 
-          {/* 附件下载区（md 文件 + 外链） */}
-          <AttachmentList attachments={project.attachments ?? []} />
+          {/* 附件下载区（PDF + md 文件 + 外链） */}
+          <AttachmentList attachments={finalAttachments} />
         </div>
       )}
 
       {/* 无正文但有附件时，独立展示附件下载区 */}
-      {!hasContent && (project.attachments?.length ?? 0) > 0 && (
+      {!hasContent && finalAttachments.length > 0 && (
         <div className="max-w-3xl mx-auto px-6 pb-24">
-          <AttachmentList attachments={project.attachments ?? []} />
+          <AttachmentList attachments={finalAttachments} />
         </div>
       )}
 

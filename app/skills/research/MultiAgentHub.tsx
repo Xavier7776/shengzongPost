@@ -89,7 +89,7 @@ const TASK_ROWS = [
 //   - planner 节点（EditorAgent.plan_research）不发送任何 stream_output！
 //   - human 节点（HumanAgent.review_plan）发送 type=human_feedback, content=request
 //   - researcher 节点（EditorAgent.run_parallel_research）发送: parallel_research
-//     底层 GPTResearcher 也会发送: subqueries, researching, added_source_url, context_combined 等
+//     底层研究器也会发送: subqueries, researching, added_source_url, context_combined 等
 //   - writer 节点（WriterAgent.run）发送: writing_report, research_layout_content, rewriting_layout
 //   - publisher 节点（PublisherAgent.run）发送: publishing
 //   - main.py 收尾发送: research_report
@@ -484,7 +484,7 @@ export default function MultiAgentHub() {
     }
     ws.onerror = () => {
       addLog('WebSocket 连接失败，请确认后端服务已启动', 'error')
-      setErrorMsg('无法连接到后端服务，请检查 gpt-researcher 是否运行')
+      setErrorMsg('无法连接到后端服务，请检查 MindStack 研究服务是否运行')
       setRunStage('idle')
       stopTimer()
     }

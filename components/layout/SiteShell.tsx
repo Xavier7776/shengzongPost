@@ -27,6 +27,8 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   // /work/[slug] 详情页有自己的顶部导航条（普通文档流，跟随滚动）
   // 避免 fixed Navbar 遮挡内容，跳过全局 Navbar/Footer
   const isWorkDetail = /^\/work\/[^/]+/.test(pathname)
+  // /work/[slug]/pdf 是独立打印页，不渲染 Navbar/Footer
+  const isPdfPage = /^\/work\/[^/]+\/pdf$/.test(pathname)
 
   // 用 IntersectionObserver 检测哨兵元素是否进入视口，只在页脚即将可见时才渲染
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -49,6 +51,11 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
     observer.observe(el)
     return () => observer.disconnect()
   }, [pathname])
+
+  if (isPdfPage) {
+    // /work/[slug]/pdf 独立打印页：不渲染 Navbar/Footer，全屏展示
+    return <div className="min-h-screen">{children}</div>
+  }
 
   if (isWorkDetail) {
     // /work/[slug] 详情页：

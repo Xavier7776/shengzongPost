@@ -1,5 +1,5 @@
 // components/sections/AttachmentList.tsx
-import { Download, ExternalLink } from 'lucide-react'
+import { Download, ExternalLink, FileText } from 'lucide-react'
 
 interface Attachment {
   url: string
@@ -28,6 +28,8 @@ export default function AttachmentList({ attachments }: Props) {
         {attachments.map((att, i) => {
           // size > 0 表示上传的文件（显示下载图标 + 文件大小），否则为外链
           const isUploaded = att.size > 0
+          // PDF 附件：size=0 但文件名以 .pdf 结尾，点击在新标签打开打印页面
+          const isPdf = !isUploaded && /\.pdf$/i.test(att.filename)
           // 确保 filename 带后缀（兜底：旧 URL 若无后缀，下载时仍能正确命名）
           const downloadName = isUploaded && !/\.[a-z0-9]+$/i.test(att.filename)
             ? `${att.filename}.md`
@@ -43,6 +45,8 @@ export default function AttachmentList({ attachments }: Props) {
             >
               {isUploaded ? (
                 <Download className="w-4 h-4 text-orange-400 flex-shrink-0" />
+              ) : isPdf ? (
+                <FileText className="w-4 h-4 text-red-400 flex-shrink-0" />
               ) : (
                 <ExternalLink className="w-4 h-4 text-orange-400 flex-shrink-0" />
               )}
@@ -51,6 +55,8 @@ export default function AttachmentList({ attachments }: Props) {
               </span>
               {isUploaded ? (
                 <span className="text-[10px] text-orange-400 flex-shrink-0">{formatSize(att.size)}</span>
+              ) : isPdf ? (
+                <span className="text-[10px] text-red-400 flex-shrink-0">PDF</span>
               ) : (
                 <span className="text-[10px] text-orange-400 flex-shrink-0">外链 ↗</span>
               )}

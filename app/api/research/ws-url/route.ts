@@ -1,6 +1,6 @@
 // app/api/research/ws-url/route.ts
-// GET /api/research/ws-url - 鉴权后返回 gpt-researcher WebSocket 地址
-// 使用服务端私有环境变量 GPT_RESEARCHER_URL，避免地址打包进客户端 bundle
+// GET /api/research/ws-url - 鉴权后返回 MindStack 研究服务 WebSocket 地址
+// 使用服务端私有环境变量 MINDSTACK_RESEARCH_URL，避免地址打包进客户端 bundle
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
@@ -14,8 +14,11 @@ export async function GET() {
     return NextResponse.json({ error: '未登录' }, { status: 401 })
   }
 
-  // 优先读取服务端私有环境变量（不打包进客户端），回退兼容旧的 NEXT_PUBLIC_ 变量
-  const wsUrl = process.env.GPT_RESEARCHER_URL || process.env.NEXT_PUBLIC_GPT_RESEARCHER_URL || 'ws://localhost:8000'
+  // 优先读取 MindStack 私有变量，回退兼容旧的 GPT_RESEARCHER_URL 命名
+  const wsUrl = process.env.MINDSTACK_RESEARCH_URL
+    || process.env.GPT_RESEARCHER_URL
+    || process.env.NEXT_PUBLIC_GPT_RESEARCHER_URL
+    || 'ws://localhost:8000'
 
   return NextResponse.json(
     { url: wsUrl },
