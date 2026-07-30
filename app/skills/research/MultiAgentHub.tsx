@@ -1015,7 +1015,7 @@ export default function MultiAgentHub() {
                             {isRunning ? '运行中' : '已完成'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-gray-400 mt-1">LangGraph 编排 6 个 Agent 协同工作</p>
+                        <p className="text-[11px] text-gray-400 mt-1">6 个 AI Agent 协同工作</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {/* 视图切换 */}
@@ -1593,9 +1593,9 @@ export default function MultiAgentHub() {
             <div className="p-6 space-y-4">
               <h1 className="text-lg font-bold text-gray-800">全链运行日志</h1>
               <div className="bg-[#1A1B1E] text-[#86C232] p-5 rounded-2xl font-mono text-xs max-h-[600px] overflow-y-auto space-y-1">
-                <p className="text-gray-500">{'// LangGraph 节点日志'}</p>
+                <p className="text-gray-500">运行日志</p>
                 {logs.length === 0 ? (
-                  <p className="text-gray-500">{'// 暂无日志'}</p>
+                  <p className="text-gray-500">暂无日志</p>
                 ) : (
                   logs.map((log, idx) => (
                     <p key={idx}>
@@ -1617,14 +1617,14 @@ export default function MultiAgentHub() {
                 <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <div>
                     <span className="font-bold text-gray-700 block">后端服务连接</span>
-                    <span className="text-gray-400 block mt-0.5">通过鉴权 API 动态获取，地址不暴露在前端</span>
+                    <span className="text-gray-400 block mt-0.5">连接安全已启用</span>
                   </div>
                   <span className="text-[10px] bg-green-50 text-green-600 border border-green-100 px-2 py-1 rounded-md font-mono">已保护</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <div>
                     <span className="font-bold text-gray-700 block">详细日志模式</span>
-                    <span className="text-gray-400 block mt-0.5">记录底层状态机各节点的变量状态流</span>
+                    <span className="text-gray-400 block mt-0.5">显示详细运行信息</span>
                   </div>
                   <input type="checkbox" defaultChecked className="accent-blue-500 w-4 h-4" />
                 </div>
@@ -1638,7 +1638,7 @@ export default function MultiAgentHub() {
                 <div className="flex justify-between items-center py-2">
                   <div>
                     <span className="font-bold text-gray-700 block">自动下载 Markdown</span>
-                    <span className="text-gray-400 block mt-0.5">Publisher 完成后自动下载报告文件</span>
+                    <span className="text-gray-400 block mt-0.5">报告生成完成后自动下载</span>
                   </div>
                   <input type="checkbox" className="accent-blue-500 w-4 h-4" />
                 </div>
@@ -1656,7 +1656,7 @@ export default function MultiAgentHub() {
               <span className="text-lg">🤖</span>
               <div>
                 <h3 className="font-bold text-sm">人工审阅请求</h3>
-                <p className="text-[10px] text-white/80 mt-0.5">HumanAgent 正在等待您的反馈</p>
+                <p className="text-[10px] text-white/80 mt-0.5">系统正在等待您的反馈</p>
               </div>
             </div>
             <div className="p-6 overflow-y-auto">

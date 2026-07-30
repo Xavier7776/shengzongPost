@@ -7,9 +7,10 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X, LogOut, User, PenLine, ChevronRight, Search } from 'lucide-react'
+import { Menu, X, LogOut, User, PenLine, ChevronRight, Search, Bell } from 'lucide-react'
 import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 const NAV_ITEMS = [
   { label: '首页',     href: '/' },
@@ -116,6 +117,8 @@ export default function DarkNavbar() {
                 </Link>
               )
             })}
+            {/* 通知铃铛 */}
+            <NotificationBell dark={true} />
             {/* 搜索按钮 */}
             <Link
               href="/search"
@@ -143,6 +146,7 @@ export default function DarkNavbar() {
 
           {/* 移动端右侧 */}
           <div className="flex md:hidden items-center gap-2">
+            <NotificationBell dark={true} />
             {session ? (
               <Link href={userId ? `/profile/${userId}` : '/profile'}>
                 <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-[#c8a97e] transition-all">
@@ -264,6 +268,23 @@ export default function DarkNavbar() {
                   ⌘K
                 </kbd>
               </Link>
+
+              {/* 通知入口（仅登录用户） */}
+              {session && (
+                <Link
+                  href="/notifications"
+                  onClick={handleClose}
+                  className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.6)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <span className="flex items-center gap-2">
+                    <Bell className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                    通知中心
+                  </span>
+                </Link>
+              )}
 
               {session && (
                 <>

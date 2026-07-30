@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>离线 — MindStack</title>
+    <meta name="theme-color" content="#2563eb" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: #0a0a0a;
+        color: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .card {
+        max-width: 420px;
+        text-align: center;
+        padding: 48px 32px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .badge {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 24px;
+        border-radius: 14px;
+        background: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -1px;
+      }
+      h1 { font-size: 22px; margin-bottom: 12px; font-weight: 600; color: #f3f4f6; }
+      p { font-size: 15px; line-height: 1.6; color: #9ca3af; margin-bottom: 24px; }
+      button {
+        appearance: none;
+        border: 1px solid rgba(37, 99, 235, 0.5);
+        background: rgba(37, 99, 235, 0.12);
+        color: #93c5fd;
+        padding: 10px 22px;
+        border-radius: 10px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      button:hover { background: rgba(37, 99, 235, 0.22); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">M</div>
+      <h1>当前处于离线状态</h1>
+      <p>你似乎已断开网络连接。已访问过的博客文章仍可在离线状态下阅读,其他页面请在恢复网络后重试。</p>
+      <button onclick="window.location.reload()">重新连接</button>
+    </div>
+  </body>
+</html>

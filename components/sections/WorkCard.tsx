@@ -5,6 +5,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useScrollReveal } from '@/lib/hooks'
+import { getBlurDataURL } from '@/lib/image-utils'
 import { ExternalLink, Github, ArrowRight } from 'lucide-react'
 
 export interface WorkProject {
@@ -40,6 +41,9 @@ export default function WorkCard({ project, index }: WorkCardProps) {
   const visibleTech = project.techStack.slice(0, MAX_TECH_TAGS)
   const hiddenTechCount = Math.max(0, project.techStack.length - MAX_TECH_TAGS)
 
+  // Cloudinary 图片生成低质量模糊占位图；非 Cloudinary 图片返回 undefined，不启用 blur
+  const blurDataURL = getBlurDataURL(project.cover)
+
   return (
     <div
       ref={ref}
@@ -61,6 +65,8 @@ export default function WorkCard({ project, index }: WorkCardProps) {
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover transition-transform duration-700 group-hover:scale-105"
+            placeholder={blurDataURL ? 'blur' : undefined}
+            blurDataURL={blurDataURL}
           />
             {/* 年份角标 */}
             <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-black text-gray-700 tracking-wider">

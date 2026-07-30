@@ -2,11 +2,38 @@
 import { neon } from '@neondatabase/serverless'
 
 if (!process.env.DATABASE_URL) throw new Error('Missing DATABASE_URL')
-// 不设置 cache: 'no-store'，让 Next.js 按 ISR 策略缓存
-// - ISR 页面（revalidate=N）：按 N 秒周期缓存，重新生成时查询数据库
-// - API 路由：POST/PATCH/DELETE 天然动态；GET 路由若调用 requireAdminApi/getServerSession
-//   会自动变动态（内部读取 cookies/headers）；公开 GET 路由需显式声明 force-dynamic
-export const sql = neon(process.env.DATABASE_URL)
+
+// Neon 免费版计算节点空闲后会挂起，首次请求冷启动期间可能 fetch failed
+// 用重试 wrapper 覆盖冷启动窗口（最多 3 次，间隔递增）
+const rawSql = neon(process.env.DATABASE_URL, {
+  fetchOptions: { cache: 'no-store' as RequestCache },
+})
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  let lastErr: unknown
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      // 只对网络层错误重试（fetch failed / network error）
+      if (err instanceof TypeError || (err as { message?: string })?.message?.includes('fetch failed')) {
+        lastErr = err
+        // 首次重试等 500ms，之后递增
+        if (i < retries - 1) await new Promise(r => setTimeout(r, 500 * (i + 1)))
+        continue
+      }
+      throw err
+    }
+  }
+  throw lastErr
+}
+
+// 导出带重试的 sql 函数，签名兼容原始 neon sql tagged template
+export const sql = new Proxy(rawSql, {
+  apply(_target, _thisArg, args) {
+    return withRetry(() => Reflect.apply(rawSql, _thisArg, args))
+  },
+}) as typeof rawSql
 
 // ─── serializer ───────────────────────────────────────────────────────────────
 function serializeRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -1121,4 +1148,243 @@ export async function updateProject(
 export async function deleteProject(id: number): Promise<string | null> {
   const rows = await sql`DELETE FROM projects WHERE id = ${id} RETURNING cover_public_id`
   return rows[0] ? ((rows[0] as { cover_public_id: string | null }).cover_public_id) : null
+}
+
+// ─── Notifications (站内通知中心) ────────────────────────────────────────────
+
+export type NotificationType = 'comment_reply' | 'article_update' | 'points_change' | 'system'
+
+export interface Notification {
+  id: string
+  user_id: number
+  type: NotificationType
+  title: string
+  content: string
+  link: string | null
+  is_read: boolean
+  created_at: string
+}
+
+/** 获取用户的通知列表（分页，最新在前） */
+export async function getNotifications(
+  userId: number,
+  limit = 20,
+  offset = 0
+): Promise<Notification[]> {
+  const rows = await sql`
+    SELECT id, user_id, type, title, content, link, is_read, created_at
+    FROM notifications
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as Notification[]
+}
+
+/** 获取用户未读通知数量 */
+export async function getUnreadNotificationCount(userId: number): Promise<number> {
+  const rows = await sql`SELECT COUNT(*)::int as cnt FROM notifications WHERE user_id = ${userId} AND is_read = false`
+  return (rows[0] as { cnt: number }).cnt
+}
+
+/** 标记单条通知为已读（仅限本人通知） */
+export async function markNotificationAsRead(notificationId: string, userId: number): Promise<boolean> {
+  const rows = await sql`
+    UPDATE notifications SET is_read = true
+    WHERE id = ${notificationId}::uuid AND user_id = ${userId} AND is_read = false
+    RETURNING id
+  `
+  return rows.length > 0
+}
+
+/** 标记用户所有通知为已读 */
+export async function markAllNotificationsAsRead(userId: number): Promise<number> {
+  const rows = await sql`
+    UPDATE notifications SET is_read = true
+    WHERE user_id = ${userId} AND is_read = false
+    RETURNING id
+  `
+  return rows.length
+}
+
+/** 创建通知（内部调用，不暴露为公开 API） */
+export async function createNotification(data: {
+  user_id: number
+  type: NotificationType
+  title: string
+  content: string
+  link?: string | null
+}): Promise<Notification | null> {
+  const rows = await sql`
+    INSERT INTO notifications(user_id, type, title, content, link)
+    VALUES(${data.user_id}, ${data.type}, ${data.title}, ${data.content}, ${data.link ?? null})
+    RETURNING *
+  `
+  return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as Notification : null
+}
+
+// ─── Visitor Tracking (访客追踪) ─────────────────────────────────────────────
+
+export interface VisitorTrackingInput {
+  visitor_id: string
+  session_id: string
+  path: string
+  referrer?: string | null
+  user_agent?: string | null
+  ip_hash?: string | null
+  country?: string | null
+  is_logged_in: boolean
+}
+
+/** 写入一条访客访问记录 */
+export async function trackVisitor(data: VisitorTrackingInput): Promise<void> {
+  await sql`
+    INSERT INTO visitor_tracking(visitor_id, session_id, path, referrer, user_agent, ip_hash, country, is_logged_in)
+    VALUES(${data.visitor_id}, ${data.session_id}, ${data.path}, ${data.referrer ?? null}, ${data.user_agent ?? null}, ${data.ip_hash ?? null}, ${data.country ?? null}, ${data.is_logged_in})
+  `
+}
+
+export type VisitorRange = '7d' | '30d' | '90d' | 'all'
+
+export interface VisitorStats {
+  total_visits: number
+  unique_visitors: number
+  page_views: number
+  today_visits: number
+  avg_pages_per_visitor: number
+}
+
+export interface DailyTrendItem {
+  date: string
+  visits: number
+  unique_visitors: number
+}
+
+export interface TopPageItem {
+  path: string
+  visits: number
+}
+
+export interface TopReferrerItem {
+  referrer: string
+  visits: number
+}
+
+// 根据 range 返回起始日期 ISO 字符串（null 表示全部）
+function getRangeStartIso(range: VisitorRange): string | null {
+  if (range === 'all') return null
+  const days = parseInt(range, 10)
+  const start = new Date()
+  start.setDate(start.getDate() - days)
+  return start.toISOString()
+}
+
+/** 获取访客聚合统计：总访问量、独立访客数、今日访问、平均浏览页数 */
+export async function getVisitorStats(range: VisitorRange): Promise<VisitorStats> {
+  const start = getRangeStartIso(range)
+  const rows = start
+    ? await sql`
+        SELECT
+          COUNT(*)::int as total_visits,
+          COUNT(DISTINCT visitor_id)::int as unique_visitors,
+          COUNT(*) FILTER (WHERE created_at::date = NOW()::date)::int as today_visits
+        FROM visitor_tracking
+        WHERE created_at >= ${start}::timestamptz
+      `
+    : await sql`
+        SELECT
+          COUNT(*)::int as total_visits,
+          COUNT(DISTINCT visitor_id)::int as unique_visitors,
+          COUNT(*) FILTER (WHERE created_at::date = NOW()::date)::int as today_visits
+        FROM visitor_tracking
+      `
+  const r = rows[0] as { total_visits: number; unique_visitors: number; today_visits: number }
+  const unique_visitors = r.unique_visitors || 0
+  const total_visits = r.total_visits || 0
+  const avg_pages_per_visitor = unique_visitors > 0 ? Number((total_visits / unique_visitors).toFixed(2)) : 0
+  return {
+    total_visits,
+    unique_visitors,
+    page_views: total_visits, // 页面浏览量 = 总访问量（每次访问记一次浏览）
+    today_visits: r.today_visits || 0,
+    avg_pages_per_visitor,
+  }
+}
+
+/** 获取每日访问趋势（访问量 + 独立访客双线） */
+export async function getVisitorDailyTrend(range: VisitorRange): Promise<DailyTrendItem[]> {
+  const start = getRangeStartIso(range)
+  const rows = start
+    ? await sql`
+        SELECT
+          created_at::date as date,
+          COUNT(*)::int as visits,
+          COUNT(DISTINCT visitor_id)::int as unique_visitors
+        FROM visitor_tracking
+        WHERE created_at >= ${start}::timestamptz
+        GROUP BY created_at::date
+        ORDER BY date ASC
+      `
+    : await sql`
+        SELECT
+          created_at::date as date,
+          COUNT(*)::int as visits,
+          COUNT(DISTINCT visitor_id)::int as unique_visitors
+        FROM visitor_tracking
+        GROUP BY created_at::date
+        ORDER BY date ASC
+      `
+  return rows.map(r => {
+    const d = r.date as Date | string
+    const dateStr = d instanceof Date ? d.toISOString().split('T')[0] : String(d).split('T')[0]
+    return {
+      date: dateStr,
+      visits: r.visits as number,
+      unique_visitors: r.unique_visitors as number,
+    }
+  })
+}
+
+/** 获取热门页面 Top N */
+export async function getTopPages(range: VisitorRange, limit = 10): Promise<TopPageItem[]> {
+  const start = getRangeStartIso(range)
+  const rows = start
+    ? await sql`
+        SELECT path, COUNT(*)::int as visits
+        FROM visitor_tracking
+        WHERE created_at >= ${start}::timestamptz
+        GROUP BY path
+        ORDER BY visits DESC
+        LIMIT ${limit}
+      `
+    : await sql`
+        SELECT path, COUNT(*)::int as visits
+        FROM visitor_tracking
+        GROUP BY path
+        ORDER BY visits DESC
+        LIMIT ${limit}
+      `
+  return rows.map(r => ({ path: r.path as string, visits: r.visits as number }))
+}
+
+/** 获取来源分析 Top N（空来源归为"直接访问"） */
+export async function getTopReferrers(range: VisitorRange, limit = 10): Promise<TopReferrerItem[]> {
+  const start = getRangeStartIso(range)
+  const rows = start
+    ? await sql`
+        SELECT COALESCE(NULLIF(referrer, ''), '(直接访问)') as referrer, COUNT(*)::int as visits
+        FROM visitor_tracking
+        WHERE created_at >= ${start}::timestamptz
+        GROUP BY referrer
+        ORDER BY visits DESC
+        LIMIT ${limit}
+      `
+    : await sql`
+        SELECT COALESCE(NULLIF(referrer, ''), '(直接访问)') as referrer, COUNT(*)::int as visits
+        FROM visitor_tracking
+        GROUP BY referrer
+        ORDER BY visits DESC
+        LIMIT ${limit}
+      `
+  return rows.map(r => ({ referrer: r.referrer as string, visits: r.visits as number }))
 }

@@ -242,3 +242,88 @@ body::before {
   .post-content table { font-size: 0.8rem; }
   .post-content th, .post-content td { padding: 0.4rem 0.6rem; }
 }
+
+/* ── 博客阅读增强：字号调节 + 阅读模式 ─────────────────────────── */
+
+/* 字号调节：通过 CSS 变量控制文章正文字号，默认 1.05rem 保持原有外观 */
+.reader-content {
+  --reader-font-size: 1.05rem;
+  border-radius: 1rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.reader-content .post-content p,
+.reader-content .space-y-5 p {
+  font-size: var(--reader-font-size);
+}
+
+/* 阅读模式 - 护眼（米黄色背景，深棕色文字） */
+.reader-mode-sepia {
+  background-color: #f5f0e8;
+  color: #5b4636;
+}
+.reader-mode-sepia .post-content p,
+.reader-mode-sepia .space-y-5 p { color: #5b4636; }
+.reader-mode-sepia .post-content h2,
+.reader-mode-sepia .space-y-5 h2 { color: #3d2b1f; border-bottom-color: #d9cdb8; }
+.reader-mode-sepia .post-content h3,
+.reader-mode-sepia .space-y-5 h3 { color: #3d2b1f; }
+.reader-mode-sepia .post-content strong,
+.reader-mode-sepia .space-y-5 strong { color: #3d2b1f; }
+.reader-mode-sepia .post-content ul li,
+.reader-mode-sepia .post-content ol li,
+.reader-mode-sepia .space-y-5 ul li,
+.reader-mode-sepia .space-y-5 ol li { color: #5b4636; }
+.reader-mode-sepia .post-content ul li::before,
+.reader-mode-sepia .space-y-5 ul li::before { background: #8b6f47; }
+.reader-mode-sepia .post-content ol li::before,
+.reader-mode-sepia .space-y-5 ol li::before { background: #ede0c8; color: #8b6f47; }
+.reader-mode-sepia .post-content blockquote,
+.reader-mode-sepia .space-y-5 blockquote { background: #ede0c8; border-left-color: #8b6f47; }
+.reader-mode-sepia .post-content blockquote p,
+.reader-mode-sepia .space-y-5 blockquote p { color: #6b4f2f; }
+.reader-mode-sepia .post-content code,
+.reader-mode-sepia .space-y-5 code { background: #ede0c8; color: #8b3a1a; }
+.reader-mode-sepia .post-content a,
+.reader-mode-sepia .space-y-5 a { color: #8b5a2b; }
+.reader-mode-sepia .post-content hr,
+.reader-mode-sepia .space-y-5 hr { border-top-color: #d9cdb8; }
+.reader-mode-sepia .post-content th { background: #ede0c8; color: #3d2b1f; border-color: #d9cdb8; }
+.reader-mode-sepia .post-content td { color: #5b4636; border-color: #d9cdb8; }
+.reader-mode-sepia .post-content tr:nth-child(even) { background: #ede0c8; }
+
+/* 阅读模式 - 深色（深色背景，浅色文字） */
+.reader-mode-dark {
+  background-color: #1a1a1a;
+  color: #d4d4d4;
+}
+.reader-mode-dark .post-content p,
+.reader-mode-dark .space-y-5 p { color: #d4d4d4; }
+.reader-mode-dark .post-content h2,
+.reader-mode-dark .space-y-5 h2 { color: #f0f0f0; border-bottom-color: #333333; }
+.reader-mode-dark .post-content h3,
+.reader-mode-dark .space-y-5 h3 { color: #e5e5e5; }
+.reader-mode-dark .post-content strong,
+.reader-mode-dark .space-y-5 strong { color: #f0f0f0; }
+.reader-mode-dark .post-content ul li,
+.reader-mode-dark .post-content ol li,
+.reader-mode-dark .space-y-5 ul li,
+.reader-mode-dark .space-y-5 ol li { color: #d4d4d4; }
+.reader-mode-dark .post-content ul li::before,
+.reader-mode-dark .space-y-5 ul li::before { background: #60a5fa; }
+.reader-mode-dark .post-content ol li::before,
+.reader-mode-dark .space-y-5 ol li::before { background: rgba(96,165,250,0.15); color: #93c5fd; }
+.reader-mode-dark .post-content blockquote,
+.reader-mode-dark .space-y-5 blockquote { background: rgba(96,165,250,0.08); border-left-color: #60a5fa; }
+.reader-mode-dark .post-content blockquote p,
+.reader-mode-dark .space-y-5 blockquote p { color: #93c5fd; }
+.reader-mode-dark .post-content code,
+.reader-mode-dark .space-y-5 code { background: #333333; color: #f87171; }
+.reader-mode-dark .post-content pre,
+.reader-mode-dark .space-y-5 pre { background: #0d1117; }
+.reader-mode-dark .post-content a,
+.reader-mode-dark .space-y-5 a { color: #60a5fa; }
+.reader-mode-dark .post-content hr,
+.reader-mode-dark .space-y-5 hr { border-top-color: #333333; }
+.reader-mode-dark .post-content th { background: #262626; color: #e5e5e5; border-color: #333333; }
+.reader-mode-dark .post-content td { color: #d4d4d4; border-color: #333333; }
+.reader-mode-dark .post-content tr:nth-child(even) { background: #262626; }

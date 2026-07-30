@@ -5,9 +5,10 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X, LogOut, User, PenLine, ChevronRight, Search } from 'lucide-react'
+import { Menu, X, LogOut, User, PenLine, ChevronRight, Search, Bell } from 'lucide-react'
 import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 // Logo 摇摆动画样式（注入全局，只执行一次）
 const SWING_STYLE = `
@@ -147,6 +148,8 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            {/* 通知铃铛 */}
+            <NotificationBell dark={false} />
             {/* 搜索按钮 */}
             <Link
               href="/search"
@@ -164,6 +167,7 @@ export default function Navbar() {
 
           {/* 移动端右侧 */}
           <div className="flex md:hidden items-center gap-2">
+            <NotificationBell dark={false} />
             {session ? (
               <Link href={userId ? `/profile/${userId}` : '/profile'}>
                 <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-blue-500 transition-all">
@@ -258,6 +262,20 @@ export default function Navbar() {
                   ⌘K
                 </kbd>
               </Link>
+
+              {/* 通知入口（仅登录用户） */}
+              {session && (
+                <Link
+                  href="/notifications"
+                  onClick={handleClose}
+                  className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-gray-400" />
+                    通知中心
+                  </span>
+                </Link>
+              )}
 
               {session && (
                 <>

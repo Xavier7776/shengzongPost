@@ -1,6 +1,5 @@
 // app/blog/[slug]/PostContent.tsx
 import { getPostBySlug } from '@/lib/db'
-import TableOfContents from '@/components/sections/TableOfContents'
 import AttachmentList from '@/components/sections/AttachmentList'
 import CodeCopyButton from '@/components/sections/CodeCopyButton'
 import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
@@ -112,16 +111,16 @@ export default async function PostContent({ slug }: PostContentProps) {
 
   return (
     <>
-      <TableOfContents contentSelector=".post-content, .space-y-5" />
-
-      {isHtml ? (
-        <div
-          className="post-content"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
-      ) : (
-        <div className="space-y-5">{renderMarkdown(post.content)}</div>
-      )}
+      <div className="reader-content">
+        {isHtml ? (
+          <div
+            className="post-content"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+        ) : (
+          <div className="space-y-5">{renderMarkdown(post.content)}</div>
+        )}
+      </div>
 
       <AttachmentList attachments={(post as any).attachments ?? []} />
 

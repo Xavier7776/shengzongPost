@@ -115,8 +115,30 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       ]
     : (project.attachments ?? [])
 
+  // JSON-LD 结构化数据（CreativeWork schema）
+  // 字段从真实数据中提取：name/description/keywords 来自项目记录，url 优先取在线预览地址
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    name: project.name,
+    description: project.description ?? project.tagline ?? '',
+    author: {
+      '@type': 'Person',
+      name: 'ARC',
+    },
+    dateCreated: project.year || undefined,
+    keywords: project.techStack.length > 0 ? project.techStack.join(', ') : undefined,
+    url: project.demoUrl ?? project.githubUrl ?? `/work/${slug}`,
+    ...(project.cover ? { thumbnailUrl: project.cover } : {}),
+  }
+
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
+      {/* JSON-LD 结构化数据注入 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* 阅读进度条（复用博客阅读组件） */}
       <ReadingProgressBar />
 

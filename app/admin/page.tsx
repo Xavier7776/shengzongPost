@@ -1,6 +1,6 @@
 // app/admin/page.tsx
 import Link from 'next/link'
-import { Plus, MessageCircle, Images, Layers, ClipboardCheck, ShoppingBag, FolderKanban } from 'lucide-react'
+import { Plus, MessageCircle, Images, Layers, ClipboardCheck, ShoppingBag, FolderKanban, BarChart3 } from 'lucide-react'
 import { requireAdmin } from '@/lib/auth'
 import { getAllPostsAdmin, getPendingCommentsCount, getPendingEditRequestsCount } from '@/lib/db'
 import AdminPostList from '@/components/admin/AdminPostList'
@@ -81,6 +81,13 @@ export default async function AdminPage() {
           >
             <Images className="w-4 h-4" />
             博文插图
+          </Link>
+          <Link
+            href="/admin/analytics"
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+          >
+            <BarChart3 className="w-4 h-4" />
+            数据分析
           </Link>
           <Link
             href="/admin/new"

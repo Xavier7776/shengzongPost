@@ -12,6 +12,8 @@ import { Skeleton, SkeletonText, SkeletonAvatar } from '@/components/ui/Skeleton
 import PostHeader from './PostHeader'
 import PostContent from './PostContent'
 import PostComments from './PostComments'
+import BlogReaderToolbar from './BlogReaderToolbar'
+import BlogToc from './BlogToc'
 import type { Metadata } from 'next'
 
 export const revalidate = 60 // 启用 ISR：60s 失效；文章更新时 revalidateTag('post-${slug}') 立即刷新
@@ -21,7 +23,26 @@ interface PageProps { params: { slug: string } }
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const post = await getPostBySlug(params.slug)
   if (!post) return { title: '文章不存在 — ARC.' }
-  return { title: `${post.title} — ARC.`, description: post.excerpt }
+  // opengraph-image.tsx 会被 Next.js 自动识别为 OG 图片，无需在此设置 openGraph.images
+  // 这里仅补充 openGraph.type / twitter card，让社交分享元数据更完整
+  return {
+    title: `${post.title} — ARC.`,
+    description: post.excerpt,
+    openGraph: {
+      type: 'article',
+      title: post.title,
+      description: post.excerpt ?? '',
+      publishedTime: post.created_at,
+      modifiedTime: post.updated_at,
+      authors: post.author_name ? [post.author_name] : [],
+      tags: post.tags ?? [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt ?? '',
+    },
+  }
 }
 
 // ── 骨架屏组件 ────────────────────────────────────────────────
@@ -134,6 +155,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
     {/* 全宽布局：内容居中，最大宽度 900px */}
     <div className="min-h-screen pt-24 pb-16">
+      <BlogToc />
       <div className="max-w-[900px] mx-auto px-6 lg:px-8">
         <Link href="/blog" className="inline-flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-12 group font-bold uppercase tracking-widest text-xs">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
@@ -144,6 +166,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           <Suspense fallback={<PostHeaderSkeleton />}>
             <PostHeader slug={params.slug} />
           </Suspense>
+
+          {/* 阅读工具栏：字号调节 + 阅读模式切换 */}
+          <BlogReaderToolbar />
 
           <Suspense fallback={<PostContentSkeleton />}>
             <PostContent slug={params.slug} />
