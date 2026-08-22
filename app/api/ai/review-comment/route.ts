@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
-const INTERNAL_SECRET  = process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'
+// 安全：不设默认值——代码公开在仓库里，硬编码回退等于没有鉴权
+const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET
+if (!INTERNAL_SECRET) console.warn('[ai/review-comment] WARNING: AI_COMMENT_SECRET is not set. All requests will be rejected.')
 const MIMO_API_KEY     = process.env.XIAOMI_API_KEY  ?? ''
 const MIMO_MODEL       = process.env.MIMO_MODEL      ?? 'mimo-v2.5-pro'
 const MIMO_BASE_URL    = process.env.XIAOMI_BASE_URL ?? 'https://api.xiaomimimo.com/v1'

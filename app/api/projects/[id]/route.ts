@@ -3,17 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { updateProject, deleteProject } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
-import { v2 as cloudinary } from 'cloudinary'
-
-// Cloudinary 实例（按需初始化）
-function getCloudinary() {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  })
-  return cloudinary
-}
+import { cloudinary } from '@/lib/cloudinary'
 
 // PATCH /api/projects/[id] 更新项目（支持部分字段更新）
 export async function PATCH(
@@ -75,7 +65,7 @@ export async function DELETE(
   // 清理 Cloudinary 封面图（失败不影响删除结果）
   if (publicId) {
     try {
-      await getCloudinary().uploader.destroy(publicId, { resource_type: 'image' })
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'image' })
     } catch (e) {
       console.error('[projects] 清理 Cloudinary 失败:', e)
     }

@@ -1,11 +1,17 @@
 'use client'
 // app/skills/TrendingList.tsx
-// 深色仪表盘风格：顶部数据概览 + Top3 领奖台 + 4-30 紧凑列表
+// 深色榜单风格：动态数据更新 + Top3 领奖台 + 4-30 名列表
 import { useState, useEffect, useMemo, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import TrendingCard from '@/components/sections/TrendingCard'
-import TrendingStats from '@/components/sections/TrendingStats'
 import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton'
 import { BarChart3, RefreshCw } from 'lucide-react'
+
+// recharts（含 d3 全家桶）体积大且首屏视口外，动态加载把 ~150kB 移出 /skills 首载包
+const TrendingStats = dynamic(() => import('@/components/sections/TrendingStats'), {
+  ssr: false,
+  loading: () => <div className="h-40 rounded-2xl bg-white/5 animate-pulse" />,
+})
 
 interface TrendingItem {
   id: number

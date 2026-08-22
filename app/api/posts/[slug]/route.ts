@@ -8,6 +8,7 @@ import { updatePost, deletePost, getPostBySlugAdmin } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
+import { getSiteUrl } from '@/lib/site-url'
 
 interface Ctx { params: { slug: string } }
 
@@ -52,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     // 若本次操作将文章设为发布状态，异步触发 AI 评论（fire-and-forget）
     if (body.published === true) {
       const effectiveSlug = body.slug ?? params.slug
-      const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+      const baseUrl = getSiteUrl()
       fetch(`${baseUrl}/api/ai/comment`, {
         method: 'POST',
         headers: {

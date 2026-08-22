@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import Hero from '@/components/sections/Hero'
 import BlogCard from '@/components/sections/BlogCard'
 import SkillCard from '@/components/sections/SkillCard'
+import FeaturedGallery from '@/components/sections/FeaturedGallery'
 import SectionHeading from '@/components/ui/SectionHeading'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { getAllPosts } from '@/lib/db'
@@ -134,6 +135,11 @@ export default async function HomePage() {
       {/* Skills 区域流式渲染：与博客区域互不阻塞 */}
       <Suspense fallback={<SkillsSkeleton />}>
         <SkillsSection />
+      </Suspense>
+
+      {/* 精选摄影条带：图库 is_featured 闭环，无精选时回退最新图片，空则不渲染 */}
+      <Suspense fallback={null}>
+        <FeaturedGallery />
       </Suspense>
     </div>
   )

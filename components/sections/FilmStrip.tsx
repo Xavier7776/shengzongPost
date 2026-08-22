@@ -1,10 +1,14 @@
 'use client'
 
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { X, ChevronLeft, ChevronRight } from 'lucide-react'
-import type { GALLERY_IMAGES } from '@/lib/data'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-type GalleryImage = (typeof GALLERY_IMAGES)[number]
+interface StripImage {
+  id: number
+  url: string
+  title: string
+  category: string
+}
 
 // ── CSS constants ─────────────────────────────────────────────────────────────
 const FRAME_W = 260
@@ -133,7 +137,7 @@ function VinylFrame({
   isActive,
   onClick,
 }: {
-  img: GalleryImage
+  img: StripImage
   index: number
   isActive: boolean
   onClick: () => void
@@ -236,131 +240,16 @@ function VinylFrame({
   )
 }
 
-// ── Lightbox ──────────────────────────────────────────────────────────────────
-function Lightbox({
-  images,
-  currentIndex,
-  onClose,
-  onPrev,
-  onNext,
-}: {
-  images: GalleryImage[]
-  currentIndex: number
-  onClose: () => void
-  onPrev: () => void
-  onNext: () => void
-}) {
-  const img = images[currentIndex]
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowLeft') onPrev()
-      if (e.key === 'ArrowRight') onNext()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose, onPrev, onNext])
-
-  return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center"
-      style={{ background: 'rgba(4,4,4,0.97)', backdropFilter: 'blur(28px)' }}
-      onClick={onClose}
-    >
-      {/* Subtle radial glow behind image */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(200,169,126,0.04) 0%, transparent 70%)',
-        }}
-      />
-
-      {/* Close */}
-      <button
-        className="absolute top-6 right-6 z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all hover:scale-110"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
-        onClick={onClose}
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
-
-      {/* Counter */}
-      <div
-        className="absolute top-7 left-1/2 -translate-x-1/2 font-mono text-[10px] tracking-[0.4em]"
-        style={{ color: 'rgba(200,169,126,0.4)' }}
-      >
-        {String(currentIndex + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
-      </div>
-
-      {/* Prev */}
-      <button
-        className="absolute left-6 w-11 h-11 flex items-center justify-center rounded-full transition-all hover:scale-110 disabled:opacity-20"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)' }}
-        onClick={e => { e.stopPropagation(); onPrev() }}
-        disabled={currentIndex === 0}
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </button>
-
-      {/* Next */}
-      <button
-        className="absolute right-6 w-11 h-11 flex items-center justify-center rounded-full transition-all hover:scale-110 disabled:opacity-20"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)' }}
-        onClick={e => { e.stopPropagation(); onNext() }}
-        disabled={currentIndex === images.length - 1}
-      >
-        <ChevronRight className="w-4 h-4" />
-      </button>
-
-      {/* Image */}
-      <div
-        className="relative flex flex-col items-center"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          key={img.id}
-          src={img.url}
-          alt={img.title}
-          className="max-h-[76vh] max-w-[82vw] object-contain"
-          style={{
-            borderRadius: 2,
-            boxShadow: '0 0 0 1px rgba(200,169,126,0.12), 0 50px 140px rgba(0,0,0,0.95)',
-            animation: 'lbIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards',
-          }}
-        />
-        <div className="mt-5 flex items-center gap-3">
-          <span
-            className="font-mono text-[9px] tracking-[0.4em] uppercase"
-            style={{ color: 'rgba(200,169,126,0.55)' }}
-          >
-            {img.category}
-          </span>
-          <span style={{ color: 'rgba(255,255,255,0.1)' }}>—</span>
-          <span
-            className="text-sm font-semibold tracking-tight"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
-          >
-            {img.title}
-          </span>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes lbIn {
-          from { opacity: 0; transform: scale(0.96) translateY(8px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-      `}</style>
-    </div>
-  )
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
-export default function FilmStrip({ images }: { images: GalleryImage[] }) {
+export default function FilmStrip({
+  images,
+  onOpen,
+}: {
+  images: StripImage[]
+  /** 点击当前帧 / 回车时打开外部灯箱 */
+  onOpen: (id: number) => void
+}) {
   const [activeIndex, setActiveIndex] = useState(0)
-  const [lightboxOpen, setLightboxOpen] = useState(false)
   const stripRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const dragStart = useRef(0)
@@ -381,15 +270,17 @@ export default function FilmStrip({ images }: { images: GalleryImage[] }) {
   }, [images.length, scrollToFrame])
 
   useEffect(() => {
-    if (lightboxOpen) return
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goTo(activeIndex - 1)
       if (e.key === 'ArrowRight') goTo(activeIndex + 1)
-      if (e.key === 'Enter') setLightboxOpen(true)
+      if (e.key === 'Enter') {
+        const img = images[activeIndex]
+        if (img) onOpen(img.id)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [activeIndex, lightboxOpen, goTo])
+  }, [activeIndex, goTo, onOpen, images])
 
   const onMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true
@@ -448,7 +339,7 @@ export default function FilmStrip({ images }: { images: GalleryImage[] }) {
               isActive={i === activeIndex}
               onClick={() => {
                 if (hasDragged.current) return
-                if (i === activeIndex) setLightboxOpen(true)
+                if (i === activeIndex) onOpen(img.id)
                 else goTo(i)
               }}
             />
@@ -524,17 +415,6 @@ export default function FilmStrip({ images }: { images: GalleryImage[] }) {
           />
         ))}
       </div>
-
-      {/* ── Lightbox ── */}
-      {lightboxOpen && (
-        <Lightbox
-          images={images}
-          currentIndex={activeIndex}
-          onClose={() => setLightboxOpen(false)}
-          onPrev={() => goTo(activeIndex - 1)}
-          onNext={() => goTo(activeIndex + 1)}
-        />
-      )}
     </div>
   )
 }

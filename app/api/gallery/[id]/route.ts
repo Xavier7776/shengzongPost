@@ -2,16 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { deleteGalleryImage, updateGalleryImage } from '@/lib/db'
-import { v2 as cloudinary } from 'cloudinary'
-
-function getCloudinary() {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  })
-  return cloudinary
-}
+import { cloudinary } from '@/lib/cloudinary'
 
 export async function DELETE(
   _req: NextRequest,
@@ -23,8 +14,7 @@ export async function DELETE(
     const publicId = await deleteGalleryImage(id)
 
     // 同步删除 Cloudinary 上的文件
-    const cld = getCloudinary()
-    await cld.uploader.destroy(publicId)
+    await cloudinary.uploader.destroy(publicId)
 
     return NextResponse.json({ success: true })
   } catch (err) {

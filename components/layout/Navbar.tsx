@@ -3,12 +3,13 @@
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { Menu, X, LogOut, User, PenLine, ChevronRight, Search, Bell } from 'lucide-react'
 import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
 import NotificationBell from '@/components/layout/NotificationBell'
+import CommandPalette from '@/components/ui/CommandPalette'
 
 // Logo 摇摆动画样式（注入全局，只执行一次）
 const SWING_STYLE = `
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { label: '热门',     href: '/skills' },
   { label: '个人项目', href: '/work' },
   { label: '关于',     href: '/projects' },
+  { label: 'Now',      href: '/now' },
 ]
 
 export default function Navbar() {
@@ -39,8 +41,10 @@ export default function Navbar() {
   const [menuOpen,   setMenuOpen]   = useState(false)
   const [visible,    setVisible]    = useState(false)
   const [swinging,   setSwinging]   = useState(false)
+  const [hidden,     setHidden]     = useState(false)   // 下滚隐藏、上滚出现
+  const [progress,   setProgress]   = useState(0)       // 页面阅读进度
+  const [paletteOpen, setPaletteOpen] = useState(false)  // ⌘K 命令面板
   const pathname  = usePathname()
-  const router    = useRouter()
   const drawerRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
 
@@ -54,10 +58,25 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
-    const handler = () => setIsScrolled(window.scrollY > 20)
+    let lastY = window.scrollY
+    const handler = () => {
+      const y = window.scrollY
+      setIsScrolled(y > 20)
+
+      // 阅读进度：当前屏占比
+      const total = document.documentElement.scrollHeight - window.innerHeight
+      setProgress(total > 0 ? Math.min(1, y / total) : 0)
+
+      // 方向感知：下滚且离开顶部时隐藏，上滚或回到顶部时出现；抽屉打开时不隐藏
+      if (!menuOpen) {
+        if (y > lastY && y > 240) setHidden(true)
+        else if (y < lastY - 4 || y <= 240) setHidden(false)
+      }
+      lastY = y
+    }
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
-  }, [])
+  }, [menuOpen])
 
   // 路由变化时触发 Logo 摇摆
   useEffect(() => {
@@ -75,17 +94,17 @@ export default function Navbar() {
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  // Cmd/Ctrl + K 唤起搜索
+  // Cmd/Ctrl + K 唤起命令面板
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        router.push('/search')
+        setPaletteOpen(true)
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [router])
+  }, [])
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
@@ -111,10 +130,26 @@ export default function Navbar() {
   // /work/[slug] 详情页：Navbar 不 fixed，跟随页面滚动（普通文档流）
   const isWorkDetail = /^\/work\/[^/]+/.test(pathname)
 
+  const navCls = isWorkDetail
+    ? 'relative bg-white border-b border-gray-100 py-4'
+    : [
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
+        hidden && !menuOpen ? '-translate-y-full' : 'translate-y-0',
+        isScrolled
+          ? 'bg-white/80 backdrop-blur-xl border-b border-gray-100 py-4'
+          : 'bg-transparent py-6',
+      ].join(' ')
+
   return (
     <>
       {/* ── 顶栏 ── */}
-      <nav className={`${isWorkDetail ? 'relative bg-white border-b border-gray-100 py-4' : 'fixed top-0 left-0 right-0 z-50 transition-all duration-500 ' + (isScrolled ? 'bg-white/80 backdrop-blur-xl border-b border-gray-100 py-4' : 'bg-transparent py-6')}`}>
+      <nav className={navCls} onMouseEnter={() => setHidden(false)}>
+        {/* 阅读进度条 */}
+        {!isWorkDetail && isScrolled && (
+          <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-blue-600 to-sky-400 transition-[width] duration-150 ease-out"
+            style={{ width: `${progress * 100}%`, opacity: progress > 0.005 ? 1 : 0 }}
+          />
+        )}
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
 
           {/* Logo */}
@@ -150,9 +185,9 @@ export default function Navbar() {
             })}
             {/* 通知铃铛 */}
             <NotificationBell dark={false} />
-            {/* 搜索按钮 */}
-            <Link
-              href="/search"
+            {/* 搜索按钮：唤起命令面板 */}
+            <button
+              onClick={() => setPaletteOpen(true)}
               className="flex items-center gap-2 text-xs font-black tracking-widest text-gray-400 hover:text-gray-900 transition-colors py-2"
               title="搜索 (Cmd/Ctrl + K)"
             >
@@ -161,7 +196,7 @@ export default function Navbar() {
               <kbd className="hidden lg:inline-block text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
                 ⌘K
               </kbd>
-            </Link>
+            </button>
             <UserMenu dark={false} />
           </div>
 
@@ -338,6 +373,8 @@ export default function Navbar() {
           </div>
         </>
       )}
+      {/* ── ⌘K 命令面板 ── */}
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </>
   )
 }

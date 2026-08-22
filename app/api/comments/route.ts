@@ -6,10 +6,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { getApprovedComments, createComment, updateCommentStatus, toggleCommentLike, addPoints, hasPointTransaction } from '@/lib/db'
+import { getSiteUrl } from '@/lib/site-url'
 
 const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET
 if (!INTERNAL_SECRET) console.warn('[comments] WARNING: AI_COMMENT_SECRET is not set. AI review will be skipped.')
-const BASE_URL = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+const BASE_URL = getSiteUrl()
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')

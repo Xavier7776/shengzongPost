@@ -1,0 +1,10 @@
+/* app/template.css */
+/* 全局页面转场动效：仅用 opacity —— transform 会创建 containing block，
+   导致页面内 position:fixed 元素（进度条/灯箱等）脱离视口定位 */
+@keyframes pageIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-transition {
+  animation: pageIn 0.3s ease-out both;
+}

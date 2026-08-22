@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { createPost, getAdminUserId } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
+import { getSiteUrl } from '@/lib/site-url'
 
 export async function POST(req: NextRequest) {
   const session = await requireAdminApi()
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     // 若文章直接发布，异步触发 AI 评论（fire-and-forget，不阻塞响应）
     if (published) {
-      const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+      const baseUrl = getSiteUrl()
       fetch(`${baseUrl}/api/ai/comment`, {
         method: 'POST',
         headers: {

@@ -1,7 +1,8 @@
 'use client'
 
 // components/sections/HeroClient.tsx
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -14,6 +15,8 @@ interface Slide {
 export default function HeroClient({ slides }: { slides: Slide[] }) {
   const [current, setCurrent] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const glowRef   = useRef<HTMLDivElement>(null)
+  const touchX    = useRef<number | null>(null)
 
   const list = slides.length > 0 ? slides : [{
     img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2000',
@@ -30,6 +33,24 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
     const timer = setInterval(next, 5000)
     return () => clearInterval(timer)
   }, [list.length, next])
+
+  // 鼠标跟随光斑：直接改 style，避免重渲染
+  const handleGlow = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = glowRef.current
+    if (!el) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    el.style.opacity = '1'
+    el.style.transform = `translate(${e.clientX - rect.left - 160}px, ${e.clientY - rect.top - 160}px)`
+  }, [])
+
+  // 触摸滑动翻页（移动端）
+  const onTouchStart = (e: React.TouchEvent) => { touchX.current = e.touches[0].clientX }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchX.current === null) return
+    const dx = e.changedTouches[0].clientX - touchX.current
+    if (Math.abs(dx) > 50) (dx < 0 ? next : prev)()
+    touchX.current = null
+  }
 
   return (
     <section className="relative bg-[#FAFAF8] pt-24 pb-16">
@@ -67,20 +88,37 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
 
       {/* ── 大图轮播区 ── */}
       <div className="max-w-6xl mx-auto px-6">
-        <div className="relative rounded-3xl overflow-hidden aspect-[16/7] shadow-xl shadow-gray-200/60 bg-gray-100 group">
-
+        <div
+          className="relative rounded-3xl overflow-hidden aspect-[16/7] shadow-xl shadow-gray-200/60 bg-gray-100 group"
+          onMouseMove={handleGlow}
+          onMouseLeave={() => { if (glowRef.current) glowRef.current.style.opacity = '0' }}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
           {/* 图片层 */}
           {list.map((slide, idx) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               key={idx}
               src={slide.img}
               alt={slide.title}
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-[1000ms] ease-in-out ${
+              fill
+              sizes="100vw"
+              priority={idx === 0}
+              className={`object-cover transition-all duration-[1000ms] ease-in-out ${
                 idx === current ? 'opacity-100 scale-100' : 'opacity-0 scale-[1.03]'
               }`}
             />
           ))}
+
+          {/* 鼠标跟随光斑 */}
+          <div
+            ref={glowRef}
+            className="pointer-events-none absolute left-0 top-0 w-[320px] h-[320px] rounded-full opacity-0 transition-opacity duration-500 z-[5] hidden md:block"
+            style={{
+              background: 'radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(37,99,235,0.08) 40%, transparent 70%)',
+              mixBlendMode: 'screen',
+            }}
+          />
 
           {/* 左翻页箭头 */}
           {list.length > 1 && (

@@ -48,6 +48,8 @@ const nextConfig = {
   // 隐藏版本信息
   productionBrowserSourceMaps: false,
   images: {
+    // 自定义 loader：Cloudinary 图片注入 f_auto/q_auto/宽度参数，自动 AVIF/WebP + 响应式
+    loaderFile: './lib/cloudinary-loader.ts',
     // 优先输出 AVIF/WebP，体积更小、加载更快
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

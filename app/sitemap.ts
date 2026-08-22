@@ -1,8 +1,10 @@
 import type { MetadataRoute } from 'next'
 import { getAllPosts } from '@/lib/db'
 import { getSkills } from '@/lib/db-skills'
+import { getEnabledProjects } from '@/lib/db'
+import { getSiteUrl } from '@/lib/site-url'
 
-const BASE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+const BASE_URL = getSiteUrl()
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -11,15 +13,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/skills`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE_URL}/skills?view=trending`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
     { url: `${BASE_URL}/gallery`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/work`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE_URL}/projects`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/shop`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.6 },
     { url: `${BASE_URL}/search`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
   ]
 
   try {
-    const [posts, { skills }] = await Promise.all([
+    const [posts, { skills }, projects] = await Promise.all([
       getAllPosts(),
       getSkills({ page: 1, pageSize: 200, sort: 'stars', order: 'desc' }),
+      getEnabledProjects(),
     ])
 
     const postPages: MetadataRoute.Sitemap = posts.map(post => ({
@@ -36,7 +40,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }))
 
-    return [...staticPages, ...postPages, ...skillPages]
+    const projectPages: MetadataRoute.Sitemap = projects.map(p => ({
+      url: `${BASE_URL}/work/${p.slug}`,
+      lastModified: new Date(p.updated_at || p.created_at),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    }))
+
+    return [...staticPages, ...postPages, ...skillPages, ...projectPages]
   } catch {
     return staticPages
   }

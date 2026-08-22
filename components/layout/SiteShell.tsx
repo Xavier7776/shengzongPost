@@ -4,8 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Navbar from '@/components/layout/Navbar'
-import DarkNavbar from '@/components/layout/DarkNavbar'
-import DarkFooter from '@/components/layout/DarkFooter'
+import BackToTop from '@/components/ui/BackToTop'
 
 const FOOTER_PLACEHOLDER_H = 'calc((min(100vw, 1600px) + 40px) / 3.83228)'
 
@@ -16,7 +15,6 @@ const DistortionEffect = dynamic(() => import('@/components/sections/DistortionE
 
 export default function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isDark = pathname.startsWith('/gallery')
   const isAdmin = pathname.startsWith('/admin')
   const isDashboardEditor =
     pathname.startsWith('/dashboard/new') ||
@@ -86,17 +84,19 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="min-h-screen flex flex-col overflow-x-hidden"
-      style={{ background: isDark ? '#080808' : '#FAFAF8' }}
+      style={{ background: '#FAFAF8' }}
     >
-      {isDark ? <DarkNavbar /> : <Navbar />}
+      <Navbar />
       <main className="relative z-10 flex-1">{children}</main>
       {/* 哨兵元素：当它进入视口时才加载页脚 */}
       <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
       {showFooter ? (
-        isDark ? <DarkFooter /> : <DistortionEffect />
+        <DistortionEffect />
       ) : (
         <div style={{ height: FOOTER_PLACEHOLDER_H }} aria-hidden />
       )}
+      {/* 全局回到顶部 */}
+      <BackToTop />
     </div>
   )
 }

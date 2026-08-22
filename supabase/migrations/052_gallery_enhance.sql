@@ -1,0 +1,11 @@
+-- 052_gallery_enhance.sql
+-- 图库增强：描述、标签、尺寸、点赞、精选标记（幂等）
+
+ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS width INT NOT NULL DEFAULT 0;
+ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS height INT NOT NULL DEFAULT 0;
+ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS likes INT NOT NULL DEFAULT 0;
+ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_gallery_tags ON gallery_images USING GIN (tags);

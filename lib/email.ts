@@ -1,10 +1,11 @@
 // lib/email.ts
 import { Resend } from 'resend'
+import { getSiteUrl } from '@/lib/site-url'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const FROM = 'Xavier <Xavier@zshengzong.top>'
-const BASE_URL = process.env.NEXTAUTH_URL?.replace(/\/$/, '') ?? 'https://zshengzong.top'
+const BASE_URL = getSiteUrl()
 
 export async function sendVerificationEmail(to: string, name: string, token: string) {
   const link = `${BASE_URL}/api/auth/verify?token=${token}`
