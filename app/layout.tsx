@@ -4,7 +4,6 @@ import './globals.css'
 import CursorGlow from '@/components/ui/CursorGlow'
 import CursorFollower from '@/components/ui/CursorFollower'
 import SiteShell from '@/components/layout/SiteShell'
-import PWARegister from '@/components/PWARegister'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
 import Providers from './providers'
 

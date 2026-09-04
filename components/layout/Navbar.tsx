@@ -129,6 +129,7 @@ export default function Navbar() {
 
   // /work/[slug] 详情页：Navbar 不 fixed，跟随页面滚动（普通文档流）
   const isWorkDetail = /^\/work\/[^/]+/.test(pathname)
+  const isGalleryHero = pathname === '/gallery' && !isScrolled
 
   const navCls = isWorkDetail
     ? 'relative bg-white border-b border-gray-100 py-4'
@@ -150,7 +151,7 @@ export default function Navbar() {
             style={{ width: `${progress * 100}%`, opacity: progress > 0.005 ? 1 : 0 }}
           />
         )}
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
+        <div className={`${pathname === '/gallery' ? 'relative px-5 sm:px-8 lg:px-12' : 'max-w-6xl mx-auto px-6'} flex items-center justify-between`}>
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
@@ -161,13 +162,13 @@ export default function Navbar() {
               height={32}
               className={`w-8 h-8 rounded-full${swinging ? ' logo-swing' : ''}`}
             />
-            <span className="tracking-tighter text-2xl font-black text-gray-900">
-              Mind<span className="text-blue-600">Stack</span>
+            <span className={`tracking-tighter text-2xl font-black transition-colors ${isGalleryHero ? 'text-white' : 'text-gray-900'}`}>
+              Mind<span className={isGalleryHero ? 'text-white' : 'text-blue-600'}>Stack</span>
             </span>
           </Link>
 
           {/* 桌面端导航 */}
-          <div className="hidden md:flex items-center space-x-10">
+          <div className={`hidden items-center space-x-10 md:flex ${pathname === '/gallery' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : ''}`}>
             {NAV_ITEMS.map(({ label, href }) => {
               const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
               return (
@@ -175,7 +176,9 @@ export default function Navbar() {
                   key={href}
                   href={href}
                   className={`capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
-                    isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900'
+                    isGalleryHero
+                      ? isActive ? 'text-white' : 'text-white/65 hover:text-white'
+                      : isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900'
                   }`}
                 >
                   {label}
@@ -184,25 +187,25 @@ export default function Navbar() {
               )
             })}
             {/* 通知铃铛 */}
-            <NotificationBell dark={false} />
+            <NotificationBell dark={isGalleryHero} />
             {/* 搜索按钮：唤起命令面板 */}
             <button
               onClick={() => setPaletteOpen(true)}
-              className="flex items-center gap-2 text-xs font-black tracking-widest text-gray-400 hover:text-gray-900 transition-colors py-2"
+              className={`flex items-center gap-2 text-xs font-black tracking-widest transition-colors py-2 ${isGalleryHero ? 'text-white/65 hover:text-white' : 'text-gray-400 hover:text-gray-900'}`}
               title="搜索 (Cmd/Ctrl + K)"
             >
               <Search className="w-4 h-4" />
               <span className="hidden lg:inline">搜索</span>
-              <kbd className="hidden lg:inline-block text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
+              <kbd className={`hidden lg:inline-block text-[10px] font-mono rounded px-1.5 py-0.5 ${isGalleryHero ? 'border border-white/10 bg-white/10 text-white/50' : 'border border-gray-200 bg-gray-100 text-gray-400'}`}>
                 ⌘K
               </kbd>
             </button>
-            <UserMenu dark={false} />
+            <UserMenu dark={isGalleryHero} />
           </div>
 
           {/* 移动端右侧 */}
           <div className="flex md:hidden items-center gap-2">
-            <NotificationBell dark={false} />
+            <NotificationBell dark={isGalleryHero} />
             {session ? (
               <Link href={userId ? `/profile/${userId}` : '/profile'}>
                 <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-blue-500 transition-all">
@@ -215,16 +218,16 @@ export default function Navbar() {
                 </div>
               </Link>
             ) : (
-              <Link href="/login" className="text-xs font-black text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5 rounded-xl border border-gray-200">
+              <Link href="/login" className={`text-xs font-black transition-colors px-3 py-1.5 rounded-xl border ${isGalleryHero ? 'border-white/20 text-white/70 hover:border-white/40 hover:text-white' : 'border-gray-200 text-gray-500 hover:text-gray-900'}`}>
                 登录
               </Link>
             )}
             <button
               onClick={handleOpen}
-              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${isGalleryHero ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
               aria-label="打开菜单"
             >
-              <Menu className="w-5 h-5 text-gray-700" />
+              <Menu className={`w-5 h-5 ${isGalleryHero ? 'text-white' : 'text-gray-700'}`} />
             </button>
           </div>
         </div>

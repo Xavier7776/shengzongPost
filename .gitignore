@@ -8,6 +8,11 @@ node_modules
 /out/
 /build
 
+# Env（保留 .env.example 作为模板）
+.env
+.env.*
+!.env.example
+
 # Misc
 .DS_Store
 *.pem
@@ -15,6 +20,9 @@ node_modules
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# Supabase CLI 本地缓存（含 project-ref / pooler-url 等环境绑定信息）
+supabase/.temp/
 
 # IDE / AI 助手配置（含本地记忆、会话缓存，不上传）
 .claude
