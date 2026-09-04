@@ -103,8 +103,20 @@ __tests__/   Vitest 用例
   - 根目录 `globals.css`（从未被导入）已删除，其中**仍在被代码引用的**动画
     （`aurora-spin`、`pointsToastIn`、`masonryIn`）与 `.frame-*` 头像框规则已迁入
     `app/globals.css` —— 这些在删之前是静默失效的
-- **Batch 2（下一步）** 从 `components/admin/PostEditor.tsx`（48 KB）与
-  `components/dashboard/UserPostEditor.tsx`（43 KB）抽共享编辑器内核到 `features/editor/`
+- **Batch 2（已完成）** 共享编辑器内核
+  - `features/editor/`（内核，与业务无关）：`extensions.ts` / `markdown.ts` / `types.ts` /
+    `VideoEmbed.ts` / `EditorToolbar.tsx` / `EditorBody.tsx`（含 `EditorPreview`、`EditorErrorBar`）/
+    `PostMetaForm.tsx` / `AiSidebar.tsx` / `useEditorDialogs.ts` / `useImageUpload.ts` /
+    `useAiWriting.ts` / `ai-stream.ts`
+  - `features/admin-posts/AdminPostEditor.tsx` + `AttachmentsPanel.tsx`（取代 48 KB 的
+    `components/admin/PostEditor.tsx`）
+  - `features/submissions/UserPostEditor.tsx`（取代 43 KB 的
+    `components/dashboard/UserPostEditor.tsx`）
+  - 差异全部参数化，未复制代码：占位文案、预览路由标签、错误条是否可关闭、
+    AI 供应商切换与 rewrite 模式、附件面板、封面换图前删旧图、slug 手自动策略、保存端点
+  - `tailwind.config.ts` 已补 `./features/**` 与 `./shared/**` content glob
+    （漏掉会导致 features/ 下所有 Tailwind 类被 purge）
+- **Batch 3（下一步）** 拆 `app/skills/research/MultiAgentHub.tsx`（93 KB）到 `features/research/`；
 - **Batch 3** 拆 `app/skills/research/MultiAgentHub.tsx`（93 KB）到 `features/research/`；
   拆 `app/profile/page.tsx`（43 KB）与 `app/profile/[userId]/page.tsx`（38 KB）到 `features/profile/`
 - **Batch 4** OnlyUs 收敛到 `features/onlyus/`，去掉 `SiteShell` 里的 `/onlyus` 特例

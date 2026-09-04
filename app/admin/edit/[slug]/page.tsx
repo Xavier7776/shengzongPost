@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/auth'
 import { getPostBySlugAdmin } from '@/lib/db'
-import PostEditor from '@/components/admin/PostEditor'
+import PostEditor from '@/features/admin-posts/AdminPostEditor'
 
 interface Props { params: { slug: string } }
 

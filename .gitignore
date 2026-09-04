@@ -24,6 +24,9 @@ next-env.d.ts
 # Supabase CLI 本地缓存（含 project-ref / pooler-url 等环境绑定信息）
 supabase/.temp/
 
+# Windows 下 next build 需要临时目录（TMP 指向系统目录会 EPERM）
+/.tmpbuild/
+
 # IDE / AI 助手配置（含本地记忆、会话缓存，不上传）
 .claude
 .trae
