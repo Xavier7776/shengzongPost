@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
-import UserPostEditor from '@/components/dashboard/UserPostEditor'
+import UserPostEditor from '@/features/submissions/UserPostEditor'
 
 const AI_ENABLED_ROLES = ['admin', 'wife', 'payMember']
 

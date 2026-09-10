@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,900;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
-
+/* 字体由 app/layout.tsx 通过 next/font 自托管（DM Sans / DM Mono），
+   注入到 <html> 的类上；这里的 :root 变量仅作为兜底。
+   不要再引入 fonts.googleapis.com 的 @import —— 它会造成渲染阻塞的串行请求。 */
 :root {
   --font-switzer: 'DM Sans', system-ui, sans-serif;
   --font-mono: 'DM Mono', monospace;
@@ -58,6 +59,19 @@ body::before {
 @keyframes footerFade {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes galleryImageIn {
+  from { opacity: 0.45; transform: scale(1.015); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.gallery-hero-image {
+  animation: galleryImageIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-hero-image { animation: none; }
 }
 
 /* ── Tiptap Editor Styles ─────────────────────────────────────── */
@@ -117,10 +131,52 @@ body::before {
 .ai-cursor { display: inline-block; width: 6px; height: 12px; background: #8b5cf6; border-radius: 1px; animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 2px; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-/* ── Sprite Sheet Animation (CSS steps — compositor-friendly, no flicker) ── */
-@keyframes sprite-play {
-  from { background-position: 0 var(--sprite-y, 0px); }
-  to   { background-position: var(--sprite-end-x, 0px) var(--sprite-y, 0px); }
+/* ── Gallery / Reveal Animations ──────────────────────────────── */
+@keyframes masonryIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-masonry-in {
+  animation: masonryIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 旋转动画：头像框 aurora / diamond（AvatarFrame、FrameShop、FrameSelector、FrameAdmin） */
+@keyframes aurora-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Points Toast（PointsToast） */
+@keyframes pointsToastIn {
+  from { opacity: 0; transform: translateX(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-points-toast-in {
+  animation: pointsToastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Avatar Frames ──────────────────────────────────────────────── */
+/* 由 AvatarFrame 的 box-shadow / outline 分支通过 frame-<css_key> 动态拼类名命中 */
+.frame-golden_ring {
+  box-shadow: 0 0 0 3px #fbbf24, 0 0 0 6px #92400e, 0 0 12px 2px rgba(251,191,36,0.3);
+}
+
+.frame-neon_blue {
+  outline: 3px solid #3b82f6;
+  outline-offset: 4px;
+  box-shadow: 0 0 16px 4px rgba(59, 130, 246, 0.5);
+}
+
+.frame-frost {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 20px 6px rgba(186, 230, 253, 0.5);
+}
+
+.frame-flame {
+  animation: flame-pulse 1.5s ease-in-out infinite alternate;
+}
+@keyframes flame-pulse {
+  from { box-shadow: 0 0 8px 2px #ef4444, 0 0 16px 4px #f97316, 0 0 24px 6px rgba(239, 68, 68, 0.3); }
+  to   { box-shadow: 0 0 14px 4px #dc2626, 0 0 22px 7px #ea580c, 0 0 32px 10px rgba(220, 38, 38, 0.4); }
 }
 
 /* ── Blog Post HTML Content ───────────────────────────────────── */
