@@ -9,7 +9,7 @@ vi.mock('next/link', () => ({
   ),
 }))
 
-vi.mock('@/lib/hooks', () => ({
+vi.mock('@/shared/hooks', () => ({
   useScrollReveal: () => [{ current: null }, true],
   useIsMobile: () => false,
 }))

@@ -4,7 +4,7 @@
 
 import { cookies } from 'next/headers'
 import { createHash } from 'crypto'
-import { signGateToken, COOKIE_NAME } from '@/lib/onlyus-gate'
+import { signGateToken, COOKIE_NAME } from '@/features/onlyus/lib/gate'
 
 export async function verifyPasscode(
   passcode: string

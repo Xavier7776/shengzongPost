@@ -1,7 +1,7 @@
 'use client'
 // components/sections/SkillCard.tsx
 import Link from 'next/link'
-import { useScrollReveal } from '@/lib/hooks'
+import { useScrollReveal } from '@/shared/hooks'
 import Card3D from '@/components/ui/Card3D'
 import { Star, Clock, Github, Globe } from 'lucide-react'
 

@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useQuizStore, type QuizSession } from '@/stores/onlyus/quizStore'
-import { useMedalStore } from '@/stores/onlyus/medalStore'
-import QuestionCard from '@/components/onlyus/quiz/QuestionCard'
-import AnswerReveal from '@/components/onlyus/quiz/AnswerReveal'
-import CompatibilityTimer from '@/components/onlyus/quiz/CompatibilityTimer'
-import ScoreBoard from '@/components/onlyus/quiz/ScoreBoard'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useQuizStore, type QuizSession } from '@/features/onlyus/stores/quizStore'
+import { useMedalStore } from '@/features/onlyus/stores/medalStore'
+import QuestionCard from '@/features/onlyus/components/quiz/QuestionCard'
+import AnswerReveal from '@/features/onlyus/components/quiz/AnswerReveal'
+import CompatibilityTimer from '@/features/onlyus/components/quiz/CompatibilityTimer'
+import ScoreBoard from '@/features/onlyus/components/quiz/ScoreBoard'
 
 type Tab = 'quiz' | 'compatibility'
 

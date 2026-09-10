@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useLetterStore, type Letter } from '@/stores/onlyus/letterStore'
-import { useDiaryStore, type DiaryEntry, type DiaryVisibility } from '@/stores/onlyus/diaryStore'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useLetterStore, type Letter } from '@/features/onlyus/stores/letterStore'
+import { useDiaryStore, type DiaryEntry, type DiaryVisibility } from '@/features/onlyus/stores/diaryStore'
 import dayjs from 'dayjs'
-import { useIsMobile } from '@/lib/hooks'
+import { useIsMobile } from '@/shared/hooks'
 
 // ── 3D 信封组件 ──────────────────────────────────────────────────────
 function Envelope3D({ letter, onClick }: { letter: Letter; onClick: () => void }) {

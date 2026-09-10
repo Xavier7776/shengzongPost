@@ -19,7 +19,7 @@ vi.mock('next/image', () => ({
 }))
 
 // mock 滚动揭示 hook，让组件直接处于可见状态
-vi.mock('@/lib/hooks', () => ({
+vi.mock('@/shared/hooks', () => ({
   useScrollReveal: () => [{ current: null }, true],
   useIsMobile: () => false,
 }))

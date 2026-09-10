@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { useIsMobile } from '@/lib/hooks'
+import { useIsMobile } from '@/shared/hooks'
 
 const PRESET_OPTIONS = ['火锅', '寿司', '披萨', '饺子', '麻辣烫', '汉堡', '沙拉', '拉面']
 const COLORS = ['#C4785A', '#E8849C', '#F5A623', '#7EB8D4', '#7BB87E', '#9B7EB8', '#D4584A', '#6B9BD2']

@@ -3,7 +3,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { verifyGateToken, COOKIE_NAME } from '@/lib/onlyus-gate'
+import { verifyGateToken, COOKIE_NAME } from '@/features/onlyus/lib/gate'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

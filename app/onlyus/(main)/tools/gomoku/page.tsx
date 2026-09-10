@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useIsMobile } from '@/lib/hooks'
-import { useGomokuStore, type Stone } from '@/stores/onlyus/gameStores'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useIsMobile } from '@/shared/hooks'
+import { useGomokuStore, type Stone } from '@/features/onlyus/stores/gameStores'
 
 const BOARD_SIZE = 15
 

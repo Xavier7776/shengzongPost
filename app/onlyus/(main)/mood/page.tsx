@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useIsMobile } from '@/lib/hooks'
-import { useMoodStore } from '@/stores/onlyus/moodStore'
-import { useQuestionStore } from '@/stores/onlyus/utilStores'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useIsMobile } from '@/shared/hooks'
+import { useMoodStore } from '@/features/onlyus/stores/moodStore'
+import { useQuestionStore } from '@/features/onlyus/stores/utilStores'
 
 // ── 心情定义 ──────────────────────────────────────────────────────────
 const MOODS = [

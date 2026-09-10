@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useIsMobile } from '@/lib/hooks'
-import { getSupabaseClient } from '@/lib/supabase-client'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useIsMobile } from '@/shared/hooks'
+import { getSupabaseClient } from '@/features/onlyus/lib/supabase'
 import { useRouter } from 'next/navigation'
 import dayjs from 'dayjs'
-import MedalGrid from '@/components/onlyus/medals/MedalGrid'
-import { usePushStore } from '@/stores/onlyus/pushStore'
+import MedalGrid from '@/features/onlyus/components/medals/MedalGrid'
+import { usePushStore } from '@/features/onlyus/stores/pushStore'
 
 const INPUT_STYLE = {
   width: '100%',

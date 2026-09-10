@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useIsMobile } from '@/lib/hooks'
-import { getSupabaseClient } from '@/lib/supabase-client'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useIsMobile } from '@/shared/hooks'
+import { getSupabaseClient } from '@/features/onlyus/lib/supabase'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface Counter {

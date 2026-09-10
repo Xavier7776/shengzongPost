@@ -2,7 +2,7 @@
 // components/sections/TrendingCard.tsx
 // 浅色风格，与主页面（Blog/Skills）保持一致
 // 保留 Top3 领奖台样式 + 4-30 紧凑列表样式 + stars 进度条
-import { useScrollReveal } from '@/lib/hooks'
+import { useScrollReveal } from '@/shared/hooks'
 import Card3D from '@/components/ui/Card3D'
 import { Star, GitFork, TrendingUp, ExternalLink, Crown, Medal, Award } from 'lucide-react'
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useScrollReveal } from '@/lib/hooks'
+import { useScrollReveal } from '@/shared/hooks'
 
 interface SectionHeadingProps {
   children: React.ReactNode

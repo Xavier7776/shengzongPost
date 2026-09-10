@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { usePetStore, PET_TYPES } from '@/stores/onlyus/petStore'
-import PetSprite from '@/components/onlyus/pet/PetSprite'
-import PetStats from '@/components/onlyus/pet/PetStats'
-import PetActions from '@/components/onlyus/pet/PetActions'
-import SpriteUpload from '@/components/onlyus/pet/SpriteUpload'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { usePetStore, PET_TYPES } from '@/features/onlyus/stores/petStore'
+import PetSprite from '@/features/onlyus/components/pet/PetSprite'
+import PetStats from '@/features/onlyus/components/pet/PetStats'
+import PetActions from '@/features/onlyus/components/pet/PetActions'
+import SpriteUpload from '@/features/onlyus/components/pet/SpriteUpload'
 
 export default function PetPage() {
   const { profile, coupleInfo } = useOnlyUsAuthStore()

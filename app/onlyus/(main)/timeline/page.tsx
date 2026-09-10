@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useMemoryStore, useAlbumStore, useWishlistStore, type Memory, type Photo } from '@/stores/onlyus/timelineStores'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useMemoryStore, useAlbumStore, useWishlistStore, type Memory, type Photo } from '@/features/onlyus/stores/timelineStores'
 import dayjs from 'dayjs'
-import { useIsMobile } from '@/lib/hooks'
+import { useIsMobile } from '@/shared/hooks'
 
 // ── 视差时间轴条目 ────────────────────────────────────────────────────
 function MemoryCard({ memory, index }: { memory: Memory; index: number }) {

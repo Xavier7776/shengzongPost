@@ -4,7 +4,7 @@
 // 核心亮点移到详情页，卡片只保留：标题 / tagline / 描述 / 技术栈前 3 个 / CTA
 import Image from 'next/image'
 import Link from 'next/link'
-import { useScrollReveal } from '@/lib/hooks'
+import { useScrollReveal } from '@/shared/hooks'
 import { getBlurDataURL } from '@/lib/image-utils'
 import { ExternalLink, Github, ArrowRight } from 'lucide-react'
 

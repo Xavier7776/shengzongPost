@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useIsMobile } from '@/lib/hooks'
-import { useDrawingStore, type Stroke } from '@/stores/onlyus/gameStores'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useIsMobile } from '@/shared/hooks'
+import { useDrawingStore, type Stroke } from '@/features/onlyus/stores/gameStores'
 
 const PALETTE = ['#3D2318','#C4785A','#E8849C','#F5A623','#7EB8D4','#7BB87E','#9B7EB8','#D4584A','#F8F6F3']
 const WIDTHS = [2, 4, 8, 14]

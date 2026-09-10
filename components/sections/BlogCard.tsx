@@ -2,7 +2,7 @@
 // components/sections/BlogCard.tsx
 import Link from 'next/link'
 import Image from 'next/image'
-import { useScrollReveal } from '@/lib/hooks'
+import { useScrollReveal } from '@/shared/hooks'
 import Card3D from '@/components/ui/Card3D'
 import { Calendar, Clock } from 'lucide-react'
 

@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useIsMobile } from '@/lib/hooks'
-import { useCalendarStore, type CalendarEvent } from '@/stores/onlyus/utilStores'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useIsMobile } from '@/shared/hooks'
+import { useCalendarStore, type CalendarEvent } from '@/features/onlyus/stores/utilStores'
 import dayjs, { type Dayjs } from 'dayjs'
 
 const EVENT_COLORS = ['#C4785A','#E8849C','#F5A623','#7EB8D4','#7BB87E','#9B7EB8']

@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next lint --dir app --dir components --dir lib --dir features --dir shared --dir __tests__",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

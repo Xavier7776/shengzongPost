@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useMovieStore, tmdbPosterUrl, type MovieRecord, type TMDBResult } from '@/stores/onlyus/movieStore'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useMovieStore, tmdbPosterUrl, type MovieRecord, type TMDBResult } from '@/features/onlyus/stores/movieStore'
 
 export default function MoviesPage() {
   const { profile, coupleInfo } = useOnlyUsAuthStore()

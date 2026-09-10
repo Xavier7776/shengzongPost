@@ -4,17 +4,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import UserSelectButton from '@/components/onlyus/landing/UserSelectButton'
-import { useOnlyUsAuthStore, USER_IDS } from '@/stores/onlyus/authStore'
-import { useIsMobile } from '@/lib/hooks'
-import { getSupabaseClient } from '@/lib/supabase-client'
+import UserSelectButton from '@/features/onlyus/components/landing/UserSelectButton'
+import { useOnlyUsAuthStore, USER_IDS } from '@/features/onlyus/stores/authStore'
+import { useIsMobile } from '@/shared/hooks'
+import { getSupabaseClient } from '@/features/onlyus/lib/supabase'
 
 const HeartCrystal = dynamic(
-  () => import('@/components/onlyus/landing/HeartCrystal'),
+  () => import('@/features/onlyus/components/landing/HeartCrystal'),
   { ssr: false }
 )
 const ParticleField = dynamic(
-  () => import('@/components/onlyus/landing/ParticleField'),
+  () => import('@/features/onlyus/components/landing/ParticleField'),
   { ssr: false }
 )
 

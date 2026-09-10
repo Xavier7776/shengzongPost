@@ -241,34 +241,39 @@ shengzongPost/
 │   ├── profile/              用户资料 & 关注列表
 │   ├── dashboard/            用户编辑中心
 │   ├── admin/                管理员后台（含 analytics、shop、reviews、slides）
-│   ├── onlyus/               私密情侣应用（middleware 独立门禁）
+│   ├── onlyus/               私密情侣应用的薄路由（实现见 features/onlyus/）
 │   ├── api/                  接口路由
 │   ├── feed.xml/             RSS
 │   └── sitemap.ts / robots.ts
-├── components/               共享 UI（ui / layout / sections / admin / shop …）
-├── features/                 业务模块（重构产出的目标结构，正在成形）
+├── components/               博客侧共享 UI（ui / layout / sections / admin / shop …）
+├── features/                 业务模块（模块内自带 components / stores / lib）
 │   ├── editor/               编辑器内核（与业务无关，可复用）
 │   ├── admin-posts/          管理端发文（AdminPostEditor / AttachmentsPanel）
-│   └── submissions/          用户投稿发文（UserPostEditor）
-├── lib/
+│   ├── submissions/          用户投稿发文（UserPostEditor）
+│   └── onlyus/               私密情侣应用（自包含：components / stores / lib）
+├── lib/                      博客侧数据访问与工具
 │   ├── db/                   数据访问层，按域拆分（posts, comments, points, …）
 │   ├── db.ts                 仅作为 lib/db/* 的 barrel 重新导出
 │   ├── db-search.ts / db-skills.ts / db-trending.ts / db-works.ts
 │   │                         尚未迁入 db/，计划合入
-│   ├── auth.ts / authOptions.ts / onlyus-gate.ts   认证与门禁
+│   ├── auth.ts / authOptions.ts   认证
 │   ├── data.ts               静态兜底数据（Hero 降级用，勿整体删除）
 │   ├── cloudinary*.ts        图片上传与 next/image loader
-│   ├── email.ts / uploadLarge.ts / rate-limit.ts / site-url.ts
-│   └── push.ts               Web Push 订阅
-├── stores/onlyus/            zustand store
+│   └── email.ts / uploadLarge.ts / rate-limit.ts / site-url.ts
+├── shared/                   跨模块通用能力（hooks.ts / ui/SpriteCanvas.tsx）
 ├── scripts/                  迁移应用与爬虫脚本
 ├── supabase/migrations/      32 个 SQL 迁移
 └── __tests__/                Vitest 用例
 ```
 
-> `features/` 已建立（`editor` / `admin-posts` / `submissions`）。当前重构的目标是把 `app/` 收敛为薄路由，
-> 业务收敛到 `features/{blog,work,gallery,editor,profile,community,shop,research,onlyus}`，
+> `features/` 已建立（`editor` / `admin-posts` / `submissions` / `onlyus`），`shared/` 已启用。
+> 当前重构的目标是把 `app/` 收敛为薄路由，业务收敛到
+> `features/{blog,work,gallery,editor,profile,community,shop,research,onlyus}`，
 > 通用能力到 `shared/{ui,markdown,auth,upload,validation}`，详见 AGENTS.md。
+>
+> **模块边界**：`features/onlyus/` 是自包含模块（独立 Supabase 库 + 独立 HMAC cookie 认证 +
+> 独立 store），与博客侧**零代码共享**，只允许引用 `@/shared/*`。该边界由 ESLint 双向强制，
+> 违反会直接 lint 报错 —— 这保证了它随时可以整体剥离出去，详见 AGENTS.md 第 3.1 节。
 
 ---
 

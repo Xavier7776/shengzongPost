@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useOnlyUsAuthStore } from '@/stores/onlyus/authStore'
-import { useBucketListStore, CATEGORIES, type BucketItem } from '@/stores/onlyus/bucketListStore'
-import { useMedalStore } from '@/stores/onlyus/medalStore'
-import BucketCard from '@/components/onlyus/bucket/BucketCard'
-import BucketStats from '@/components/onlyus/bucket/BucketStats'
-import CompletionCelebration from '@/components/onlyus/bucket/CompletionCelebration'
+import { useOnlyUsAuthStore } from '@/features/onlyus/stores/authStore'
+import { useBucketListStore, CATEGORIES, type BucketItem } from '@/features/onlyus/stores/bucketListStore'
+import { useMedalStore } from '@/features/onlyus/stores/medalStore'
+import BucketCard from '@/features/onlyus/components/bucket/BucketCard'
+import BucketStats from '@/features/onlyus/components/bucket/BucketStats'
+import CompletionCelebration from '@/features/onlyus/components/bucket/CompletionCelebration'
 
 const CATEGORIES_ICONS: Record<string, string> = {
   '全部': '🌈', '旅行': '✈️', '美食': '🍰', '冒险': '🏔️',

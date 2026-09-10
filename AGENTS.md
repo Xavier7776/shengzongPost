@@ -65,21 +65,51 @@ mkdir -p .tmpbuild && TMP="$PWD/.tmpbuild" TEMP="$PWD/.tmpbuild" npx next build
 
 ```
 app/          路由（App Router）。页面应尽量薄，只做取数 + 组装
-  (main)/     站点主布局下的页面
-  onlyus/     私密情侣应用，middleware 有独立的 gate 校验
-  api/        接口路由
-components/   共享 UI 组件（按 ui / layout / sections / admin / shop 等分层）
-lib/
+  onlyus/     私密情侣应用的薄路由；实现全部在 features/onlyus/
+  api/        接口路由（无 onlyus 专属接口 —— onlyus 由浏览器直连 Supabase）
+components/   博客侧共享 UI（ui / layout / sections / admin / shop 等）
+features/     业务模块（模块内自带 components / stores / lib）
+  editor/           编辑器内核，与业务无关、可复用
+  admin-posts/      管理员发文
+  submissions/      用户投稿
+  onlyus/           私密情侣应用（自包含，见下方边界约定）
+lib/          博客侧数据访问与工具
   db/         数据访问层，按域拆分（analytics, comments, points, posts, ...）
   db.ts       仅作为 lib/db/* 的 barrel 重新导出
   db-search.ts / db-skills.ts / db-trending.ts / db-works.ts  尚未迁入 db/，计划合入
   data.ts     静态兜底数据（HERO_SLIDES 是 Hero 的 DB 降级兜底，勿整体删除）
-stores/       zustand store，目前只有 stores/onlyus/*
+shared/       跨模块通用能力（当前只有 hooks.ts 与 ui/SpriteCanvas.tsx）
 supabase/migrations/   32 个 SQL 迁移
 __tests__/   Vitest 用例
 ```
 
-`features/` 目录尚不存在，是本期重构的目标结构（见第 6 节）。
+**两条历史文档写错的事实**：`app/(main)/` 这个路由组**并不存在**；
+顶层 `stores/` 已随 Batch 4 清空并删除，zustand store 现全部位于 `features/*/stores/`。
+
+### 3.1 模块边界（由 ESLint 强制）
+
+`features/onlyus/` 是**自包含模块** —— 独立的数据库（Supabase）、独立的认证
+（HMAC cookie gate）、独立的 store，与博客侧零代码共享。它只允许引用自身与 `@/shared/*`：
+
+| 方向 | 规则 |
+| --- | --- |
+| `features/onlyus/**`、`app/onlyus/**` → 其余任何代码 | **禁止**（`@/components/*` `@/lib/*` `@/stores/*` `@/features/*`；`@/features/onlyus` 自身除外） |
+| 其余任何代码 → `features/onlyus/**` | **禁止** |
+
+需要两方共用时，把代码上提到 `@/shared/`。规则在 `.eslintrc.json` 的两个 `overrides` 中，
+违反会直接 lint 报错。保持这条边界，将来若要把 onlyus 整体剥离成独立应用，
+只需 `git mv features/onlyus` 加一份 app 外壳，不必再理依赖。
+
+> **`middleware.ts` 仍留在仓库根目录**（Next.js 要求该位置）。它的 `matcher` 只有
+> `/onlyus/:path*`，逻辑全部属于 onlyus，内部从 `@/features/onlyus/lib/gate` 取校验函数。
+> 之所以不整体搬进 `features/onlyus/`：若把 `export const config` 改成 re-export，
+> Next 的静态分析读不到 `matcher`，会退化成匹配全部路由。
+>
+> **`SiteShell` 的 `isOnlyUs` 分支也必须保留**（`components/layout/SiteShell.tsx:22,80`）。
+> 单站点方案下 onlyus 仍由本应用在 `/onlyus` 提供，而根 `layout.tsx` 的 `SiteShell`
+> 会包裹**所有**子路由，嵌套 layout 无法摘除它。删掉该分支会让博客 Navbar 叠在
+> onlyus 的全屏固定布局上。要真正去掉它，必须先把博客路由收进 `app/(site)/` 路由组
+> （URL 不变，但要移动约 150 个路由文件）—— 属独立议题，不在 Batch 4 范围。
 
 ## 4. 四条产品线
 
@@ -102,11 +132,12 @@ __tests__/   Vitest 用例
 - **CSS**：只有 `app/globals.css` 生效。仓库根目录若再出现 `globals.css` 是残留，
   它不在 `tailwind.config.ts` 的 content globs（`pages/` `components/` `app/`）内。
 - **Tailwind content**：新增组件目录后记得补 `tailwind.config.ts` 的 `content`。
+  `./features/**` 与 `./shared/**` 已加入；漏掉会导致对应目录下**所有 Tailwind 类被 purge**。
 - **ISR**：`lib/db/_core.ts` 的冷启动重试 Proxy 刻意不传 `cache: 'no-store'`，
   否则会触发 `DYNAMIC_SERVER_USAGE` 导致静态导出失败。不要"顺手"加上。
-- **Service Worker**：`public/sw.js` 由 OnlyUs 订阅推送时注册（`lib/push.ts`），
-  不能删。它用 `NEVER_CACHE_PREFIXES` 排除 `/api`、`/admin`、`/dashboard`、
-  `/profile`、`/onlyus` 等私有/动态路径 —— 改缓存逻辑时这条底线不能破。
+- **Service Worker**：`public/sw.js` 由 OnlyUs 订阅推送时注册
+  （`features/onlyus/lib/push.ts`），不能删。它用 `NEVER_CACHE_PREFIXES` 排除 `/api`、
+  `/admin`、`/dashboard`、`/profile`、`/onlyus` 等私有/动态路径 —— 改缓存逻辑时这条底线不能破。
 - **Markdown**：`work/[slug]` 与 `skills/[slug]` 各自配置 `marked` 并
   `dangerouslySetInnerHTML`，目前无 sanitizer，是已知的 XSS 风险点（见第 6 节 Batch 5）。
 - **不要提交**：`.env*`、`.claude`、`.trae`、`.workbuddy`、`supabase/.temp/`（已在 `.gitignore`）。
@@ -156,10 +187,29 @@ __tests__/   Vitest 用例
     `next.config.js` 的 `loaderFile` 引用，删了图片优化会整体失效
 - **Batch 3（下一步）** 拆 `app/skills/research/MultiAgentHub.tsx`（93 KB）到 `features/research/`；
   拆 `app/profile/page.tsx`（43 KB）与 `app/profile/[userId]/page.tsx`（38 KB）到 `features/profile/`
-- **Batch 4** OnlyUs 收敛到 `features/onlyus/`，去掉 `SiteShell` 里的 `/onlyus` 特例
+- **Batch 4（已完成）** OnlyUs 收敛到 `features/onlyus/` + `shared/`
+  - 共搬移 51 个文件（`git mv`，历史保留）：
+    `components/onlyus/`(31) → `features/onlyus/components/`；
+    `stores/onlyus/`(15) → `features/onlyus/stores/`；
+    `lib/onlyus-gate.ts` → `features/onlyus/lib/gate.ts`；
+    `lib/supabase-client.ts` → `features/onlyus/lib/supabase.ts`；
+    `lib/push.ts` → `features/onlyus/lib/push.ts`
+  - **两个"假共享"模块下沉**（引用计数实测：使用者 100% 在 onlyus）：
+    `lib/supabase-client.ts`（17 个使用者）、`lib/push.ts`（唯一使用者
+    `stores/onlyus/pushStore.ts`）—— 它们此前放在公共 `lib/` 顶层，造成"有共享"的假象
+  - **两个真共享模块上提**：`lib/hooks.ts` → `shared/hooks.ts`（onlyus 14 / 博客 5）；
+    `components/ui/SpriteCanvas.tsx` → `shared/ui/SpriteCanvas.tsx`（onlyus 宠物 + 商店光标）
+  - 顶层 `stores/` 搬空后**已删除**（onlyus 是它唯一内容），`npm run lint` 的 `--dir`
+    目标同步去掉 `stores`、补上 `features`/`shared`/`__tests__`（`next lint` 默认不扫这些目录）
+  - **ESLint 双向边界上锁**（见 3.1 节），并用正反两次探针实测：两侧违规均被拦截、
+    `@/shared/*` 正确放行、现有代码零误报
+  - 验证：`tsc --noEmit` 通过；`next lint` 边界规则 0 命中；`npm run build` 通过
 - **Batch 5** 统一 markdown 渲染与消毒到 `shared/markdown/`（顺带修 XSS）；
   `lib/db-{search,skills,trending,works}.ts` 迁入 `lib/db/` 并留 re-export shim；
   跑 Knip；`@types/three` 移到 devDependencies
+- **Batch 6（可选，见 3.1 节）** 把博客路由收进 `app/(site)/` 路由组，
+  使 `SiteShell` 只需包裹内容站、从而删掉 `isOnlyUs` 等特例分支。URL 不变，
+  但涉及约 150 个路由文件移动，风险高于 Batch 4，建议单独一轮做
 
 目标结构：`app/` 只留薄路由；业务收敛到
 `features/{blog,work,gallery,editor,profile,community,shop,research,onlyus}`；
