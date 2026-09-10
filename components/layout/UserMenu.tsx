@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogOut, User, ChevronDown, PenLine, ShoppingBag } from 'lucide-react'
+import { LogOut, User, ChevronDown, PenLine, ShoppingBag, LayoutDashboard } from 'lucide-react'
 import RoleBadge from '@/components/ui/RoleBadge'
 import AvatarFrame from '@/components/ui/AvatarFrame'
 
@@ -133,6 +133,17 @@ export default function UserMenu({ dark = false }: UserMenuProps) {
               <PenLine className="w-4 h-4 text-gray-400" />
               编辑中心
             </Link>
+            {/* 管理后台：仅管理员可见（此前 /admin 无任何全局入口） */}
+            {role === 'admin' && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                管理后台
+              </Link>
+            )}
             <Link
               href="/shop"
               onClick={() => setOpen(false)}

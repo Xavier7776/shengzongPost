@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X, LogOut, User, PenLine, ChevronRight, Search, Bell } from 'lucide-react'
+import { Menu, X, LogOut, User, PenLine, ChevronRight, Search, Bell, LayoutDashboard } from 'lucide-react'
 import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
 import NotificationBell from '@/components/layout/NotificationBell'
@@ -313,6 +313,13 @@ export default function Navbar() {
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                     <PenLine className="w-4 h-4 text-gray-400" />编辑中心
                   </Link>
+                  {/* 管理后台：仅管理员可见（此前 /admin 无任何全局入口） */}
+                  {role === 'admin' && (
+                    <Link href="/admin" onClick={handleClose}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-blue-600 hover:bg-blue-50 transition-colors">
+                      <LayoutDashboard className="w-4 h-4" />管理后台
+                    </Link>
+                  )}
                 </>
               )}
             </div>

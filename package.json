@@ -7,11 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "crawl:skills": "tsx scripts/crawl-skills.ts",
+    "crawl:trending": "tsx scripts/crawl-trending.ts",
+    "db:apply": "node scripts/apply-migration.mjs",
+    "cursor:fetch": "node scripts/fetch-cursor-sprites.mjs && node scripts/fetch-cursor-posters.mjs"
   },
   "dependencies": {
-    "@dietrichgebert/ponytail": "^4.9.0",
     "@neondatabase/serverless": "^1.1.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
@@ -44,10 +48,9 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@dietrichgebert/ponytail": "^4.9.0",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
