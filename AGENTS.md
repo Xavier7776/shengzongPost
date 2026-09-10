@@ -180,9 +180,11 @@ __tests__/   Vitest 用例
    尚未接入任何定时调度（原 `AGENTS.md` 声称的「每天 10:00 自动爬取」并不存在）。
 5. **markdown 无消毒** — `work/[slug]` 与 `skills/[slug]` 用
    `dangerouslySetInnerHTML` 渲染 `marked` 输出，无 sanitizer，存在 XSS 风险。
-6. **ESLint 配置缺失** — `npm run lint`（`next lint`）在无 `.eslintrc*` 时会进入
-   交互式初始化向导，CI 中会挂住。需补一份 `.eslintrc.json`。
-7. 仓库根目录有 `{app` 与 `blog` 两个空目录（0 文件、未被 git 跟踪），
-   是早期在 shell 里花括号展开失败产生的垃圾，可安全删除。
-8. `README.md` 已覆盖四条产品线；`docs/项目整理计划-2026-09-10.md` 保留了
+6. **爬虫无调度** — 已核实：仓库内既无 `.github/workflows/` 也无 `vercel.json`，
+   `crawl:skills` / `crawl:trending` 只是手动脚本，「每天 10:00 自动爬取」并未实现。
+7. `README.md` 已覆盖四条产品线；`docs/项目整理计划-2026-09-10.md` 保留了
    本轮审计的完整证据链（导入图分析、双栈数据层、死代码判定依据）。
+
+> 已核实**不成立**、勿再当遗留项的两条旧说法：
+> ①「`{app` 与 `blog` 两个空目录」—— 当前根目录已无此二目录；
+> ②「ESLint 配置缺失」—— `.eslintrc.json` 存在（`extends: next/core-web-vitals`）。
