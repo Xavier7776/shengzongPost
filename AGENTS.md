@@ -94,6 +94,11 @@ __tests__/   Vitest 用例
 
 - **字体**：由 `app/layout.tsx` 用 `next/font`（DM Sans / DM Mono）自托管。
   不要再往 CSS 里加 `fonts.googleapis.com` 的 `@import`，会造成渲染阻塞。
+  > ⚠️ 曾发生过一次静默回归：`layout.tsx` 的 `next/font` 与 `app/globals.css` 的
+  > `@import` 被**分别**移除，导致两套加载机制同时消失、DM Sans 完全不加载
+  > （`--font-switzer` 静默回退到 `system-ui`，页面不报错但字体全错）。
+  > 因此：**移除 `next/font` 前必须确认已有替代加载方式**，`app/globals.css`
+  > 的 `:root` 变量只是兜底声明，不会加载任何字体。
 - **CSS**：只有 `app/globals.css` 生效。仓库根目录若再出现 `globals.css` 是残留，
   它不在 `tailwind.config.ts` 的 content globs（`pages/` `components/` `app/`）内。
 - **Tailwind content**：新增组件目录后记得补 `tailwind.config.ts` 的 `content`。
