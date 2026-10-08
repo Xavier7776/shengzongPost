@@ -1,0 +1,43 @@
+name: Daily AI Learning Publisher
+on:
+  schedule:
+    # 00:30 UTC = 08:30 Asia/Shanghai (China Standard Time, no DST)
+    # GitHub scheduled workflows can be delayed; same-day gate fails closed if too late.
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate without posting to site
+        type: boolean
+        required: true
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: daily-learn-publisher
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      XIAOMI_API_KEY: ${{ secrets.XIAOMI_API_KEY }}
+      XIAOMI_BASE_URL: ${{ vars.XIAOMI_BASE_URL }}
+      MIMO_MODEL: ${{ vars.MIMO_MODEL }}
+      LEARN_SITE_URL: ${{ vars.LEARN_SITE_URL }}
+      LEARN_PUBLISH_SECRET: ${{ secrets.LEARN_PUBLISH_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Publish verified issue (or manual dry run)
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            npx tsx scripts/publish-learn-daily.ts --dry-run
+          else
+            npx tsx scripts/publish-learn-daily.ts
+          fi
