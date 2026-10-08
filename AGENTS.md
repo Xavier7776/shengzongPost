@@ -29,7 +29,7 @@ npm run build         # 生产构建（见下方 Windows 注意）
 npm run start         # 启动构建产物
 npm run lint          # next lint
 npm run typecheck     # tsc --noEmit（含 scripts/）
-npm test              # vitest run（当前 5 个文件 / 61 个用例）
+npm test              # vitest run（当前 7 个文件 / 67 个用例）
 npm run test:watch
 
 npm run crawl:skills    # 爬取 AI Agent Skills → Neon
@@ -72,6 +72,8 @@ features/     业务模块（模块内自带 components / stores / lib）
   editor/           编辑器内核，与业务无关、可复用
   admin-posts/      管理员发文
   submissions/      用户投稿
+  research/         Research 工作台、运行 hook、协议映射与分区视图
+  profile/          资料设置、用户主页、数据 hooks 与展示组件
   onlyus/           私密情侣应用（自包含，见下方边界约定）
 lib/          博客侧数据访问与工具
   db/         数据访问层，按域拆分（analytics, comments, points, posts, ...）
@@ -185,8 +187,18 @@ __tests__/   Vitest 用例
   - `tsconfig.json` 从 `exclude` 移除 `scripts`，928 行爬虫纳入类型检查
   - **不要删 `lib/cloudinary-loader.ts`**：静态分析显示零导入，但它是
     `next.config.js` 的 `loaderFile` 引用，删了图片优化会整体失效
-- **Batch 3（下一步）** 拆 `app/skills/research/MultiAgentHub.tsx`（93 KB）到 `features/research/`；
-  拆 `app/profile/page.tsx`（43 KB）与 `app/profile/[userId]/page.tsx`（38 KB）到 `features/profile/`
+- **Batch 3（已完成）**
+  - Research 收敛到 `features/research/`：`MultiAgentHub.tsx` 负责组装；
+    `useResearch.ts` 保留运行状态、积分扣费、WebSocket、历史研报与清理逻辑；
+    `lib/research.ts` 保存原有配置、类型及协议映射，分区视图与弹窗位于 `components/`
+  - Profile 收敛到 `features/profile/`：`ProfileSettings.tsx` / `UserProfile.tsx` 负责组装；
+    两个 hooks 保留数据加载与交互状态；资料、安全、偏好、外观与桌面/移动主页拆为组件
+  - `/skills/research`、`/profile`、`/profile/[userId]` 保留原 URL；路由只组装业务组件，
+    原有认证跳转、密码校验、收藏/浏览记录的本人可见条件与 Suspense 边界均保留
+  - 新增路由回归测试，覆盖扣费与报告保存、积分不足、资料保存、密码校验与私密标签
+  - 验证：67 个测试、类型检查、ESLint 通过；补齐本地 `.env.local` 后，
+    `npm run build` 完整通过，93 个静态页面生成完成；真实登录、资料保存与研究服务
+    端到端联调尚未执行。环境文件保持 Git 忽略，不提交密钥
 - **Batch 4（已完成）** OnlyUs 收敛到 `features/onlyus/` + `shared/`
   - 共搬移 51 个文件（`git mv`，历史保留）：
     `components/onlyus/`(31) → `features/onlyus/components/`；
@@ -204,7 +216,7 @@ __tests__/   Vitest 用例
   - **ESLint 双向边界上锁**（见 3.1 节），并用正反两次探针实测：两侧违规均被拦截、
     `@/shared/*` 正确放行、现有代码零误报
   - 验证：`tsc --noEmit` 通过；`next lint` 边界规则 0 命中；`npm run build` 通过
-- **Batch 5** 统一 markdown 渲染与消毒到 `shared/markdown/`（顺带修 XSS）；
+- **Batch 5（下一步）** 统一 markdown 渲染与消毒到 `shared/markdown/`（顺带修 XSS）；
   `lib/db-{search,skills,trending,works}.ts` 迁入 `lib/db/` 并留 re-export shim；
   跑 Knip；`@types/three` 移到 devDependencies
 - **Batch 6（可选，见 3.1 节）** 把博客路由收进 `app/(site)/` 路由组，
