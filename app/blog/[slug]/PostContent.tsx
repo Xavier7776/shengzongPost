@@ -3,6 +3,7 @@ import { getPostBySlug } from '@/lib/db'
 import AttachmentList from '@/components/sections/AttachmentList'
 import CodeCopyButton from '@/components/sections/CodeCopyButton'
 import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
+import LearnArticle from './LearnArticle'
 
 // ── 旧 Markdown 兼容渲染（仅用于历史文章） ────────────────────────
 function renderInline(text: string) {
@@ -106,6 +107,10 @@ interface PostContentProps {
 export default async function PostContent({ slug }: PostContentProps) {
   const post = await getPostBySlug(slug)
   if (!post) return null
+  if (slug.startsWith('daily-learn-')) {
+    const article = await LearnArticle({ slug, content: post.content })
+    if (article) return <div className="reader-content">{article}</div>
+  }
 
   const isHtml = post.content.trimStart().startsWith('<')
 

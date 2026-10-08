@@ -29,7 +29,7 @@ npm run build         # 生产构建（见下方 Windows 注意）
 npm run start         # 启动构建产物
 npm run lint          # next lint
 npm run typecheck     # tsc --noEmit（含 scripts/）
-npm test              # vitest run（当前 7 个文件 / 67 个用例）
+npm test              # vitest run（当前 11 个文件 / 85 个用例）
 npm run test:watch
 
 npm run crawl:skills    # 爬取 AI Agent Skills → Neon
