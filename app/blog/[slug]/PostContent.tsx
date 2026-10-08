@@ -107,7 +107,10 @@ interface PostContentProps {
 export default async function PostContent({ slug }: PostContentProps) {
   const post = await getPostBySlug(slug)
   if (!post) return null
-  if (slug.startsWith('daily-learn-')) return <div className="reader-content"><LearnArticle slug={slug} /></div>
+  if (slug.startsWith('daily-learn-')) {
+    const article = await LearnArticle({ slug, content: post.content })
+    if (article) return <div className="reader-content">{article}</div>
+  }
 
   const isHtml = post.content.trimStart().startsWith('<')
 

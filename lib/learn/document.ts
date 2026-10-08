@@ -55,8 +55,9 @@ export function validateEdition(raw: unknown): { ok: boolean; errors: string[]; 
   if (raw.version !== 1) errors.push('unsupported content schema')
   const date = raw.date
   const dateMs = typeof date === 'string' ? Date.parse(date + 'T00:00:00Z') : NaN
-  if (!str(date, 10, 10) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !Number.isFinite(dateMs)) errors.push('invalid date')
-  if (typeof raw.topic !== 'string' || !(raw.topic in TOPICS)) errors.push('invalid topic')
+  if (!str(date, 10, 10) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !Number.isFinite(dateMs) ||
+      new Date(dateMs).toISOString().slice(0, 10) !== date) errors.push('invalid date')
+  if (typeof raw.topic !== 'string' || !Object.prototype.hasOwnProperty.call(TOPICS, raw.topic)) errors.push('invalid topic')
   if (!str(raw.title, 12, 120)) errors.push('invalid title')
   if (!str(raw.excerpt, 60, 400)) errors.push('invalid excerpt')
   if (!str(raw.lead, 100, 1500)) errors.push('invalid lead')
@@ -64,7 +65,7 @@ export function validateEdition(raw: unknown): { ok: boolean; errors: string[]; 
   const ids = new Set<string>()
   const urls = new Set<string>()
   if (!Array.isArray(raw.sources) || raw.sources.length < 2 || raw.sources.length > 5) errors.push('needs 2-5 real sources')
-  for (const [i, item] of (Array.isArray(raw.sources) ? raw.sources : []).entries()) {
+  for (const [i, item] of Array.from((Array.isArray(raw.sources) ? raw.sources : []).entries())) {
     if (!obj(item)) { errors.push('source ' + i + ': invalid'); continue }
     if (!str(item.id, 2, 12) || !/^s\d+$/.test(String(item.id)) || ids.has(String(item.id))) errors.push('source ' + i + ': duplicate/invalid id')
     else ids.add(String(item.id))
@@ -74,7 +75,7 @@ export function validateEdition(raw: unknown): { ok: boolean; errors: string[]; 
     else urls.add(String(item.url))
     const published = typeof item.publishedAt === 'string' ? Date.parse(item.publishedAt) : NaN
     if (!Number.isFinite(published) || !Number.isFinite(dateMs) ||
-        published > dateMs + 2 * 86400000 || published < dateMs - 8 * 86400000) errors.push('source ' + i + ': outside last 7 days')
+        published >= dateMs + 16 * 3600000 || published < dateMs - 7 * 86400000 - 8 * 3600000) errors.push('source ' + i + ': outside last 7 days')
   }
   if (!str(raw.primarySourceId, 2, 12) || !ids.has(String(raw.primarySourceId))) errors.push('missing primary source')
   function cite(block: Obj, i: number) {
@@ -84,7 +85,7 @@ export function validateEdition(raw: unknown): { ok: boolean; errors: string[]; 
   if (blocks.length < 15 || blocks.length > 50) errors.push('needs 15-50 blocks')
   const counts: Record<string, number> = {}
   let narrative = typeof raw.lead === 'string' ? raw.lead : ''
-  for (const [i, b] of blocks.entries()) {
+  for (const [i, b] of Array.from(blocks.entries())) {
     if (!obj(b) || !str(b.type, 2, 20)) { errors.push('block ' + i + ': invalid'); continue }
     counts[b.type] = (counts[b.type] ?? 0) + 1
     switch (b.type) {

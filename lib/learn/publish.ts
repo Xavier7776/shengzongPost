@@ -28,7 +28,7 @@ export async function publishEdition(e: Edition) {
   ), l AS (
     INSERT INTO learn_editions(post_id,edition_date,topic,document)
     SELECT id,${e.date}::date,${e.topic},${JSON.stringify(e)}::jsonb FROM p
-    ON CONFLICT(edition_date) DO NOTHING RETURNING post_id
+    RETURNING post_id
   ) SELECT (SELECT COUNT(*)::int FROM l) AS inserted`
   const created = Number(rows[0]?.inserted ?? 0) === 1
   if (!created) {

@@ -12,8 +12,25 @@ export async function POST(req: NextRequest) {
       Math.abs(Math.floor(Date.now()/1000)-Number(timestamp)) > 120) {
     return NextResponse.json({error:'unauthorized'}, {status:401})
   }
-  const body = await req.text()
-  if (Buffer.byteLength(body,'utf8') > 180000) return NextResponse.json({error:'too large'}, {status:413})
+  if (Number(req.headers.get('content-length')) > 180000) return NextResponse.json({error:'too large'}, {status:413})
+  const reader = req.body?.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  if (reader) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        size += value.byteLength
+        if (size > 180000) {
+          await reader.cancel()
+          return NextResponse.json({error:'too large'}, {status:413})
+        }
+        chunks.push(value)
+      }
+    } finally { reader.releaseLock() }
+  }
+  const body = Buffer.concat(chunks).toString('utf8')
   const digest = createHmac('sha256',secret).update(timestamp+'.'+body).digest()
   if (!timingSafeEqual(digest, Buffer.from(signature,'hex'))) return NextResponse.json({error:'unauthorized'}, {status:401})
   let input: unknown

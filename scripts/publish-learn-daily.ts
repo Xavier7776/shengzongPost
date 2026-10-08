@@ -14,13 +14,13 @@ async function discover():Promise<Source[]>{
  const response=await fetch(url,{signal:AbortSignal.timeout(25000),headers:{'User-Agent':'MindStackLearn/1.0'}})
  if(!response.ok)throw Error('arXiv retrieval failed '+response.status)
  const xml=await response.text(),out:Source[]=[]
- for(const m of xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)){
+ for(const m of Array.from(xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g))){
   const entry=m[1],get=(tag:string)=>clean(new RegExp('<'+tag+'(?:\\s[^>]*)?>([\\s\\S]*?)<\\/'+tag+'>').exec(entry)?.[1]||'')
   const url=get('id').replace(/^http:\/\/arxiv.org/,'https://arxiv.org').replace(/v\d+$/,'')
   const title=get('title'),excerpt=get('summary'),publishedAt=get('published')
-  const t=Date.parse(publishedAt),d=Date.parse(today+'T00:00:00Z')
+  const t=Date.parse(publishedAt),d=Date.parse(today+'T00:00:00+08:00')
   if(!/^https:\/\/arxiv.org\/abs\/[a-zA-Z0-9./-]+$/.test(url)||title.length<8||excerpt.length<100||
-     !Number.isFinite(t)||t<d-7*86400000||t>d+2*86400000)continue
+     !Number.isFinite(t)||t<d-7*86400000||t>=d+86400000)continue
   out.push({id:'s'+(out.length+1),kind:'arxiv',topic,title,url,publishedAt,excerpt:excerpt.slice(0,6500)})
   if(out.length===5)break
  }
