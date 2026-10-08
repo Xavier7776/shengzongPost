@@ -1,6 +1,6 @@
 // app/skills/research/page.tsx
 import type { Metadata } from 'next'
-import MultiAgentHub from './MultiAgentHub'
+import MultiAgentHub from '@/features/research/MultiAgentHub'
 
 export const dynamic = 'force-dynamic'
 
