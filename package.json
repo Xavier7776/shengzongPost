@@ -45,7 +45,8 @@
     "recharts": "^3.8.1",
     "resend": "^6.12.0",
     "three": "^0.184.0",
-    "zustand": "^5.0.13"
+    "zustand": "^5.0.13",
+    "parse5": "^8.0.1"
   },
   "devDependencies": {
     "@dietrichgebert/ponytail": "^4.9.0",

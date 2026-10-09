@@ -4,6 +4,7 @@ import AttachmentList from '@/components/sections/AttachmentList'
 import CodeCopyButton from '@/components/sections/CodeCopyButton'
 import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
 import LearnArticle from './LearnArticle'
+import { sanitizeRichHtml, safePostImageUrl } from '@/lib/html/sanitize-post'
 
 // ── 旧 Markdown 兼容渲染（仅用于历史文章） ────────────────────────
 function renderInline(text: string) {
@@ -34,10 +35,12 @@ function renderMarkdown(content: string) {
     const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
     if (imgMatch) {
       const [, alt, url, caption] = imgMatch
+      const safeUrl = safePostImageUrl(url)
+      if (!safeUrl) { i++; continue }
       elements.push(
         <figure key={i} className="my-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt={alt} className="w-full rounded-2xl object-contain shadow-md" style={{ maxHeight: 420 }} />
+          <img src={safeUrl} alt={alt} className="w-full rounded-2xl object-contain shadow-md" style={{ maxHeight: 420 }} />
           {caption && <figcaption className="text-center text-xs text-gray-400 mt-3 font-medium tracking-wide">{caption}</figcaption>}
         </figure>
       )
@@ -120,7 +123,7 @@ export default async function PostContent({ slug }: PostContentProps) {
         {isHtml ? (
           <div
             className="post-content"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(post.content) }}
           />
         ) : (
           <div className="space-y-5">{renderMarkdown(post.content)}</div>
