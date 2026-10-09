@@ -1,21 +1,13 @@
 name: Web Runtime Cleanup Checks
 on:
   pull_request:
-    paths:
-      - 'app/**'
-      - 'features/**'
-      - 'scripts/**'
-      - '__tests__/**'
-      - '.github/workflows/**'
-      - 'docs/**'
-      - 'README.md'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,10 +15,14 @@ jobs:
           fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
+      - run: npm install --global npm@11.6.0
+      - run: node --version && npm --version
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - name: Production build with isolated fixtures
+        run: npm run build:ci
       - run: git diff --check HEAD^1 HEAD
