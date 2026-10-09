@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chinaDate, validateEdition, type Edition } from '@/lib/learn/document'
 import { publishEdition } from '@/lib/learn/publish'
+import { PublicationError } from '@/lib/learn/publication-contract'
 export const runtime = 'nodejs'
+export const maxDuration = 30
 export async function POST(req: NextRequest) {
   const secret = process.env.LEARN_PUBLISH_SECRET
   if (!secret || secret.length < 32) return NextResponse.json({error:'unconfigured'}, {status:503})
@@ -42,5 +44,12 @@ export async function POST(req: NextRequest) {
   try {
     const result=await publishEdition(edition)
     return NextResponse.json(result,{status:result.created?201:200})
-  } catch(e) {console.error('[learn] publication failure',e);return NextResponse.json({error:'publish failed'}, {status:500})}
+  } catch(e) {
+    const requestId = randomUUID()
+    const category = e instanceof PublicationError ? e.category : 'database_failed'
+    console.error('[learn] publication failure', {requestId,category,date:edition.date})
+    return NextResponse.json({error:category,requestId,verified:false,reasons:e instanceof PublicationError?e.reasons:[],
+      dbStatus:e instanceof PublicationError && e.created ? 'written_unverified' : 'unknown'},
+      {status:category==='conflict'?409:category==='source_unverified'?502:500})
+  }
 }

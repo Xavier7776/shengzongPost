@@ -166,13 +166,13 @@ flowchart TD
 
 ### 实施清单
 
-- [ ] 更新 GitHub Actions 触发范围，至少包含 `lib/**`、`components/**`、`app/**`、`features/**`、`shared/**`、`__tests__/**`、`scripts/**`、`package*.json`、`tsconfig*.json`、`next.config.*`、`vitest*`、`public/**`、`.github/workflows/**`；酌情使用排除 docs-only 条件优化时间，但**不能漏核心代码**。
-- [ ] 强制每个 PR 同时跑：`npm ci`、`npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 与 `git diff --check`。构建所需环境变量用安全的**测试值/Mock**，不可把生产 Secret 暴露给不可信 PR。
-- [ ] 版本化 Node/npm，核对与 Vercel 实际构建版本；锁文件与 package.json 不匹配时 CI 立即失败。
-- [ ] 配置 PR 合并门槛：CI 成功、Preview READY、安全高风险审查、测试数量/覆盖范围说明；若权限不足以启用 GitHub Branch Protection，提交说明，不谎称已生效。
-- [ ] 补 API 认证矩阵（游客、普通用户、管理员、已降权旧 JWT、API Key）和基础发布/搜索 smoke。
-- [ ] 统一 `test`、`typecheck`、`lint`、`build` 输出，避免“单项通过”被误写为“全项通过”。
-- [ ] 新增 `docs/operations/release-checklist.md` 与 `docs/operations/rollback.md`；每次部署保留 commit 与 deployment ID。
+- [x] 更新 GitHub Actions 触发范围，至少包含 `lib/**`、`components/**`、`app/**`、`features/**`、`shared/**`、`__tests__/**`、`scripts/**`、`package*.json`、`tsconfig*.json`、`next.config.*`、`vitest*`、`public/**`、`.github/workflows/**`；酌情使用排除 docs-only 条件优化时间，但**不能漏核心代码**。
+- [x] 强制每个 PR 同时跑：`npm ci`、`npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 与 `git diff --check`。构建所需环境变量用安全的**测试值/Mock**，不可把生产 Secret 暴露给不可信 PR。
+- [x] 版本化 Node/npm，核对与 Vercel 实际构建版本；锁文件与 package.json 不匹配时 CI 立即失败。
+- [x] 配置 PR 合并门槛：CI 成功、Preview READY、安全高风险审查、测试数量/覆盖范围说明；若权限不足以启用 GitHub Branch Protection，提交说明，不谎称已生效。
+- [x] 补 API 认证矩阵（游客、普通用户、管理员、已降权旧 JWT、API Key）和基础发布/搜索 smoke。
+- [x] 统一 `test`、`typecheck`、`lint`、`build` 输出，避免“单项通过”被误写为“全项通过”。
+- [x] 新增 `docs/operations/release-checklist.md` 与 `docs/operations/rollback.md`；每次部署保留 commit 与 deployment ID。
 
 ### 验收
 
@@ -182,7 +182,7 @@ flowchart TD
 
 **回滚**：仅恢复原工作流、分支保护配置；业务数据不变。
 
-**结果登记**：PR `________` ｜ 完成日期 `________`
+**结果登记**：PR `#14` ｜ 合并 `7d61f58caabad9000b59fa4d70d2ffa2313eba2f` ｜ CI `37906616842` ｜ Production `dpl_BvrFsBnvpCaJiLJT6L8mCXeqTQKc` ｜ 完成日期 `2026-10-09`
 
 ---
 ## M02 · 每日专刊发布契约与写入回读（最高业务优先级）
@@ -677,8 +677,8 @@ git diff --check
 | 阶段 | 当前状态 | PR/提交 | CI | Preview | Production | 人工/浏览器验收 | 日期 |
 |---|---|---|---|---|---|---|---|
 | M00 搜索 V2 | [x] 已合并，正式域名验收通过 | [#13](https://github.com/Xavier7776/shengzongPost/pull/13) / `e4b894b` | 最终 head run 37904129515 通过 | dpl_7A4r3Dt2HzUB3cv66QfqridBTgok READY | dpl_8czf41qX1VyuLzqvE9orrLLz8LVS READY | 正式域名 Edge 三尺寸及完整搜索流程通过；真机未测 | 2026-10-09 |
-| M01 CI 门禁 | [-] 实施和远程门禁验证中 | `codex/ci-quality-gates-v2` | 本地 196 tests/typecheck/lint/build 通过；远程待验 | 待提交 | 不变 | main 强制 validate/Vercel 已确认 | 2026-10-09 |
-| M02 发布完整性 | [ ] | — | — | — | — | — | — |
+| M01 CI 门禁 | [x] | PR #14 / `7d61f58` | 196 tests、Actions、Preview/生产 smoke；单目录探针验证 | `dpl_BvrFsBnvpCaJiLJT6L8mCXeqTQKc` | 无 | 严格 validate/Vercel 保护已实测阻断 | 2026-10-09 |
+| M02 发布完整性 | [-] A 实施；B 待独立审计 | `codex/learn-publish-integrity-v2` | 222 tests、隔离 Neon SQL、本期旧正文兼容 | 待远程验证 | 无生产迁移/历史重发 | 最近三次成功率不可判定 | 2026-10-09 |
 | M03 发布监控 | [ ] | — | — | — | — | — | — |
 | M04 缓存一致性 | [ ] | — | — | — | — | — | — |
 | M05 来源与图表 | [ ] | — | — | — | — | — | — |
@@ -731,8 +731,8 @@ Production：未发布 / BUILDING / READY / ERROR
 ### 第 1 批：先形成发布质量闭环（3 个 PR）
 
 - [x] **M00 / PR #13**：修复防抖浏览器历史、完成 Preview 验收、合并上线。
-- [ ] **M01 / PR #14（建议编号，需以 GitHub 实际编号为准）**：CI 路径覆盖与 `npm run build` 必跑。
-- [ ] **M02-A / 下一独立 PR**：专刊相同日期冲突检测、写入回读、任务发布协议，不需要生产迁移。
+- [x] **M01 / PR #14**：CI 路径覆盖与 `npm run build` 必跑。
+- [-] **M02-A / 下一独立 PR**：专刊相同日期冲突检测、写入回读、任务发布协议，不需要生产迁移。
 
 **第一批完成标志**：搜索上线、任何核心代码变更都受 CI 保护、每日专刊重复执行不产生数据冲突或虚假成功回执。
 
@@ -844,3 +844,19 @@ Production：未发布 / BUILDING / READY / ERROR
 - 管理员实际批量发布路由增加游客/普通用户/admin/降权 JWT/API Key/无效 Key 矩阵，拒绝时 SQL 与失效调用均为零。28 文件 196 tests、类型检查、lint 通过。
 - main 原无保护（REST 404）、无 rulesets。现已启用严格 validate/Vercel 必须成功、管理员也受约束、对话解决、禁止 force push/delete；需要独立审批数为 0，安全审查属于操作流程。Connector 的 admin 403 已用现有 Git 凭据 REST 完成，未记录令牌。
 - 远程目录触发、故意类型错误阻断、最终 Preview/生产复核仍待完成，M01 不提前勾选。release-checklist 与 rollback 已保存，恢复演练未执行。
+
+### 2026-10-09 M01 验收完成
+
+- PR #14 head `6e91ebebed44ce4d667c379a4ced3d0b244210ed`，Actions `37906616842` 全通过，Preview `dpl_37RndQMisNubtJEpRDBq9ae5rQSQ` READY。同 SHA Preview Edge 三尺寸 smoke 通过。
+- 独立探针 PR #15 分别只改 lib、components、package-lock 均触发完整 CI；故意类型错误 Actions `37907133468` 失败，非 Draft 状态真实 GitHub mergeable_state=blocked；撤回后组件与锁文件 Actions `37907370330` / `37908236594` 完整成功。探针 PR 已关闭未合并，不把错误代码带入 main。
+- #14 squash merge `7d61f58caabad9000b59fa4d70d2ffa2313eba2f`，Production `dpl_BvrFsBnvpCaJiLJT6L8mCXeqTQKc`READY；正式域名 Home/Blog/Learn/Search/文章/匿名 admin 跳转及 1440/1024/390 检查通过，无未解释应用错误。证据 `D:\download\search-v2-validation\m01-production.json`。
+- main 严格 validate/Vercel 状态门槛、管理员受保护、解决对话、禁 force push/delete 均已读取确认；独立审批数为 0，不声称有人类独立审查。
+
+### 2026-10-09 M02-A 实施及 M02-B 核对结论
+
+- 基线 `7d61f58`，独立 Windows 工作树 `D:\download\worktrees\shengzongPost-m02`，开放 PR 无冲突。
+- 实现完整 canonical 指纹、同内容 no-op、漂移/孤儿冲突拒绝、来源网络门槛、原子插入后独立回读，以及 db_ready/public_pending 分离。有界公网检查须匹配 slug 与内容指纹；失效失败不再写库。
+- 先对旧发布器复现 17/18 失败；当前 30 文件 / 222 tests、typecheck、lint 通过。PGlite 运行实际 SQL，并在真实隔离 Neon 分支 `br-wild-wind-a1jhsr8m` 验证并发 1/0、日期唯一冲突与零孤儿。没有生产写入、迁移或历史文章重发；测试分支保留，删除需批准。
+- 10-09 公开 JSON 真实结构校验、旧 textVersion 与数据库正文一致，3 来源/32 块；三个 arXiv 来源标题和 v1 提交时间只读核对。结构与元数据核对不等于科学事实或调度成功。
+- 用户提供任务启用/08:30/ID 与单次执行时间，但无法取得完整日志；10-09 存在文章不能归因任务，10-07/08 无文章且任务状态未知。M02-B 最近三次成功率不可判定，不勾连续三次成功。保留 ChatGPT → Neon 通道，不切 HMAC、不重复发布；未来使用独立持久化发布审计。
+- 详细契约见 `docs/operations/learn-publication-contract.md`。M02-A 最终构建、同 SHA CI/Preview 与生产只读验收待登记，整个 M02 保持 `[-]`。
