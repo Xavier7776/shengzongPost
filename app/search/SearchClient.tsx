@@ -327,17 +327,7 @@ export default function SearchClient() {
         )}
       </div>
 
-      {/* 加载中 */}
-      {loading && (
-        <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm">搜索中…</span>
-        </div>
-      )}
-
-      {/* 结果 */}
-      {!loading && searched && !error && data && (
-        <>
+      {searched && !error && <>
           {/* 分类 Tab */}
           {(
             <div role="tablist" aria-label="搜索分类" className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-3 overflow-x-auto">
@@ -345,7 +335,7 @@ export default function SearchClient() {
                 <button
                   key={tab.key}
                   role="tab"
-                  aria-label={`${tab.label} ${tab.count}`}
+                  aria-label={`${tab.label} ${loading ? '搜索中' : tab.count}`}
                   aria-selected={activeType === tab.key}
                   onClick={() => navigate(query, { type: tab.key })}
                   className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -356,7 +346,7 @@ export default function SearchClient() {
                 >
                   {tab.label}
                   <span className={`ml-1.5 ${activeType === tab.key ? 'text-gray-300' : 'text-gray-400'}`}>
-                    {tab.count}
+                    {loading ? '…' : tab.count}
                   </span>
                 </button>
               ))}
@@ -364,13 +354,25 @@ export default function SearchClient() {
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6 text-sm text-gray-500">
-            <span role="status">共 {data.total} 条结果</span>
+            <span role="status">{data ? `共 ${data.total} 条结果` : '搜索中…'}</span>
             <select aria-label="搜索排序" value={sort} onChange={e => navigate(query, { sort: e.target.value as SearchSort })} className="border border-gray-200 rounded-lg p-2 bg-white text-gray-700">
               <option value="relevance">相关性优先</option>
               <option value="newest">最新优先</option>
             </select>
           </div>
 
+      </>}
+
+      {loading && (
+        <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">搜索中…</span>
+        </div>
+      )}
+
+      {/* 结果 */}
+      {!loading && searched && !error && data && (
+        <>
           {/* 空结果 + 推荐 */}
           {results.length === 0 && (
             <div className="flex flex-col items-center py-10 gap-3 text-gray-400">

@@ -98,7 +98,7 @@ describe('search state and asynchronous UI', () => {
     fireEvent.click(screen.getByRole('button', { name: '下一页' }))
     await settle()
     const pageSignal = fetchMock.mock.calls.at(-1)?.[1].signal as AbortSignal
-    navigate('q=RAG&type=skill&page=1&sort=relevance')
+    fireEvent.click(screen.getByRole('tab', { name: 'Skills 搜索中' }))
     await settle()
     expect(pageSignal.aborted).toBe(true)
     await act(async () => { resolvePage(response(result('/api/search?q=RAG&page=2', { total: 999 }))); await Promise.resolve() })
