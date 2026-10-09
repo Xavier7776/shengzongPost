@@ -1,8 +1,10 @@
 # 每日 AI 技术精读：自动发布运行手册
 
+> **2026-10-09 更新：主调度改为 ChatGPT 已有的每日定时任务（北京时间 08:30），并经授权的 Neon 连接向网站业务表写入内容。GitHub Actions 的每日 cron 已关闭，仅保留手动运行的外部 OpenAI 任务作为备用。ChatGPT 定时任务通过连接的应用写入时，可能受到应用可用性与操作审批的约束；未返回成功写入及回读结果时，不得宣称已发布。**
+
 ## 发布规则
-- 目标：北京时间每天 **08:30**；调度器为 GitHub Actions，使用 UTC 00:30。GitHub Cron 可能晚于指定时间触发，**不保证秒级准点**。若严重延迟到中国次日，将被服务端拒绝。
-- 仅在仓库 main 的 GitHub Actions 中执行；创建 PR 不会触发自动发布。此 PR **未部署生产**。
+- 目标：北京时间每天 **08:30**；主调度器为现有 ChatGPT 定时任务（Asia/Shanghai 精确日程）。手动 GitHub Actions 仅供应急；不再有并行 GitHub cron。
+- 手动 GitHub Actions 仍只允许从 main 发起，PR 不会触发生产发文。
 - 质量检查通过后无须人工批准；检查失败不产生公开文章，Workflow 红灯并保留 GitHub Actions 日志。
 - 每个北京时间日期唯一刊号 `daily-learn-YYYY-MM-DD`。重新执行同一天任务不会覆盖已人工修改的文章。
 
@@ -59,3 +61,10 @@
 - 更新生产环境密钥前先部署删除模型路由的代码，确认人工评论审核、编辑器及文章页面正常。随后清理 Vercel 中不用的 AI Key；不要在密钥仍被旧生产代码使用时直接撤销。
 - 如果 GitHub Actions 未配置 OpenAI API Key，定时任务**明确失败且不发布**。不能把 ChatGPT 订阅或日常任务当成 API 授权。
 - 本次不重写已部署在 Supabase 的 OnlyUs 每日问题 Edge Function；其独立凭据、运行环境和部署单独治理。
+
+## ChatGPT 每日自动写入路径
+- 目前 Web 接口 `POST /api/internal/learn/publish` 需要 `LEARN_PUBLISH_SECRET` HMAC 且未配备可从定时任务调用的受权 HTTP POST 通道。因此 ChatGPT 定时任务暂使用已经授权的 Neon 连接，直接在 `neondb` 的 `posts` 和 `learn_editions` 中**单语句事务式插入**，不走无鉴权 API；不要谎称调用过 HTTP 发布接口。
+- 目标：`crimson-cloud-17403928` / 默认分支 `br-old-truth-a1bnmt7i` / `neondb`；只写当日 `daily-learn-YYYY-MM-DD`，不得 UPDATE 或 DELETE 旧文章。内容必须吻合 `lib/learn/document.ts` schema，`posts.content` 由 `lib/learn/publish.ts` 的 `textVersion` 规则派生，否则页面会回退为普通文字。
+- 必须先查当天是否已存在；生成后严格校验结构、引用、来源、日期、篇幅；插入后再读取 `posts`+`learn_editions` 双表确认。工具无法写入或需要审批时标记失败，不能伪造发布 URL。
+- 由于数据库直写不主动调用 Next `revalidatePath`，`/learn` 和文章详情在 ISR 失效窗口之后才可见，最多可能延迟一分钟左右。强一致立即刷新如有需要应回归服务器鉴权发布 API。
+- 说明：在 ChatGPT 任务编辑页可查看和暂停自动化，但实际能否无人值守取决于届时连接的 Neon 工具及授权审批要求；首次生产写入后必须验收运行记录。
