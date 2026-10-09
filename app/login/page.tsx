@@ -34,7 +34,7 @@ function ForgotPassword({ onClose }: { onClose: () => void }) {
 
   async function resetPw() {
     if (!code.trim())       { setError('请输入验证码'); return }
-    if (newPw.length < 8)  { setError('新密码至少 8 位'); return }
+    if (newPw.length < 12)  { setError('新密码至少 12 位'); return }
     if (newPw !== confirm)  { setError('两次密码不一致'); return }
     setError(''); setStep('changing')
     const res = await fetch('/api/user/forgot-password', {
@@ -92,7 +92,7 @@ function ForgotPassword({ onClose }: { onClose: () => void }) {
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block">新密码</label>
               <div className="relative">
                 <input value={newPw} onChange={e => { setNewPw(e.target.value); setError('') }}
-                  type={showPw ? 'text' : 'password'} placeholder="至少 8 位"
+                  type={showPw ? 'text' : 'password'} placeholder="至少 12 位"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:border-blue-400 transition-colors" />
                 <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

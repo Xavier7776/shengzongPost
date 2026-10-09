@@ -24,7 +24,7 @@ export default function RegisterPage() {
       setError('两次密码不一致'); return
     }
     if (form.password.length < 6) {
-      setError('密码至少 6 位'); return
+      setError('密码至少 12 位'); return
     }
 
     setLoading(true)
@@ -110,7 +110,7 @@ export default function RegisterPage() {
               type="password"
               value={form.password}
               onChange={e => set('password', e.target.value)}
-              placeholder="至少 6 位"
+              placeholder="至少 12 位"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-blue-400 transition-colors"
             />
           </div>

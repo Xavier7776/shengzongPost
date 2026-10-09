@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { getUserById, setVerifyToken, getUserByVerifyToken, updateUserPassword } from '@/lib/db'
+import { getUserById, setVerifyToken, getUserByVerifyTokenAndId, updateUserPassword } from '@/lib/db'
+import { allowAuthAttempt, validNewPassword, MIN_PASSWORD_LENGTH } from '@/lib/auth-rate-limit'
 import { Resend } from 'resend'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
@@ -13,13 +14,16 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM   = process.env.EMAIL_FROM ?? 'MindStack <noreply@zshengzong.top>'
 
 // ── POST：生成 6 位验证码，写入 verify_token，发送邮件 ─────────────────────────
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
   const userId = Number((session.user as { id?: string }).id ?? 0)
   if (!userId) return NextResponse.json({ error: '无法识别用户' }, { status: 400 })
 
+  if (!await allowAuthAttempt(req, 'password-send', String(userId))) {
+    return NextResponse.json({ error: '发送过于频繁，请稍后再试' }, { status: 429, headers: { 'Retry-After': '3600' } })
+  }
   const user = await getUserById(userId)
   if (!user) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
 
@@ -70,12 +74,15 @@ export async function PATCH(req: NextRequest) {
 
   const { code, newPassword } = await req.json()
 
-  if (!code || !newPassword) return NextResponse.json({ error: '参数不完整' }, { status: 400 })
-  if (newPassword.length < 8)  return NextResponse.json({ error: '新密码至少 8 位' }, { status: 400 })
+  if (typeof code !== 'string' || !/^\d{6}$/.test(code) || !validNewPassword(newPassword))
+    return NextResponse.json({ error: '验证码或新密码不符合要求（密码至少 ' + MIN_PASSWORD_LENGTH + ' 位）' }, { status: 400 })
+  if (!await allowAuthAttempt(req, 'password-verify', String(userId))) {
+    return NextResponse.json({ error: '验证次数过多，请稍后重试' }, { status: 429, headers: { 'Retry-After': '1800' } })
+  }
 
   // 用 token 查用户，同时做过期校验（SQL 里有 token_expires>NOW()）
-  const user = await getUserByVerifyToken(code)
-  if (!user || user.id !== userId) {
+  const user = await getUserByVerifyTokenAndId(code, userId)
+  if (!user) {
     return NextResponse.json({ error: '验证码无效或已过期' }, { status: 400 })
   }
 

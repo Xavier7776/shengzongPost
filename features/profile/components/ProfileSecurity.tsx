@@ -76,8 +76,8 @@ export default function ProfileSecurity({
                 value={pwNew}
                 onChange={e => { setPwNew(e.target.value); setPwError('') }}
                 type={showPw ? 'text' : 'password'}
-                minLength={8}
-                placeholder="至少 8 位"
+                minLength={12}
+                placeholder="至少 12 位"
                 className="w-full px-5 py-3 pr-11 bg-white border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 outline-none text-sm transition-all"
               />
               <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors">
