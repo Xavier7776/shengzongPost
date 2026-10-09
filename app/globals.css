@@ -396,9 +396,9 @@ body::before {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 2.75rem;
-  align-items: start;
+  align-items: stretch;
 }
-.learn-post-main { min-width: 0; }
+.learn-post-main { min-width: 0; align-self: start; }
 .learn-post-header { margin-bottom: 1.75rem; }
 .learn-post-title {
   max-width: 1050px;

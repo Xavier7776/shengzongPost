@@ -1,5 +1,6 @@
 // app/blog/[slug]/PostHeader.tsx
 import { getPostBySlug } from '@/lib/db'
+import Link from 'next/link'
 import AuthorCard from '@/components/sections/AuthorCard'
 
 interface PostHeaderProps {
@@ -69,7 +70,7 @@ export default async function PostHeader({ slug, variant = 'standard' }: PostHea
               {(post.author_name || 'M').slice(0, 1)}
             </span>
             {post.author_id ? (
-              <a href={'/profile/' + post.author_id} className="font-semibold text-gray-700 hover:text-blue-600">{post.author_name || 'MindStack'}</a>
+              <Link href={'/profile/' + post.author_id} className="font-semibold text-gray-700 hover:text-blue-600">{post.author_name || 'MindStack'}</Link>
             ) : <span className="font-semibold text-gray-700">{post.author_name || 'MindStack'}</span>}
           </span>
           <span>预计阅读 {readingMinutes} 分钟</span>
