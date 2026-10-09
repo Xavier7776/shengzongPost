@@ -144,3 +144,42 @@ export async function getPostsByAuthor(authorId: number): Promise<PostMeta[]> {
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
 }
 
+
+/** Published-only ranking: cumulative views, then newest first, never the page's arbitrary 4–8 items. */
+export async function getPopularPosts(limit = 5): Promise<PostMeta[]> {
+  const safeLimit = Math.max(1, Math.min(10, Math.floor(limit)))
+  const rows = await sql`SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,
+      p.updated_at,p.cover_image,p.author_id,u.name AS author_name,u.avatar AS author_avatar
+    FROM posts p LEFT JOIN users u ON u.id=p.author_id
+    WHERE p.published=TRUE AND COALESCE(p.view_count,0)>0
+    ORDER BY COALESCE(p.view_count,0) DESC,p.created_at DESC,p.id DESC
+    LIMIT ${safeLimit}`
+  return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
+}
+
+/** Published-only global category counts, no longer limited to the 12 posts on current page. */
+export async function getBlogTagCounts(): Promise<{tag:string;count:number}[]> {
+  const rows = await sql`SELECT t.tag AS tag, COUNT(DISTINCT p.id)::int AS count
+    FROM posts p CROSS JOIN LATERAL unnest(p.tags) AS t(tag)
+    WHERE p.published=TRUE AND t.tag<>''
+    GROUP BY t.tag ORDER BY count DESC,t.tag ASC LIMIT 200`
+  return rows.map(row=>({tag:String(row.tag),count:Number(row.count)}))
+}
+
+/** Page through every published post with a selected tag, including older posts. */
+export async function getPostsPaginatedByTag(
+  page: number, pageSize: number, tag: string,
+): Promise<{posts:PostMeta[];total:number}> {
+  const offset = (page - 1) * pageSize
+  const countRows = await sql`SELECT COUNT(*)::int AS total
+    FROM posts WHERE published=TRUE AND ${tag}=ANY(tags)`
+  const rows = await sql`SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,
+      p.updated_at,p.cover_image,p.author_id,u.name AS author_name,u.avatar AS author_avatar
+    FROM posts p LEFT JOIN users u ON u.id=p.author_id
+    WHERE p.published=TRUE AND ${tag}=ANY(p.tags)
+    ORDER BY p.created_at DESC,p.id DESC LIMIT ${pageSize} OFFSET ${offset}`
+  return {
+    posts:serializeRows(rows as Record<string,unknown>[]) as unknown as PostMeta[],
+    total:Number(countRows[0]?.total ?? 0),
+  }
+}
