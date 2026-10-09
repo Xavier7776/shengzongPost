@@ -21,13 +21,14 @@ export interface RatePolicy {
   ipMax: number
   windowSeconds: number
 }
-export const AUTH_RATE_POLICIES: Record<string, RatePolicy> = {
+export const AUTH_RATE_POLICIES = {
+  login: { identityMax: 12, ipMax: 40, windowSeconds: 900 },
   registration: { identityMax: 3, ipMax: 8, windowSeconds: 3600 },
   'forgot-send': { identityMax: 3, ipMax: 10, windowSeconds: 3600 },
   'forgot-verify': { identityMax: 8, ipMax: 30, windowSeconds: 1800 },
   'password-send': { identityMax: 4, ipMax: 12, windowSeconds: 3600 },
   'password-verify': { identityMax: 8, ipMax: 24, windowSeconds: 1800 },
-}
+} satisfies Record<string, RatePolicy>
 
 function identifier(scope: string, value: string): string {
   const secret = process.env.AUTH_RATE_LIMIT_SECRET || process.env.NEXTAUTH_SECRET
