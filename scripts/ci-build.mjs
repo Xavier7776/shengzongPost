@@ -40,6 +40,7 @@ try {
   assert.equal((await query({ query: 'SELECT COUNT(*)::int AS total FROM posts WHERE published=true' })).rows[0][0], '1')
   await assert.rejects(query({ query: 'DELETE FROM posts' }))
   await assert.rejects(query({ query: 'SELECT 1; DELETE FROM posts' }))
+  await assert.rejects(query({ query: 'SELECT * INTO ci_forbidden FROM posts' }))
   {
     await new Promise(r => server.listen(0, '127.0.0.1', r))
     const tmp = resolve('.tmpbuild')
@@ -58,7 +59,10 @@ try {
       const args = process.argv.includes('--self-test')
         ? ['--input-type=module', '-e', `import assert from 'node:assert/strict'; import { neon } from '@neondatabase/serverless';
           const rows = await neon(process.env.DATABASE_URL).query('SELECT tags, published FROM posts WHERE published=true');
-          assert.deepEqual(rows, [{tags:['CI'], published:true}]); console.log('CI SQL transport self-test passed');`]
+          assert.deepEqual(rows, [{tags:['CI'], published:true}]);
+          await assert.rejects(fetch('https://example.invalid', {method:'POST'}));
+          await assert.rejects(fetch('https://api.neon.tech/sql', {method:'POST'}));
+          console.log('CI SQL transport self-test passed');`]
         : [process.env.npm_execpath, 'run', 'build']
       const child = spawn(process.execPath, args, { env, stdio: 'inherit' })
       child.on('error', reject)
