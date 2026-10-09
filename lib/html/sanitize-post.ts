@@ -44,7 +44,7 @@ function safeLink(raw: string | null): string | null {
       parsed.hostname && !parsed.username && !parsed.password ? parsed.href : null
   } catch { return null }
 }
-function safeImage(raw: string | null): string | null {
+export function safePostImageUrl(raw: string | null): string | null {
   if (!raw || raw.length > 2048) return null
   const value = raw.trim()
   if (/^\/(?!\/|\\)/.test(value)) return value
@@ -86,7 +86,7 @@ function cleanAttrs(node: HtmlNode) {
     return
   }
   if (name === 'img') {
-    const src = safeImage(attr(node,'src'))
+    const src = safePostImageUrl(attr(node,'src'))
     node.attrs = src ? [
       { name:'src', value:src },
       { name:'alt', value:(attr(node,'alt') ?? '').slice(0,250) },

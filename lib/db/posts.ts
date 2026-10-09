@@ -3,6 +3,7 @@
 
 import { sql, serializeRow, serializeRows } from './_core'
 import type { User } from './users'
+import { sanitizePostContent } from '@/lib/html/sanitize-post'
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
 export interface Post {
@@ -73,9 +74,10 @@ export async function createPost(data: {
   author_id?: number | null
 }): Promise<Post> {
   const attachments = JSON.stringify(data.attachments ?? [])
+  const safeContent = sanitizePostContent(data.content)
   const rows = await sql`
     INSERT INTO posts(slug,title,excerpt,content,tags,published,cover_image,attachments,author_id)
-    VALUES(${data.slug},${data.title},${data.excerpt},${data.content},${data.tags},${data.published},${data.cover_image ?? null},${attachments}::jsonb,${data.author_id ?? null})
+    VALUES(${data.slug},${data.title},${data.excerpt},${safeContent},${data.tags},${data.published},${data.cover_image ?? null},${attachments}::jsonb,${data.author_id ?? null})
     RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
@@ -83,9 +85,9 @@ export async function updatePost(slug: string, data: Partial<{ title: string; ex
   let rows
   if (data.attachments !== undefined) {
     const attachments = JSON.stringify(data.attachments)
-    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content??null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),attachments=${attachments}::jsonb,author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
+    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content !== undefined ? sanitizePostContent(data.content) : null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),attachments=${attachments}::jsonb,author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
   } else {
-    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content??null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
+    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content !== undefined ? sanitizePostContent(data.content) : null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
   }
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }

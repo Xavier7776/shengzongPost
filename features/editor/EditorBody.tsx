@@ -4,6 +4,7 @@ import { Clock, Eye, Loader2 } from 'lucide-react'
 import { EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { EditorToolbar } from './EditorToolbar'
+import { sanitizeRichHtml } from '@/lib/html/sanitize-post'
 import type { useEditorDialogs } from './useEditorDialogs'
 
 type Dialogs = ReturnType<typeof useEditorDialogs>
@@ -68,7 +69,7 @@ export function EditorPreview({ title, routeLabel, html }: PreviewProps) {
       <div className="flex-1 overflow-y-auto px-8 py-8">
         <h1 className="text-3xl font-black tracking-tighter text-gray-900 mb-2">{title || '（无标题）'}</h1>
         <p className="text-gray-300 text-xs mb-6 font-mono">{routeLabel}</p>
-        <div className="preview-content" dangerouslySetInnerHTML={{ __html: html }} />
+        <div className="preview-content" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(html) }} />
       </div>
     </div>
   )
