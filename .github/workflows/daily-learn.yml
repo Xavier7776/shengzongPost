@@ -1,9 +1,6 @@
 name: Daily AI Learning Publisher
 on:
-  schedule:
-    # 00:30 UTC = 08:30 Asia/Shanghai (China Standard Time, no DST)
-    # GitHub scheduled workflows can be delayed; same-day gate fails closed if too late.
-    - cron: '30 0 * * *'
+  # ChatGPT scheduled task owns the daily 08:30 publication; this workflow remains manual fallback.
   workflow_dispatch:
     inputs:
       dry_run:
