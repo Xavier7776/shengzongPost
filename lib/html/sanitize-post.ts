@@ -154,9 +154,9 @@ function sanitizeChildren(parent: HtmlNode, depth: number): void {
 
 export function sanitizeRichHtml(html: string): string {
   if (html.length > 1_000_000) throw new Error('HTML exceeds 1 MB security limit')
-  const root = parseFragment(html) as unknown as HtmlNode
-  sanitizeChildren(root, 0)
-  return serialize(root as unknown as Parameters<typeof serialize>[0])
+  const root = parseFragment(html)
+  sanitizeChildren(root as unknown as HtmlNode, 0)
+  return serialize(root)
 }
 
 export function sanitizePostContent(content: string): string {
