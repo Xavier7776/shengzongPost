@@ -1,4 +1,3 @@
-// M01 disposable components-only CI trigger probe.
 // components/sections/Hero.tsx
 // 服务端组件：从数据库读取 hero_slides；
 // 若数据库无数据（建表前/无启用项），自动降级到 lib/data.ts 的 HERO_SLIDES 静态配置。
