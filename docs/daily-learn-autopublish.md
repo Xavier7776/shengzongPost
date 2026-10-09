@@ -9,7 +9,7 @@
 ## 初次启用前（生产需要人工操作）
 1. 在 Neon 备份后执行 `supabase/migrations/054_learn_editions.sql`；验证旧文章仍可读取。当前迁移体系无法从全新空数据库完整重放，不能自动假定已完成迁移。
 2. 在网站服务器 / Vercel 配置随机生成、至少32字符的 `LEARN_PUBLISH_SECRET`，并部署新增发布 API 及阅读器（本 PR 不部署）。
-3. GitHub Actions secrets 同名配置 `LEARN_PUBLISH_SECRET`、`XIAOMI_API_KEY`；Actions variables 配置 `LEARN_SITE_URL=https://你的域名/`。密钥需与服务端匹配。可选 `XIAOMI_BASE_URL`、`MIMO_MODEL`。
+3. GitHub Actions secrets 同名配置 `LEARN_PUBLISH_SECRET`、`OPENAI_API_KEY`；Actions variables 配置 `LEARN_SITE_URL=https://你的域名/`。密钥需与服务端匹配。可选 `OPENAI_MODEL`（默认 `gpt-6.1-sol`）。
 4. 合并并部署后，先手动触发 `workflow_dispatch` 且 dry_run=true；检查源采集、模型结构校验和内容深度。再手动执行真实发布（仅当日）。最后启用每天调度。
 5. 运行 `npm run typecheck`、`npm test`、`npm run build`，验证 /learn、/blog/daily-learn-...；测试移动端图表、测验、旧文章兼容和 RSS。
 6. 监控 GitHub Actions 的失败状态、Neon 记录与网站公开文章。禁用自动发布：在 GitHub Actions 禁用 workflow，或者移除服务端密钥（立即拒绝新请求）。
@@ -51,3 +51,11 @@
 - `npm run build` 完整通过，生成 95 个静态页面；保留现有 metadataBase 与 Edge runtime 提示。
 - 回归覆盖完整文档、签名与时间窗、流式请求大小、日期与来源、私有发布结果处理、缺表及旧文章/人工编辑正文回退。
 - 数据库交互测试使用 mock；未在真实 PostgreSQL 执行迁移、并发与回滚测试，未调用真实模型或公开发布文章。生产启用前仍需完成上述验收矩阵。
+
+## 外部内容生产与 Web 端解耦（2026-10-09）
+- GitHub Actions 在独立 runner 中调用 OpenAI **Responses API**。`OPENAI_API_KEY` 只放 GitHub Actions Secrets，不放 Vercel；这属于计费的独立 API 调用，并非当前 ChatGPT 对话或 ChatGPT 定时任务自动执行。
+- Vercel 不应保留 `XIAOMI_API_KEY`、`MIMO_MODEL`、`XIAOMI_BASE_URL`、`GEMINI_API_KEY` 或模型写作入口。发布接口仅验证签名与结构并入库。
+- `LEARN_PUBLISH_SECRET` 仍由 Vercel 与 GitHub Actions 同时持有，它用于外部文章入库鉴权，不是模型凭据。
+- 更新生产环境密钥前先部署删除模型路由的代码，确认人工评论审核、编辑器及文章页面正常。随后清理 Vercel 中不用的 AI Key；不要在密钥仍被旧生产代码使用时直接撤销。
+- 如果 GitHub Actions 未配置 OpenAI API Key，定时任务**明确失败且不发布**。不能把 ChatGPT 订阅或日常任务当成 API 授权。
+- 本次不重写已部署在 Supabase 的 OnlyUs 每日问题 Edge Function；其独立凭据、运行环境和部署单独治理。

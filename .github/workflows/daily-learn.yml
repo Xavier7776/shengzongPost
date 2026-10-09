@@ -22,9 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
-      XIAOMI_API_KEY: ${{ secrets.XIAOMI_API_KEY }}
-      XIAOMI_BASE_URL: ${{ vars.XIAOMI_BASE_URL }}
-      MIMO_MODEL: ${{ vars.MIMO_MODEL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
       LEARN_SITE_URL: ${{ vars.LEARN_SITE_URL }}
       LEARN_PUBLISH_SECRET: ${{ secrets.LEARN_PUBLISH_SECRET }}
     steps:
