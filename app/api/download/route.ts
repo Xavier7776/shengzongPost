@@ -1,55 +1,90 @@
-// app/api/download/route.ts
-// 流式代理下载：直接把 Cloudinary 的响应 body stream 转发给浏览器
-// 不缓冲整个文件到内存，绕开 Vercel 4.5MB 响应体限制
-//
-// 支持任意文件类型：根据 filename 后缀动态判断 Content-Type
-//   - .md  → text/markdown
-//   - .pdf → application/pdf（默认）
-//   - 其他 → application/octet-stream
-
+// Proxy only this site's uploaded Cloudinary assets.
+// The previous hostname.endsWith('cloudinary.com') accepted lookalike attacker domains,
+// HTTP and redirected responses; this route is intentionally fail-closed.
 import { NextRequest } from 'next/server'
 
-export const runtime = 'edge' // edge runtime 无响应体大小限制
+export const runtime = 'edge'
+const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024
+const DOWNLOAD_TIMEOUT_MS = 60_000
 
-function getContentType(filename: string): string {
+function contentType(filename: string) {
   if (/\.md$/i.test(filename)) return 'text/markdown; charset=utf-8'
   if (/\.pdf$/i.test(filename)) return 'application/pdf'
   return 'application/octet-stream'
 }
 
+function allowedCloudinaryUrl(input: string): URL | null {
+  try {
+    const target = new URL(input)
+    const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim()
+    if (!cloud || !/^[a-zA-Z0-9_-]{1,100}$/.test(cloud)) return null
+    if (target.protocol !== 'https:' || target.hostname !== 'res.cloudinary.com' ||
+        target.port || target.username || target.password || target.hash) return null
+    const match = /^\/([a-zA-Z0-9_-]+)\/(raw|image|video)\/upload\/(.+)$/.exec(target.pathname)
+    if (!match || match[1] !== cloud || match[3].length > 1800) return null
+    return target
+  } catch { return null }
+}
+
+/** Limit downloaded bytes even when Cloudinary does not provide a Content-Length header. */
+function boundedBody(body: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const reader = body.getReader()
+  let received = 0
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read()
+        if (done) { controller.close(); return }
+        received += value.byteLength
+        if (received > MAX_DOWNLOAD_BYTES) {
+          await reader.cancel('download exceeds configured limit')
+          controller.error(new Error('download exceeds configured limit'))
+          return
+        }
+        controller.enqueue(value)
+      } catch (error) { controller.error(error) }
+    },
+    async cancel(reason) { await reader.cancel(reason) },
+  })
+}
+
 export async function GET(req: NextRequest) {
-  const url      = req.nextUrl.searchParams.get('url')
-  const filename = req.nextUrl.searchParams.get('filename') ?? 'attachment'
-
-  if (!url) {
-    return new Response(JSON.stringify({ error: '缺少 url 参数' }), { status: 400 })
+  const raw = req.nextUrl.searchParams.get('url')
+  if (!raw) return Response.json({ error: '缺少 url 参数' }, { status: 400 })
+  if (!process.env.CLOUDINARY_CLOUD_NAME) {
+    return Response.json({ error: '下载服务暂不可用' }, { status: 503 })
   }
-
-  let parsed: URL
-  try { parsed = new URL(url) } catch {
-    return new Response(JSON.stringify({ error: '无效 URL' }), { status: 400 })
-  }
-  if (!parsed.hostname.endsWith('cloudinary.com')) {
-    return new Response(JSON.stringify({ error: '不允许的域名' }), { status: 403 })
-  }
+  const target = allowedCloudinaryUrl(raw)
+  if (!target) return Response.json({ error: '只允许本站 Cloudinary HTTPS 附件' }, { status: 403 })
+  const requestedName = req.nextUrl.searchParams.get('filename') ?? 'attachment'
+  const filename = requestedName.slice(0, 180).replace(/[\r\n]/g, '').trim() || 'attachment'
 
   try {
-    const upstream = await fetch(url)
+    // redirect:manual is deliberate: never follow a trusted host to an unchecked host/IP.
+    const upstream = await fetch(target.href, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+      headers: { 'Accept': 'application/octet-stream,*/*;q=0.8' },
+    })
     if (!upstream.ok || !upstream.body) {
-      return new Response(JSON.stringify({ error: '文件获取失败' }), { status: 502 })
+      return Response.json({ error: '附件获取失败或重定向被拒绝' }, { status: 502 })
     }
-
-    // 直接把 upstream 的 ReadableStream 转发，不读入内存
-    return new Response(upstream.body, {
+    const size = Number(upstream.headers.get('content-length'))
+    if (Number.isFinite(size) && size > MAX_DOWNLOAD_BYTES) {
+      await upstream.body.cancel()
+      return Response.json({ error: '文件不能超过 64MB' }, { status: 413 })
+    }
+    return new Response(boundedBody(upstream.body), {
       status: 200,
       headers: {
-        'Content-Type':        getContentType(filename),
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
-        'Cache-Control':       'private, max-age=3600',
+        'Content-Type': contentType(filename),
+        'Content-Disposition': 'attachment; filename*=UTF-8' + String.fromCharCode(39,39) + encodeURIComponent(filename),
+        'Cache-Control': 'private, max-age=3600',
+        'X-Content-Type-Options': 'nosniff',
       },
     })
-  } catch (e) {
-    console.error('[download proxy]', e)
-    return new Response(JSON.stringify({ error: '下载失败' }), { status: 500 })
+  } catch (error) {
+    console.error('[download proxy]', error)
+    return Response.json({ error: '下载失败' }, { status: 502 })
   }
 }
