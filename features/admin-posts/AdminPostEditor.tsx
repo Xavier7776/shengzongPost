@@ -5,16 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEditor } from '@tiptap/react'
 import {
-  Save, Eye, EyeOff, Loader2, ArrowLeft, Sparkles, ImagePlus, Paperclip,
+  Save, Eye, EyeOff, Loader2, ArrowLeft, ImagePlus, Paperclip,
 } from 'lucide-react'
 import { buildExtensions, EDITOR_PROSE_CLASS } from '@/features/editor/extensions'
 import { mdToHtml } from '@/features/editor/markdown'
 import type { Attachment, EditorMode, PostEditorInitialData } from '@/features/editor/types'
 import { useImageUpload } from '@/features/editor/useImageUpload'
 import { useEditorDialogs } from '@/features/editor/useEditorDialogs'
-import { useAiWriting } from '@/features/editor/useAiWriting'
 import { EditorBody, EditorErrorBar, EditorPreview } from '@/features/editor/EditorBody'
-import { AiSidebar } from '@/features/editor/AiSidebar'
 import { PostMetaForm } from '@/features/editor/PostMetaForm'
 import { AttachmentsPanel } from './AttachmentsPanel'
 
@@ -55,11 +53,6 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
 
   const dialogs = useEditorDialogs(editor)
   const upload = useImageUpload({ editor })
-  const ai = useAiWriting({
-    editor, title,
-    onExcerpt: text => setExcerpt(text),
-  })
-
   function handleTitleChange(val: string) {
     setTitle(val)
     if (mode === 'new' && !slug)
@@ -129,10 +122,6 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
         <h1 className="text-sm font-black text-gray-600 tracking-widest uppercase flex-1 min-w-0 truncate">
           {mode === 'new' ? '新建文章' : '编辑文章'}
         </h1>
-        <button onClick={() => ai.setAiOpen(v => !v)}
-          className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${ai.aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'}`}>
-          <Sparkles className="w-4 h-4" />AI 助手
-        </button>
         <button onClick={() => { upload.setImgUploadError(''); upload.imgFileRef.current?.click() }} disabled={upload.uploadingImg}
           className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
           {upload.uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
@@ -165,9 +154,6 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
         slug={slug} onSlugChange={setSlug}
         tagsRaw={tagsRaw} onTagsChange={setTagsRaw}
         excerpt={excerpt} onExcerptChange={setExcerpt}
-        excerptAction={ai.aiMode === 'excerpt' && ai.aiResult && !ai.aiLoading ? (
-          <button onClick={ai.handleApply} className="ml-2 text-violet-500 hover:text-violet-700 font-black text-[10px]">← 应用 AI 摘要</button>
-        ) : undefined}
         coverImage={coverImage}
         onCoverClear={() => setCoverImage('')}
         coverFileRef={upload.coverFileRef}
@@ -200,8 +186,6 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
           onDismissImgError={() => upload.setImgUploadError('')}
         />
         {preview && <EditorPreview title={title} routeLabel={slug} html={previewHtml} />}
-
-        {ai.aiOpen && <AiSidebar ai={ai} showProvider />}
       </div>
     </div>
   )

@@ -3,22 +3,17 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useEditor } from '@tiptap/react'
-import { Send, Eye, EyeOff, Loader2, ArrowLeft, Sparkles, ImagePlus, Wand2 } from 'lucide-react'
+import { Send, Eye, EyeOff, Loader2, ArrowLeft, ImagePlus } from 'lucide-react'
 import { buildExtensions, EDITOR_PROSE_CLASS } from '@/features/editor/extensions'
 import { mdToHtml } from '@/features/editor/markdown'
 import type { EditorMode } from '@/features/editor/types'
 import { useImageUpload } from '@/features/editor/useImageUpload'
 import { useEditorDialogs } from '@/features/editor/useEditorDialogs'
-import { useAiWriting } from '@/features/editor/useAiWriting'
-import { readAiStream } from '@/features/editor/ai-stream'
 import { EditorBody, EditorErrorBar, EditorPreview } from '@/features/editor/EditorBody'
-import { AiSidebar } from '@/features/editor/AiSidebar'
 import { PostMetaForm } from '@/features/editor/PostMetaForm'
 
 interface Props {
   mode: EditorMode
-  /** AI 助手入口（含 AI slug 生成）是否可用 */
-  enableAi?: boolean
   /** 从既有文章派生时的来源文章 id */
   fromId?: number | null
   initialData?: {
@@ -35,11 +30,8 @@ function titleToSlug(title: string): string {
   return `post-${hash}-${Math.random().toString(36).slice(2, 6)}`
 }
 
-const AI_SLUG_PROMPT = (title: string) =>
-  `根据以下文章标题，生成一个简洁的英文 URL slug（只含小写字母、数字和连字符，不超过 50 个字符，直接输出结果，不要加任何解释）：\n标题：${title}`
-
 /** 用户投稿编辑器：在共享编辑器内核上叠加审核提交流程 */
-export default function UserPostEditor({ mode, enableAi = false, fromId, initialData }: Props) {
+export default function UserPostEditor({ mode, fromId, initialData }: Props) {
   const [submitting, setSubmitting]   = useState(false)
   const [preview, setPreview]         = useState(false)
   const [error, setError]             = useState('')
@@ -50,7 +42,6 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
   const [tagsRaw, setTagsRaw]         = useState(initialData?.tags?.join(', ') ?? '')
   const [coverImage, setCoverImage]   = useState<string>(initialData?.cover_image ?? '')
   const [coverImageId, setCoverImageId] = useState<number | null>(null)
-  const [slugGenerating, setSlugGenerating] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
   const slugManualRef = useRef(false)
 
@@ -73,7 +64,6 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
       setCoverImageId(null)
     },
   })
-  const ai = useAiWriting({ editor, title, onExcerpt: text => setExcerpt(text) })
 
   function handleTitleChange(val: string) {
     setTitle(val)
@@ -82,22 +72,6 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
   function handleSlugChange(val: string) {
     slugManualRef.current = true
     setSlug(val.toLowerCase().replace(/[^\w-]/g, '').replace(/-+/g, '-').slice(0, 80))
-  }
-
-  async function handleAiSlug() {
-    if (!title.trim()) { setError('请先填写标题'); return }
-    setSlugGenerating(true)
-    try {
-      const res = await fetch('/api/ai/write', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'draft', title, prompt: AI_SLUG_PROMPT(title), content: '' }),
-      })
-      if (!res.ok) { setError('AI slug 生成失败'); return }
-      const result = await readAiStream(res)
-      const cleaned = result.trim().toLowerCase().replace(/[^\w-]/g, '').replace(/-+/g, '-').slice(0, 80)
-      if (cleaned) { setSlug(cleaned); slugManualRef.current = true }
-    } catch { setError('网络错误，请重试') }
-    finally { setSlugGenerating(false) }
   }
 
   async function handleSubmit() {
@@ -161,12 +135,6 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
           {mode === 'new' ? '新建文章' : '编辑文章'}
           <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md normal-case tracking-normal">提交后需管理员审核</span>
         </h1>
-        {enableAi && (
-          <button onClick={() => ai.setAiOpen(v => !v)}
-            className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${ai.aiOpen ? 'bg-violet-100 text-violet-700' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50'}`}>
-            <Sparkles className="w-4 h-4" />AI 助手
-          </button>
-        )}
         <button onClick={() => { upload.setImgUploadError(''); upload.imgFileRef.current?.click() }} disabled={upload.uploadingImg}
           className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
           {upload.uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
@@ -190,12 +158,6 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
         slugReadOnly={mode === 'edit'}
         slugActions={
           <>
-            {mode === 'new' && enableAi && (
-              <button onClick={handleAiSlug} disabled={slugGenerating || !title.trim()} title="AI 生成 Slug"
-                className="flex-shrink-0 flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-violet-600 border border-gray-200 hover:border-violet-300 bg-gray-50 hover:bg-violet-50 px-2.5 py-2 rounded-xl transition-colors disabled:opacity-40">
-                {slugGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-              </button>
-            )}
             {mode === 'new' && (
               <button onClick={() => { setSlug(titleToSlug(title)); slugManualRef.current = true }} disabled={!title.trim()}
                 className="flex-shrink-0 text-[10px] font-bold text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-300 bg-gray-50 hover:bg-blue-50 px-2.5 py-2 rounded-xl transition-colors disabled:opacity-40 whitespace-nowrap">
@@ -207,9 +169,6 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
         slugHint={mode === 'new' && slug ? <p className="text-[10px] text-gray-400 mt-1 font-mono truncate">/blog/{slug}</p> : undefined}
         tagsRaw={tagsRaw} onTagsChange={setTagsRaw}
         excerpt={excerpt} onExcerptChange={setExcerpt}
-        excerptAction={enableAi && ai.aiMode === 'excerpt' && ai.aiResult && !ai.aiLoading ? (
-          <button onClick={ai.handleApply} className="ml-2 text-violet-500 hover:text-violet-700 font-black text-[10px]">← 应用 AI 摘要</button>
-        ) : undefined}
         coverImage={coverImage}
         onCoverClear={() => setCoverImage('')}
         coverFileRef={upload.coverFileRef}
@@ -228,8 +187,6 @@ export default function UserPostEditor({ mode, enableAi = false, fromId, initial
           onDismissImgError={() => upload.setImgUploadError('')}
         />
         {preview && <EditorPreview title={title} routeLabel={`/blog/${slug}`} html={previewHtml} />}
-
-        {enableAi && ai.aiOpen && <AiSidebar ai={ai} onApplyExcerpt={ai.handleApply} />}
       </div>
     </div>
   )

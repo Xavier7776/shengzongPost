@@ -1,17 +1,11 @@
 // app/api/comments/route.ts
 // GET  /api/comments?slug=xxx  → 已通过的评论列表
-// POST /api/comments           → 提交评论（自动触发 AI 审核，通过则直接公开）
+// POST /api/comments           → 提交评论（进入人工审核队列）
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { getApprovedComments, createComment, updateCommentStatus, toggleCommentLike, addPoints, hasPointTransaction } from '@/lib/db'
-import { getSiteUrl } from '@/lib/site-url'
-
-const INTERNAL_SECRET = process.env.AI_COMMENT_SECRET
-if (!INTERNAL_SECRET) console.warn('[comments] WARNING: AI_COMMENT_SECRET is not set. AI review will be skipped.')
-const BASE_URL = getSiteUrl()
-
+import { getApprovedComments, createComment, toggleCommentLike } from '@/lib/db'
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')
   if (!slug) return NextResponse.json({ error: '缺少 slug' }, { status: 400 })
@@ -41,7 +35,7 @@ export async function POST(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: '用户信息异常' }, { status: 400 })
 
     // 1. 先写入数据库（默认 approved=false，进入待审核状态）
-    const comment = await createComment({
+    await createComment({
       post_slug,
       content: content.trim(),
       user_id: userId,
@@ -49,15 +43,11 @@ export async function POST(req: NextRequest) {
       parent_id: parent_id ? Number(parent_id) : null,
     })
 
-    // 2. 异步调用 AI 审核（不阻塞本次响应）
-    //    fire-and-forget：先响应给用户，AI 在后台判断
-    void callAiReview(comment.id, post_slug, content.trim(), userId)
-
     return NextResponse.json({
       ok: true,
       // 告知前端评论已提交，等待审核
       pending: true,
-      message: '评论已提交，正在审核中，审核通过后将自动显示',
+      message: '评论已提交，等待管理员审核，通过后将显示',
     })
   } catch (err) {
     console.error('[comments POST]', err)
@@ -84,41 +74,3 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// ── AI 审核（fire-and-forget）─────────────────────────────────────────────────
-async function callAiReview(commentId: number, postSlug: string, content: string, userId: number) {
-  if (!INTERNAL_SECRET) {
-    console.warn(`[comments] Skipping AI review for commentId=${commentId}: AI_COMMENT_SECRET not set`)
-    return
-  }
-  try {
-    const resp = await fetch(`${BASE_URL}/api/ai/review-comment`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${INTERNAL_SECRET}`,
-      },
-      body: JSON.stringify({ content, post_slug: postSlug }),
-    })
-
-    if (!resp.ok) {
-      console.error(`[comments] AI 审核请求失败，commentId=${commentId}`)
-      return
-    }
-
-    const { pass, reason } = await resp.json()
-    console.log(`[comments] AI 审核结果 commentId=${commentId}: pass=${pass}, reason="${reason}"`)
-
-    if (pass) {
-      // 通过 → 直接标记为已审核 + 奖励积分（幂等检查防重复）
-      await updateCommentStatus(commentId, 'approved')
-      const alreadyRewarded = await hasPointTransaction(userId, 'comment_approved', postSlug)
-      if (!alreadyRewarded) await addPoints(userId, 5, 'comment_approved', postSlug)
-      console.log(`[comments] 评论 ${commentId} 已自动通过`)
-    } else {
-      // 未通过 → 保留在待审核队列，等待人工处理
-      console.log(`[comments] 评论 ${commentId} 进入人工审核队列，原因：${reason}`)
-    }
-  } catch (err) {
-    console.error(`[comments] AI 审核调用异常，commentId=${commentId}:`, err)
-  }
-}
