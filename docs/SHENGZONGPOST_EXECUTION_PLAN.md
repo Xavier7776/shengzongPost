@@ -202,11 +202,11 @@ flowchart TD
 
 **M02-A：不需要迁移的服务端修复**
 
-- [ ] 提炼 `lib/learn/publish.ts` 可重用的内容指纹函数（例如 SHA-256，统一 UTF-8 和 canonical serialization）；确保判重基于完整内容而不仅是日期。
-- [ ] 验证相同日期重试的语义：原文一致 → no-op；不同 Edition/标题/正文 → `409 conflict`；部分写入/孤儿关联 → 记录异常并停止。
-- [ ] 对 API 成功响应区分 `created`、`alreadyExists`、`verified`，`verified=true` 必须由真实回读支持。
-- [ ] 补回归：并发两次发布，同内容重试，冲突内容重试，数据库失败，写入成功但回读失败，JSON/正文漂移，来源超时，服务端缓存失效异常。
-- [ ] 保证阅读器对旧 Edition v1 的渲染无损；不可通过“重新生成正文”批量改写已发布文章。
+- [x] 提炼 `lib/learn/publish.ts` 可重用的内容指纹函数（例如 SHA-256，统一 UTF-8 和 canonical serialization）；确保判重基于完整内容而不仅是日期。
+- [x] 验证相同日期重试的语义：原文一致 → no-op；不同 Edition/标题/正文 → `409 conflict`；部分写入/孤儿关联 → 记录异常并停止。
+- [x] 对 API 成功响应区分 `created`、`alreadyExists`、`verified`，`verified=true` 必须由真实回读支持。
+- [x] 补回归：并发两次发布，同内容重试，冲突内容重试，数据库失败，写入成功但回读失败，JSON/正文漂移，来源超时，服务端缓存失效异常。
+- [x] 保证阅读器对旧 Edition v1 的渲染无损；不可通过“重新生成正文”批量改写已发布文章。
 
 **M02-B：核对 ChatGPT 调度路线**
 
@@ -678,8 +678,8 @@ git diff --check
 |---|---|---|---|---|---|---|---|
 | M00 搜索 V2 | [x] 已合并，正式域名验收通过 | [#13](https://github.com/Xavier7776/shengzongPost/pull/13) / `e4b894b` | 最终 head run 37904129515 通过 | dpl_7A4r3Dt2HzUB3cv66QfqridBTgok READY | dpl_8czf41qX1VyuLzqvE9orrLLz8LVS READY | 正式域名 Edge 三尺寸及完整搜索流程通过；真机未测 | 2026-10-09 |
 | M01 CI 门禁 | [x] | PR #14 / `7d61f58` | 196 tests、Actions、Preview/生产 smoke；单目录探针验证 | `dpl_BvrFsBnvpCaJiLJT6L8mCXeqTQKc` | 无 | 严格 validate/Vercel 保护已实测阻断 | 2026-10-09 |
-| M02 发布完整性 | [-] A 实施；B 待独立审计 | `codex/learn-publish-integrity-v2` | 222 tests、隔离 Neon SQL、本期旧正文兼容 | 待远程验证 | 无生产迁移/历史重发 | 最近三次成功率不可判定 | 2026-10-09 |
-| M03 发布监控 | [ ] | — | — | — | — | — | — |
+| M02 发布完整性 | [-] A 已验收；B 待独立审计 | PR #16 / `3c4a90c` | 222 tests、隔离 Neon SQL、Preview/生产旧刊交互 | `dpl_4zBAGvYhXHribBrF8KpJb6Spj34X` | 无生产迁移/历史重发 | 最近三次成功率不可判定 | 2026-10-09 |
+| M03 发布监控 | [-] A 本地验证；B 候选 | `codex/learn-publish-ops-v2` | 245 tests、真实只读核对、隔离审计 DDL | 待远程验收 | 无生产迁移 | 任务通道/持久化审计未启用 | 2026-10-09 |
 | M04 缓存一致性 | [ ] | — | — | — | — | — | — |
 | M05 来源与图表 | [ ] | — | — | — | — | — | — |
 | M06 搜索评测 | [ ] | — | — | — | — | — | — |
@@ -732,7 +732,7 @@ Production：未发布 / BUILDING / READY / ERROR
 
 - [x] **M00 / PR #13**：修复防抖浏览器历史、完成 Preview 验收、合并上线。
 - [x] **M01 / PR #14**：CI 路径覆盖与 `npm run build` 必跑。
-- [-] **M02-A / 下一独立 PR**：专刊相同日期冲突检测、写入回读、任务发布协议，不需要生产迁移。
+- [x] **M02-A / PR #16**：专刊相同日期冲突检测、写入回读、任务发布协议，不需要生产迁移。
 
 **第一批完成标志**：搜索上线、任何核心代码变更都受 CI 保护、每日专刊重复执行不产生数据冲突或虚假成功回执。
 
@@ -860,3 +860,18 @@ Production：未发布 / BUILDING / READY / ERROR
 - 10-09 公开 JSON 真实结构校验、旧 textVersion 与数据库正文一致，3 来源/32 块；三个 arXiv 来源标题和 v1 提交时间只读核对。结构与元数据核对不等于科学事实或调度成功。
 - 用户提供任务启用/08:30/ID 与单次执行时间，但无法取得完整日志；10-09 存在文章不能归因任务，10-07/08 无文章且任务状态未知。M02-B 最近三次成功率不可判定，不勾连续三次成功。保留 ChatGPT → Neon 通道，不切 HMAC、不重复发布；未来使用独立持久化发布审计。
 - 详细契约见 `docs/operations/learn-publication-contract.md`。M02-A 最终构建、同 SHA CI/Preview 与生产只读验收待登记，整个 M02 保持 `[-]`。
+
+### 2026-10-09 M02-A 验收与生产回读完成
+
+- PR #16 head `b2f14512ef24d89279801d7fc80960cb1b7bb464`；Actions `37909859588` 全部成功，Preview `dpl_9ok9p2MeALikapsfpQ5xvvf9SN9s` READY。在线旧刊指纹、答题、图表表格、来源和 1440/1024/390 检查通过。
+- Squash merge `3c4a90c2f27b0a2439549e69c37980c22dd30f67`，Production `dpl_4zBAGvYhXHribBrF8KpJb6Spj34X` READY；正式域名同指纹和交互回放、Learn/Blog/Search/匿名 admin-redirect 通过，无未解释应用错误，当前 deployment 错误/fatal 查询空。
+- 本地完整生产构建（隔离 fixture）、222 tests/typecheck/lint/diff 通过；线上 QA 初次点击早于加载完成失败，等待 load 后重新完整通过，记录保留。证据 `D:\download\search-v2-validation\m02-production.json`。
+- M02-A 勾选；M02-B 最近三次无人值守成功率仍不可判定。真实 Neon 只读补核 Oct7/8 各 0 期、Oct9 1 期，不能归因任务。没有生产写入、迁移、调度或 HMAC 切换。
+
+### 2026-10-09 M03 开始实施
+
+- 最新 main 基线 `3c4a90c`，独立工作树 `D:\download\worktrees\shengzongPost-m03` / `codex/learn-publish-ops-v2`，开放 PR 无冲突；M02-B 的运行历史缺口不阻止独立只读观察工作。
+- 7/30 天北京时间出版日历、08:30/09:30 窗口、最近内容合规日期/连续天数、关系/正文审计、数据库/公网/任务 unknown 分层及浏览器提醒冷却已实现。出版期望从本次启用核对日 Oct9 起设定，不捏造此前计划。
+- 33 文件 / 245 tests、typecheck/lint 通过。候选 056 仅在隔离 Neon 执行，重复 attempt 幂等、证据约束、事务失败回滚和索引验证；生产 audit_table 为 NULL。当前代码不依赖候选表，不执行新生产迁移，不集成未验证的任务通道。
+- 持久化运行审计仍待真实任务通道验证与单独生产授权；浏览器冷却不是该审计的替代。保留现有 Neon/08:30 任务与手动 fallback。
+- 细节见 `docs/operations/learn-operations.md`；最终构建与 CI/Preview/生产验收待登记，M03 保持 `[-]`。
