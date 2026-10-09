@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 vi.mock('next-auth', () => ({
   getServerSession: vi.fn(),
 }))
+vi.mock('@/lib/db', () => ({ getUserRoleById: vi.fn() }))
 vi.mock('@/lib/authOptions', () => ({
   authOptions: { name: 'mocked-auth-options' },
 }))
@@ -18,10 +19,12 @@ vi.mock('next/headers', () => ({
 }))
 
 import { requireAdmin, requireAdminApi } from '@/lib/auth'
+import { getUserRoleById } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 
+const mockedGetUserRoleById = vi.mocked(getUserRoleById)
 const mockedGetServerSession = vi.mocked(getServerSession)
 const mockedRedirect = vi.mocked(redirect)
 const mockedCookies = vi.mocked(cookies)
@@ -30,6 +33,7 @@ const mockedHeaders = vi.mocked(headers)
 describe('认证工具函数 lib/auth', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mockedGetUserRoleById.mockResolvedValue('admin')
     // 模拟 Next.js redirect() 通过抛错来终止执行
     mockedRedirect.mockImplementation(() => {
       throw new Error('NEXT_REDIRECT')
@@ -50,14 +54,14 @@ describe('认证工具函数 lib/auth', () => {
 
       const result = await requireAdmin()
 
-      expect(result).toEqual({ user: { name: 'Dev', email: 'dev@local' } })
+      expect(result).toEqual({ user: { name: 'Dev', email: 'dev@local', role: 'admin' } })
       expect(mockedGetServerSession).not.toHaveBeenCalled()
       expect(mockedRedirect).not.toHaveBeenCalled()
     })
 
     it('非开发环境直接走 session 校验，有 session 时返回 session', async () => {
       vi.stubEnv('NODE_ENV', 'test')
-      const session = { user: { name: 'Leon', email: 'leon@test.com' } }
+      const session = { user: { id: '7', role: 'admin', name: 'Leon', email: 'leon@test.com' } }
       mockedGetServerSession.mockResolvedValue(session as any)
 
       const result = await requireAdmin()
@@ -79,7 +83,7 @@ describe('认证工具函数 lib/auth', () => {
       mockedCookies.mockReturnValue({
         get: () => undefined,
       } as any)
-      const session = { user: { name: 'Leon', email: 'leon@test.com' } }
+      const session = { user: { id: '7', role: 'admin', name: 'Leon', email: 'leon@test.com' } }
       mockedGetServerSession.mockResolvedValue(session as any)
 
       const result = await requireAdmin()
@@ -99,7 +103,7 @@ describe('认证工具函数 lib/auth', () => {
       const result = await requireAdminApi()
 
       expect(result).toEqual({
-        user: { name: 'Admin', email: 'admin@zshengzong.top' },
+        user: { name: 'Admin API', email: 'admin@zshengzong.top', role: 'admin' },
       })
       expect(mockedGetServerSession).not.toHaveBeenCalled()
     })
@@ -138,14 +142,14 @@ describe('认证工具函数 lib/auth', () => {
 
       const result = await requireAdminApi()
 
-      expect(result).toEqual({ user: { name: 'Dev', email: 'dev@local' } })
+      expect(result).toEqual({ user: { name: 'Dev', email: 'dev@local', role: 'admin' } })
       expect(mockedGetServerSession).not.toHaveBeenCalled()
     })
 
-    it('有 session 时返回该 session', async () => {
+    it('只有存在真实 admin 角色的 session 才允许访问', async () => {
       vi.stubEnv('NODE_ENV', 'test')
       vi.stubEnv('ADMIN_API_KEY', '')
-      const session = { user: { name: 'Leon', email: 'leon@test.com' } }
+      const session = { user: { id: '7', role: 'admin', name: 'Leon', email: 'leon@test.com' } }
       mockedGetServerSession.mockResolvedValue(session as any)
 
       const result = await requireAdminApi()

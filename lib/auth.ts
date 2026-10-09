@@ -43,7 +43,7 @@ export async function requireAdmin() {
 /** Used by privileged route handlers. A separately configured admin API key is preserved. */
 export async function requireAdminApi() {
   // Only the explicit server-side API key may bypass a browser user session.
-  if (apiKeyMatches(headers().get('x-admin-api-key'))) {
+  if (process.env.ADMIN_API_KEY && apiKeyMatches(headers().get('x-admin-api-key'))) {
     return { user: { name: 'Admin API', email: 'admin@zshengzong.top', role: 'admin' } }
   }
   if (isDevBypass()) return { user: { name: 'Dev', email: 'dev@local', role: 'admin' } }
