@@ -155,6 +155,18 @@ describe('search state and asynchronous UI', () => {
     expect(localStorage.getItem('mindstack:search-history')).toBeNull()
   })
 
+  it('navigates back to a history query even while clearing navigation is pending', async () => {
+    nav.value = 'q=RAG&type=all&sort=relevance&page=1'
+    render(<SearchClient />)
+    await settle()
+    nav.push.mockImplementation(() => {})
+    fireEvent.click(screen.getByRole('button', { name: '清空' }))
+    expect(nav.push).toHaveBeenLastCalledWith('/search', { scroll: false })
+    fireEvent.click(screen.getByRole('button', { name: '搜索 RAG' }))
+    await settle()
+    expect(nav.push).toHaveBeenLastCalledWith('/search?q=RAG&type=all&sort=relevance&page=1', { scroll: false })
+  })
+
   it('cancels page requests and ignores late responses after selecting another category', async () => {
     render(<SearchClient />)
     await settle()

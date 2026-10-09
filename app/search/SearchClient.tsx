@@ -185,7 +185,8 @@ export default function SearchClient() {
     })
     const target = value.trim() ? `/search?${params}` : '/search'
     if (target === `/search${urlState ? `?${urlState}` : ''}`) setRetry(n => n + 1)
-    else if (replace) router.replace(target, { scroll: false })
+    // Dispatch even for the current URL to supersede an unfinished navigation.
+    if (replace) router.replace(target, { scroll: false })
     else router.push(target, { scroll: false })
   }
 

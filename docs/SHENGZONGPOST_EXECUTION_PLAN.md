@@ -1,8 +1,8 @@
 # shengzongPost 全量建设执行总计划（Codex 分阶段实施版）
 
-> **版本**：v1.0　｜　**基线核对日期**：2026-10-09（北京时间）　｜　**项目**：[`Xavier7776/shengzongPost`](https://github.com/Xavier7776/shengzongPost)  
-> **执行方式**：一阶段一分支、一目标一 PR、测试通过再合并、上线后复核；每阶段完成后更新本文件的状态。  
-> **用途**：将本文件交给 Codex，并指定要执行的阶段编号。**不要让 Codex 一次性执行整份计划。**  
+> **版本**：v1.0　｜　**基线核对日期**：2026-10-09（北京时间）　｜　**项目**：[`Xavier7776/shengzongPost`](https://github.com/Xavier7776/shengzongPost)
+> **执行方式**：一阶段一分支、一目标一 PR、测试通过再合并、上线后复核；每阶段完成后更新本文件的状态。
+> **用途**：将本文件交给 Codex，并指定要执行的阶段编号。**不要让 Codex 一次性执行整份计划。**
 > **建议在仓库中保存为**：`docs/SHENGZONGPOST_EXECUTION_PLAN.md`（复制该文件进入仓库即可；不需要新建业务数据库表）。
 
 ---
@@ -131,7 +131,7 @@ flowchart TD
 
 ## M00 · 搜索 V2 收尾与正式上线（优先立即执行）
 
-**现状**：PR #13 已有完整实现、PGlite SQL 测试与 Preview；不要从头重构。  
+**现状**：PR #13 已有完整实现、PGlite SQL 测试与 Preview；不要从头重构。
 **目标**：上线全局相关性排序、跨类型 Facet 及分页，让 `/search` 与 `/blog` 行为可预测。
 
 ### Codex 执行清单
@@ -229,7 +229,7 @@ flowchart TD
 | 并发触发两次 | 最终只有一个正式刊物，无两次归档 |
 | 旧结构化文章 | Edition v1 仍可稳定渲染、来源可见 |
 
-**上线依赖**：若改为新的发布 API，需要先验证密钥与环境兼容，密钥变更需用户批准；若只是服务端幂等逻辑，不需要生产迁移。  
+**上线依赖**：若改为新的发布 API，需要先验证密钥与环境兼容，密钥变更需用户批准；若只是服务端幂等逻辑，不需要生产迁移。
 **回滚**：恢复旧发布服务/旧任务提示词；不回滚已成功写入的历史刊物，先只读核验后决策。严禁 `DELETE` 重试恢复。
 
 **结果登记**：PR `________` ｜ 08:30 无人值守测试 `________` ｜ 写入/回读检查 `________` ｜ 完成日期 `________`
@@ -800,8 +800,8 @@ Production：未发布 / BUILDING / READY / ERROR
 
 - 基线 main：`ed7821e9e2965b0250e0ac4907c370fc08edacd2`；沿用既有隔离分支 `codex/search-v2-global-relevance-pagination` 与 Windows 工作树 `D:\download\worktrees\shengzongPost-search-v2`。开工及推送前实时检查只有 PR #13 开放，原 head `ac148b18ea74a3c343d544451c0c411de3fc4a80`，未合并、Draft，无新冲突。
 - 改动：自动防抖 URL 更新改为 replace；显式 Enter、历史、分类、排序和分页保留 push；修复历史键盘访问及清空后的展开。SQL 算法和数据库结构保持原实现。
-- 回归：先复现失败用例后修复；新增 4 项测试及既有防抖断言，覆盖连续输入的 replace、显式 push、键盘历史与旧 limit 兼容。
-- 自动验收：Windows `npm ci`、typecheck、lint、28 文件 / 189 测试、生产 build（92 静态页面）、diff check 通过。构建使用忽略目录 `.tmpbuild`；metadataBase 为既有提示，后续 M09 处理。
+- 回归：先复现失败用例后修复；新增 5 项测试及既有防抖断言，覆盖连续输入的 replace、显式 push、键盘历史与旧 limit 兼容。
+- 自动验收：Windows `npm ci`、typecheck、lint、28 文件 / 190 测试、生产 build（92 静态页面）、diff check 通过。构建使用忽略目录 `.tmpbuild`；metadataBase 为既有提示，后续 M09 处理。
 - 数据库：只读核对，Agent 112 条跨 6 页无重复遗漏，独立 strpos 查询计数一致；中文、%、_、反斜杠、引号及旧文章正文搜索通过。无生产写入或迁移。
 - 浏览器：Browser plugin 未提供，使用 bundled Playwright + 本机 Edge；本地生产构建 `http://127.0.0.1:3217` 的 1440×900、1024×768、390×844 均通过；回放后退/前进/刷新、防抖历史长度、Enter、Tab 历史、分类/排序/分页、无结果、500/重试与 Blog 搜索入口。超时由单测验证。所有非 GET 浏览器请求均拦截，无 analytics 写入；没有真机验收。
 - 证据：`docs/search-v2-20261009.md`；本机截图、QA JSON 与 SQL EXPLAIN 位于 `D:\download\search-v2-validation\m00`，build 日志位于 `D:\download\search-v2-validation\m00-build.log`；不包含连接串、密钥或个人信息。
@@ -809,3 +809,10 @@ Production：未发布 / BUILDING / READY / ERROR
 - 生产回滚锚点：`ed7821e9e2965b0250e0ac4907c370fc08edacd2` / `dpl_927hMaqydgtF4SupdshqFB26ezHf`（实时确认 production READY）。未合并、未部署、未进行本次生产搜索验收，阶段保持 `[-]`。
 - 依赖安装报告现存 59 项 audit 漏洞（36 moderate / 21 high / 2 critical）；本阶段未升级依赖，交 M10/M12 核实可达性与修复，不以安装成功表示漏洞已解决。
 - 下一步：更新同一 PR 并完成新提交的 Preview 复核；M00 合并与生产验收结束后再进入 M01。本次不改变 08:30 或 16:00 调度、不引入第二发布 cron。
+### 2026-10-09 M00 在线复核发现与修复
+
+- 代码提交 `58098a2ed0a9201feeadf1f3906a17166dad2e64` 的 Actions `37902373340`：npm ci/typecheck/lint/189 tests 全部通过，只有 git diff --check 因复制计划原有的 5 处 Markdown 行尾空格失败；已去除空格，并改用检查完整 PR 差异和 staged 差异。
+- Preview `dpl_6QNXhmmst2TpBnNMa3Ktv8nVMjz4` READY；通过现有临时授权访问链接及现有本机代理进行浏览器复核，未降低 Deployment Protection。Node APIRequestContext 直连曾网络超时，改用浏览器自身 GET，未改系统代理。
+- 在线七类关键词、六页完整分页、分类/newest、limit=4、公开推荐和三个尺寸通过；但立即清空再用 Tab/Enter 选择刚才历史词复现竞态，故这版没有标记 Ready。
+- 根因：navigate 对等于旧 URL 的目标只触发重试，未覆盖尚未完成的清空跳转。现已保证导航命令总会分发；同 URL 重试仍回读，Next 14 自身避免重复当前 URL 的 history entry。先新增可重复失败用例，修复后 typecheck/lint/28 文件 190 tests 通过。
+- 最终代码提交的 build、CI 与线上完整回放仍须重新核对；此前失败记录不作为最终通过证据。
