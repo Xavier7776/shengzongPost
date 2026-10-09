@@ -40,12 +40,12 @@ describe('daily edition admin audit surface',()=>{
   it('flags stale or manually changed fallback content',async()=>{
     textVersion.mockReturnValue('different content')
     render(await AdminLearnPage())
-    expect(screen.getByText('正文与结构数据不一致')).toBeInTheDocument()
+    expect(screen.getAllByText('正文与结构数据不一致').length).toBeGreaterThan(0)
   })
   it('reports invalid editions without presenting false confidence',async()=>{
     validateEdition.mockReturnValue({ok:false,errors:['missing citations','bad provenance']})
     render(await AdminLearnPage())
-    expect(screen.getByText('结构校验失败')).toBeInTheDocument()
+    expect(screen.getAllByText('结构校验失败').length).toBeGreaterThan(0)
     expect(screen.getByText(/missing citations/)).toBeInTheDocument()
     expect(textVersion).not.toHaveBeenCalled()
   })
