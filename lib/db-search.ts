@@ -1,112 +1,63 @@
-// lib/db-search.ts
-// 全站搜索：跨 posts / skills / gallery 三张表查询（分三次查询，代码中合并，避免 UNION 类型问题）
-import { sql } from './db'
+import { sql } from './db/_core'
+import type { SearchQuery, SearchResponse } from './search'
+export type { SearchResult } from './search'
 
-export interface SearchResult {
-  type: 'post' | 'skill' | 'gallery'
-  id: string
-  title: string
-  excerpt: string
-  url: string
-  image: string | null
-  tags: string[]
-  meta: string
-  created_at: string
-}
-
-export async function searchAll(q: string, limit = 20): Promise<SearchResult[]> {
-  if (!q || q.trim().length === 0) return []
-  const term = `%${q}%`
-
-  // 并行查询三张表
-  const [postRows, skillRows, galleryRows] = await Promise.all([
-    // 博客文章
-    sql`
-      SELECT
-        p.slug AS id,
-        p.title AS title,
-        COALESCE(p.excerpt, '') AS excerpt,
-        '/blog/' || p.slug AS url,
-        p.cover_image AS image,
-        COALESCE(u.name, 'ARC') AS meta,
-        p.created_at::text AS created_at
-      FROM posts p LEFT JOIN users u ON u.id = p.author_id
-      WHERE p.published = true
-        AND (p.title ILIKE ${term} OR p.excerpt ILIKE ${term} OR p.content ILIKE ${term})
-      ORDER BY p.created_at DESC
-      LIMIT ${limit}
-    `,
-    // Skills
-    sql`
-      SELECT
-        s.slug AS id,
-        s.name AS title,
-        COALESCE(s.chinese_summary, s.description, '') AS excerpt,
-        '/skills/' || s.slug AS url,
-        s.cover_image AS image,
-        COALESCE(s.tags, ARRAY[]::text[]) AS tags,
-        s.category AS meta,
-        s.created_at::text AS created_at
+export async function searchAll(query: SearchQuery): Promise<SearchResponse> {
+  const { q, type, sort, page, pageSize } = query
+  if (!q) return { ...query, results: [], total: 0, totalPages: 0, counts: { all: 0, post: 0, skill: 0, gallery: 0 } }
+  const literal = q.replace(/[\\%_]/g, '\\$&')
+  // One statement keeps facets and the selected page on the same database snapshot.
+  const rows = await sql`
+    WITH params AS (
+      SELECT ${q}::text AS q, ${`%${literal}%`}::text AS term, ${`${literal}%`}::text AS prefix
+    ), candidates AS (
+      SELECT 'post'::text AS type, p.slug::text AS id, p.title AS title,
+        COALESCE(p.excerpt, '') AS excerpt, '/blog/' || p.slug AS url,
+        p.cover_image AS image, COALESCE(p.tags, ARRAY[]::text[]) AS tags,
+        COALESCE(u.name, 'ARC') AS meta, p.created_at,
+        COALESCE(p.content, '') AS body, ''::text AS extra
+      FROM posts p LEFT JOIN users u ON u.id = p.author_id WHERE p.published = TRUE
+      UNION ALL
+      SELECT 'skill', s.slug::text, s.name, COALESCE(s.chinese_summary, s.description, ''),
+        '/skills/' || s.slug, s.cover_image, COALESCE(s.tags, ARRAY[]::text[]),
+        COALESCE(s.category, ''), s.created_at, COALESCE(s.content, ''), COALESCE(s.description, '')
       FROM skills s
-      WHERE s.name ILIKE ${term}
-        OR s.description ILIKE ${term}
-        OR s.chinese_summary ILIKE ${term}
-      ORDER BY s.stars DESC NULLS LAST
-      LIMIT ${limit}
-    `,
-    // 画廊
-    sql`
-      SELECT
-        g.id::text AS id,
-        COALESCE(g.title, '未命名作品') AS title,
-        COALESCE(g.category, '') AS excerpt,
-        '/gallery' AS url,
-        g.url AS image,
-        COALESCE(g.category, '') AS meta,
-        g.created_at::text AS created_at
+      UNION ALL
+      SELECT 'gallery', g.id::text, COALESCE(g.title, '未命名作品'), COALESCE(g.description, g.category, ''),
+        '/gallery', g.url, COALESCE(g.tags, ARRAY[]::text[]), COALESCE(g.category, ''),
+        g.created_at, ''::text, COALESCE(g.category, '')
       FROM gallery_images g
-      WHERE g.title ILIKE ${term} OR g.category ILIKE ${term}
-      ORDER BY g.created_at DESC
-      LIMIT ${limit}
-    `,
-  ])
-
-  // 合并结果，按类型排序（post → skill → gallery），同类型按时间倒序
-  const results: SearchResult[] = [
-    ...postRows.map((r: Record<string, unknown>) => ({
-      type: 'post' as const,
-      id: r.id as string,
-      title: r.title as string,
-      excerpt: r.excerpt as string,
-      url: r.url as string,
-      image: (r.image as string) ?? null,
-      tags: [],
-      meta: r.meta as string,
-      created_at: r.created_at as string,
-    })),
-    ...skillRows.map((r: Record<string, unknown>) => ({
-      type: 'skill' as const,
-      id: r.id as string,
-      title: r.title as string,
-      excerpt: r.excerpt as string,
-      url: r.url as string,
-      image: (r.image as string) ?? null,
-      tags: (r.tags as string[]) ?? [],
-      meta: r.meta as string,
-      created_at: r.created_at as string,
-    })),
-    ...galleryRows.map((r: Record<string, unknown>) => ({
-      type: 'gallery' as const,
-      id: r.id as string,
-      title: r.title as string,
-      excerpt: r.excerpt as string,
-      url: r.url as string,
-      image: (r.image as string) ?? null,
-      tags: [],
-      meta: r.meta as string,
-      created_at: r.created_at as string,
-    })),
-  ]
-
-  return results
+    ), matched AS MATERIALIZED (
+      SELECT c.type, c.id, c.title, LEFT(c.excerpt, 1000) AS excerpt, c.url, c.image, c.tags, c.meta, c.created_at,
+        GREATEST(
+          CASE WHEN LOWER(c.title) = LOWER(p.q) THEN 100
+            WHEN c.title ILIKE p.prefix THEN 80 WHEN c.title ILIKE p.term THEN 60 ELSE 0 END,
+          CASE WHEN EXISTS (SELECT 1 FROM unnest(c.tags) t WHERE LOWER(t) = LOWER(p.q)) THEN 50 ELSE 0 END,
+          CASE WHEN c.excerpt ILIKE p.term OR c.extra ILIKE p.term THEN 25 ELSE 0 END,
+          CASE WHEN c.body ILIKE p.term THEN 10 ELSE 0 END,
+          CASE WHEN EXISTS (SELECT 1 FROM unnest(c.tags) t WHERE t ILIKE p.term) THEN 10 ELSE 0 END
+        ) AS score
+      FROM candidates c CROSS JOIN params p
+      WHERE c.title ILIKE p.term OR c.excerpt ILIKE p.term OR c.extra ILIKE p.term OR c.body ILIKE p.term
+        OR EXISTS (SELECT 1 FROM unnest(c.tags) t WHERE t ILIKE p.term)
+    ), selected AS (
+      SELECT *, ROW_NUMBER() OVER (ORDER BY
+        CASE WHEN ${sort}::text = 'relevance' THEN score ELSE 0 END DESC,
+        created_at DESC NULLS LAST, type ASC, id ASC) AS position
+      FROM matched WHERE ${type}::text = 'all' OR type = ${type}
+    ), page_rows AS (
+      SELECT * FROM selected ORDER BY position LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}
+    )
+    SELECT
+      (SELECT COALESCE(jsonb_agg(to_jsonb(r) - 'score' - 'position' ORDER BY position), '[]'::jsonb) FROM page_rows r) AS results,
+      COUNT(*)::int AS "all",
+      COUNT(*) FILTER (WHERE type = 'post')::int AS post,
+      COUNT(*) FILTER (WHERE type = 'skill')::int AS skill,
+      COUNT(*) FILTER (WHERE type = 'gallery')::int AS gallery
+    FROM matched
+  `
+  const row = rows[0]
+  const counts = { all: Number(row.all), post: Number(row.post), skill: Number(row.skill), gallery: Number(row.gallery) }
+  const total = counts[type]
+  return { ...query, results: row.results as SearchResponse['results'], total, totalPages: Math.ceil(total / pageSize), counts }
 }

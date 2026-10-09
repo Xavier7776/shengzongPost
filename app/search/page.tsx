@@ -8,16 +8,10 @@ export const metadata: Metadata = {
   description: '在博客、Skills、画廊中搜索内容',
 }
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>
-}) {
-  const { q: qParam } = await searchParams
-  const q = qParam ?? ''
+export default function SearchPage() {
   return (
     <Suspense fallback={null}>
-      <SearchClient initialQuery={q} />
+      <SearchClient />
     </Suspense>
   )
 }
