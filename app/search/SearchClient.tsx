@@ -2,11 +2,13 @@
 // app/search/SearchClient.tsx
 // 全站搜索客户端组件：搜索框 + 分类 Tab + 结果列表
 // 增强：关键词高亮、搜索历史、空结果推荐
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, Loader2, FileText, Code2, Image as ImageIcon, X, Clock, TrendingUp } from 'lucide-react'
-import type { SearchResult } from '@/lib/db-search'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { parseSearchParams } from '@/lib/search'
+import type { SearchResponse, SearchType, SearchSort } from '@/lib/search'
 
 const TYPE_META: Record<string, { label: string; icon: typeof FileText; color: string; bg: string }> = {
   post:    { label: '博客',  icon: FileText,  color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-200' },
@@ -26,34 +28,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 const HISTORY_KEY = 'mindstack:search-history'
 const MAX_HISTORY = 10
 
-// 转义 HTML 特殊字符,防止 XSS
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-// 转义正则表达式特殊字符
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-// 高亮关键词:先转义 HTML,再用 <mark> 标签包裹匹配项(大小写不敏感)
-function highlightKeyword(text: string, keyword: string): string {
-  if (!text) return ''
-  if (!keyword || !keyword.trim()) return escapeHtml(text)
-  const safeText = escapeHtml(text)
-  const safeKeyword = escapeHtml(keyword)
-  if (!safeKeyword) return safeText
-  try {
-    const re = new RegExp(escapeRegExp(safeKeyword), 'gi')
-    return safeText.replace(re, (match) => `<mark class="bg-yellow-200 text-gray-900 rounded px-0.5">${match}</mark>`)
-  } catch {
-    return safeText
-  }
+function HighlightText({ text, keyword }: { text: string; keyword: string }) {
+  if (!keyword) return <>{text}</>
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return <>{text.split(new RegExp(`(${escaped})`, 'gi')).map((part, i) =>
+    i % 2 ? <mark key={i} className="bg-yellow-200 text-gray-900 rounded px-0.5">{part}</mark> : part
+  )}</>
 }
 
 // 读取搜索历史
@@ -63,7 +43,7 @@ function loadHistory(): string[] {
     const raw = localStorage.getItem(HISTORY_KEY)
     if (!raw) return []
     const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? arr.filter(x => typeof x === 'string').slice(0, MAX_HISTORY) : []
+    return Array.isArray(arr) ? arr.filter(x => typeof x === 'string' && x.length <= 120).slice(0, MAX_HISTORY) : []
   } catch {
     return []
   }
@@ -117,200 +97,151 @@ interface RecommendPost {
   created_at: string
 }
 
-export default function SearchClient({ initialQuery }: { initialQuery: string }) {
-  const [query, setQuery] = useState(initialQuery)
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
-  const [activeType, setActiveType] = useState<'all' | 'post' | 'skill' | 'gallery'>('all')
-  const [searched, setSearched] = useState(false)
+export default function SearchClient() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const urlState = searchParams.toString()
+  let state
+  let parameterError = ''
+  try {
+    state = parseSearchParams(new URLSearchParams(urlState))
+  } catch (err) {
+    parameterError = (err as Error).message
+    state = { q: (searchParams.get('q') ?? '').slice(0, 120), type: 'all' as const, sort: 'relevance' as const, page: 1, pageSize: 20 }
+  }
+  const { q, type: activeType, sort, page } = state
+  const [query, setQuery] = useState(q)
+  const [data, setData] = useState<SearchResponse | null>(null)
+  const [loading, setLoading] = useState(Boolean(q))
+  const [error, setError] = useState('')
+  const [retry, setRetry] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
-
-  // 搜索历史相关状态
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const controllerRef = useRef<AbortController | null>(null)
+  const requestRef = useRef(0)
   const [history, setHistory] = useState<string[]>([])
   const [showHistory, setShowHistory] = useState(false)
-
-  // 推荐内容相关状态
   const [recommendations, setRecommendations] = useState<RecommendPost[]>([])
   const [loadingRecommendations, setLoadingRecommendations] = useState(false)
 
-  // 初始化:加载历史
   useEffect(() => {
     setHistory(loadHistory())
-  }, [])
-
-  // 执行搜索(保持原有请求逻辑,仅在空查询时清理推荐)
-  const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) {
-      setResults([])
-      setSearched(false)
-      setRecommendations([])
-      return
-    }
-    setLoading(true)
-    setSearched(true)
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=30`)
-      const data = await res.json()
-      setResults(data.results ?? [])
-    } catch {
-      setResults([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // 初始查询
-  useEffect(() => {
-    if (initialQuery) {
-      doSearch(initialQuery)
-      // 初始查询(来自 URL)也保存到历史
-      setHistory(saveHistory(initialQuery))
-    }
     inputRef.current?.focus()
-  }, [initialQuery, doSearch])
+  }, [])
 
-  // 防抖搜索
-  const handleInput = (value: string) => {
-    setQuery(value)
-    // 输入内容时隐藏历史下拉
-    if (value.trim()) {
-      setShowHistory(false)
-    }
+  function cancelPending() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      doSearch(value)
-      // 同步 URL(不触发导航)
-      const url = new URL(window.location.href)
-      if (value) {
-        url.searchParams.set('q', value)
-      } else {
-        url.searchParams.delete('q')
-      }
-      window.history.replaceState({}, '', url.toString())
-    }, 350)
+    controllerRef.current?.abort()
+    requestRef.current++
   }
 
-  // 回车搜索:保存到历史
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const q = query.trim()
-      if (q) {
-        if (debounceRef.current) clearTimeout(debounceRef.current)
-        doSearch(q)
-        setShowHistory(false)
-        setHistory(saveHistory(q))
-        // 同步 URL
-        const url = new URL(window.location.href)
-        url.searchParams.set('q', q)
-        window.history.replaceState({}, '', url.toString())
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setQuery(q)
+    setData(null)
+    setError(parameterError)
+    setLoading(Boolean(q) && !parameterError)
+    if (!q || parameterError) return
+    const controller = new AbortController()
+    controllerRef.current = controller
+    const request = ++requestRef.current
+    let active = true
+    let timedOut = false
+    const timeout = setTimeout(() => { timedOut = true; controller.abort() }, 15000)
+    const params = new URLSearchParams(urlState)
+    params.set('q', q)
+    setHistory(saveHistory(q))
+    async function run() {
+      try {
+        const response = await fetch(`/api/search?${params}`, { signal: controller.signal })
+        if (!response.ok) throw new Error('搜索失败，请稍后重试')
+        const result: SearchResponse = await response.json()
+        if (active && request === requestRef.current && !controller.signal.aborted) setData(result)
+      } catch {
+        if (active && request === requestRef.current) setError(timedOut ? '搜索超时，请重试' : '搜索失败，请稍后重试')
+      } finally {
+        clearTimeout(timeout)
+        if (active && request === requestRef.current) setLoading(false)
       }
     }
-  }
+    void run()
+    return () => {
+      active = false
+      controller.abort()
+      clearTimeout(timeout)
+    }
+  }, [urlState, q, parameterError, retry])
 
-  // 清空
-  const handleClear = () => {
-    setQuery('')
-    setResults([])
-    setSearched(false)
-    setRecommendations([])
-    inputRef.current?.focus()
-    const url = new URL(window.location.href)
-    url.searchParams.delete('q')
-    window.history.replaceState({}, '', url.toString())
-  }
-
-  // 从历史项搜索
-  const handleHistoryClick = (item: string) => {
-    setQuery(item)
+  function navigate(value: string, next: { type?: SearchType; sort?: SearchSort; page?: number } = {}) {
+    cancelPending()
+    setQuery(value)
     setShowHistory(false)
-    doSearch(item)
-    setHistory(saveHistory(item))
-    const url = new URL(window.location.href)
-    url.searchParams.set('q', item)
-    window.history.replaceState({}, '', url.toString())
+    setData(null)
+    setError('')
+    setLoading(Boolean(value.trim()))
+    const params = new URLSearchParams({
+      q: value.trim(), type: next.type ?? activeType,
+      sort: next.sort ?? sort, page: String(next.page ?? 1),
+    })
+    const target = value.trim() ? `/search?${params}` : '/search'
+    if (target === `/search${urlState ? `?${urlState}` : ''}`) setRetry(n => n + 1)
+    else router.push(target, { scroll: false })
   }
 
-  // 删除单条历史
+  const handleInput = (value: string) => {
+    cancelPending()
+    setQuery(value)
+    setShowHistory(false)
+    setData(null)
+    setError('')
+    setLoading(Boolean(value.trim()))
+    debounceRef.current = setTimeout(() => navigate(value), 350)
+  }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) navigate(query)
+  }
+  const handleClear = () => { navigate(''); inputRef.current?.focus() }
+  const handleHistoryClick = (item: string) => navigate(item)
+  const handleSuggestionClick = (item: string) => navigate(item)
   const handleHistoryRemove = (e: React.MouseEvent, item: string) => {
     e.stopPropagation()
     e.preventDefault()
     setHistory(removeHistoryItem(item))
   }
-
-  // 清空历史
   const handleHistoryClear = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     setHistory(clearHistory())
   }
+  const handleFocus = () => { if (!query.trim()) setShowHistory(true) }
+  const handleBlur = () => setShowHistory(false)
 
-  // 输入框获得焦点:内容为空时显示历史
-  const handleFocus = () => {
-    if (!query.trim()) {
-      setShowHistory(true)
-    }
-  }
-
-  // 输入框失去焦点(延迟,以便点击历史项能先触发)
-  const handleBlur = () => {
-    setTimeout(() => setShowHistory(false), 150)
-  }
-
-  // 从推荐词搜索
-  const handleSuggestionClick = (s: string) => {
-    setQuery(s)
-    setShowHistory(false)
-    doSearch(s)
-    setHistory(saveHistory(s))
-    const url = new URL(window.location.href)
-    url.searchParams.set('q', s)
-    window.history.replaceState({}, '', url.toString())
-  }
-
-  // 空结果时加载推荐内容(获取最近发布的文章)
   useEffect(() => {
-    // 仅在搜索完成、无结果、非加载中、有查询词时加载推荐
-    if (searched && !loading && results.length === 0 && query.trim()) {
-      let cancelled = false
-      setLoadingRecommendations(true)
-      fetch('/api/posts/public')
-        .then(res => res.json())
-        .then((data: RecommendPost[]) => {
-          if (cancelled) return
-          if (Array.isArray(data)) {
-            // 取前 4 条作为推荐
-            setRecommendations(data.slice(0, 4))
-          } else {
-            setRecommendations([])
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setRecommendations([])
-        })
-        .finally(() => {
-          if (!cancelled) setLoadingRecommendations(false)
-        })
-      return () => {
-        cancelled = true
-      }
-    } else if (results.length > 0) {
-      // 有结果时清空推荐
-      setRecommendations([])
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [searched, loading, results.length, query])
+  }, [])
 
-  // 按类型筛选
-  const filtered = activeType === 'all' ? results : results.filter(r => r.type === activeType)
+  useEffect(() => {
+    setRecommendations([])
+    setLoadingRecommendations(false)
+    // An empty page or empty category is not an empty full-site search.
+    if (!data || data.counts.all !== 0 || loading || error || !data.q) return
+    const controller = new AbortController()
+    let active = true
+    const timeout = setTimeout(() => controller.abort(), 15000)
+    setLoadingRecommendations(true)
+    fetch('/api/posts/public?limit=4', { signal: controller.signal })
+      .then(res => { if (!res.ok) throw new Error('recommendations'); return res.json() })
+      .then((posts: RecommendPost[]) => { if (!controller.signal.aborted) setRecommendations(Array.isArray(posts) ? posts : []) })
+      .catch(() => {})
+      .finally(() => { clearTimeout(timeout); if (active) setLoadingRecommendations(false) })
+    return () => { active = false; controller.abort(); clearTimeout(timeout) }
+  }, [data, loading, error])
 
-  // 各类型计数
-  const counts = {
-    all: results.length,
-    post: results.filter(r => r.type === 'post').length,
-    skill: results.filter(r => r.type === 'skill').length,
-    gallery: results.filter(r => r.type === 'gallery').length,
-  }
-
+  const results = data?.results ?? []
+  const counts = data?.counts ?? { all: 0, post: 0, skill: 0, gallery: 0 }
+  const searched = Boolean(q)
   const tabs: Array<{ key: 'all' | 'post' | 'skill' | 'gallery'; label: string; count: number }> = [
     { key: 'all', label: '全部', count: counts.all },
     { key: 'post', label: '博客', count: counts.post },
@@ -319,7 +250,7 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
   ]
 
   // 当前用于高亮的关键词
-  const highlightTerm = query.trim()
+  const highlightTerm = data?.q ?? q
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-24">
@@ -335,6 +266,8 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
         <input
           ref={inputRef}
           type="text"
+          aria-label="全站搜索关键词"
+          maxLength={120}
           value={query}
           onChange={e => handleInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -403,16 +336,19 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
       )}
 
       {/* 结果 */}
-      {!loading && searched && (
+      {!loading && searched && !error && data && (
         <>
           {/* 分类 Tab */}
-          {results.length > 0 && (
-            <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-3">
+          {(
+            <div role="tablist" aria-label="搜索分类" className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-3 overflow-x-auto">
               {tabs.map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveType(tab.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  role="tab"
+                  aria-label={`${tab.label} ${tab.count}`}
+                  aria-selected={activeType === tab.key}
+                  onClick={() => navigate(query, { type: tab.key })}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     activeType === tab.key
                       ? 'bg-gray-900 text-white'
                       : 'text-gray-500 hover:bg-gray-100'
@@ -427,18 +363,26 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
             </div>
           )}
 
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 text-sm text-gray-500">
+            <span role="status">共 {data.total} 条结果</span>
+            <select aria-label="搜索排序" value={sort} onChange={e => navigate(query, { sort: e.target.value as SearchSort })} className="border border-gray-200 rounded-lg p-2 bg-white text-gray-700">
+              <option value="relevance">相关性优先</option>
+              <option value="newest">最新优先</option>
+            </select>
+          </div>
+
           {/* 空结果 + 推荐 */}
           {results.length === 0 && (
             <div className="flex flex-col items-center py-10 gap-3 text-gray-400">
               <Search className="w-12 h-12 opacity-30" />
               <p className="text-sm">没有找到与「{query}」相关的内容</p>
-              <p className="text-xs text-gray-300">试试其他关键词,或看看下面的热门内容</p>
+              <p className="text-xs text-gray-400">{data.total > 0 ? '当前页没有结果，请返回前一页' : '试试其他关键词或分类'}</p>
 
               {/* 推荐内容 */}
-              <div className="w-full mt-6">
+              {data.counts.all === 0 && <div className="w-full mt-6">
                 <div className="flex items-center gap-2 mb-4 justify-center">
                   <TrendingUp className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-bold text-gray-600">未找到相关结果,试试这些热门内容</span>
+                  <span className="text-sm font-bold text-gray-600">未找到相关结果,试试这些最新内容</span>
                 </div>
                 {loadingRecommendations ? (
                   <div className="flex items-center justify-center py-8 gap-2 text-gray-400">
@@ -482,19 +426,19 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
                 ) : (
                   <p className="text-center text-xs text-gray-300 py-4">暂无推荐内容</p>
                 )}
-              </div>
+              </div>}
             </div>
           )}
 
           {/* 结果列表 */}
-          {filtered.length > 0 && (
+          {results.length > 0 && (
             <div className="space-y-3">
-              {filtered.map((r, i) => {
+              {results.map((r) => {
                 const meta = TYPE_META[r.type]
                 const Icon = meta.icon
                 return (
                   <Link
-                    key={`${r.type}-${r.id}-${i}`}
+                    key={`${r.type}-${r.id}`}
                     href={r.url}
                     className="group block bg-white border border-gray-100 rounded-xl p-4 hover:border-gray-200 hover:shadow-sm transition-all"
                   >
@@ -529,15 +473,13 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
                             <span className="text-[10px] text-gray-400">by {r.meta}</span>
                           )}
                         </div>
-                        <h3
-                          className="text-sm font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors mb-1"
-                          dangerouslySetInnerHTML={{ __html: highlightKeyword(r.title, highlightTerm) }}
-                        />
+                        <h3 className="text-sm font-bold text-gray-900 break-words group-hover:text-blue-600 transition-colors mb-1">
+                          <HighlightText text={r.title} keyword={highlightTerm} />
+                        </h3>
                         {r.excerpt && (
-                          <p
-                            className="text-xs text-gray-500 line-clamp-2"
-                            dangerouslySetInnerHTML={{ __html: highlightKeyword(r.excerpt, highlightTerm) }}
-                          />
+                          <p className="text-xs text-gray-500 break-words line-clamp-2">
+                            <HighlightText text={r.excerpt} keyword={highlightTerm} />
+                          </p>
                         )}
                         {r.tags && r.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
@@ -555,8 +497,20 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
               })}
             </div>
           )}
+          {(data.totalPages > 1 || page > 1) && (
+            <nav aria-label="搜索分页" className="flex items-center justify-center gap-3 mt-8 text-sm">
+              <button disabled={page <= 1} onClick={() => navigate(query, { page: page - 1 })} className="border rounded-lg px-3 py-2 disabled:opacity-40">上一页</button>
+              <span>第 {page} / {data.totalPages} 页</span>
+              <button disabled={page >= data.totalPages} onClick={() => navigate(query, { page: page + 1 })} className="border rounded-lg px-3 py-2 disabled:opacity-40">下一页</button>
+            </nav>
+          )}
         </>
       )}
+
+      {error && <div role="alert" className="py-12 text-center text-red-600">
+        <p>{error}</p>
+        <button onClick={() => navigate(query)} className="mt-3 text-sm underline">重新搜索</button>
+      </div>}
 
       {/* 初始状态(未搜索) */}
       {!searched && !loading && (

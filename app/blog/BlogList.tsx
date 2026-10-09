@@ -133,7 +133,8 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="搜索当前页标题、摘要或标签…"
+          aria-label="筛选当前页"
+          placeholder="筛选当前页标题、摘要或标签…"
           className="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 transition-colors shadow-sm"
         />
         {query && (
@@ -144,6 +145,11 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
             <X className="w-4 h-4" />
           </button>
         )}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 mb-6 text-xs text-gray-500">
+        <span>上方输入框仅筛选当前页</span>
+        <Link href={`/search${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ''}`} className="text-blue-600 hover:underline whitespace-nowrap">全站搜索 →</Link>
       </div>
 
       {/* 筛选状态下的标签栏 + 排序 */}
