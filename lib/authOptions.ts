@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import type { NextAuthOptions } from 'next-auth'
 import bcrypt from 'bcryptjs'
 import { getUserByEmail, getUserById } from '@/lib/db'
+import { allowAuthAttempt, normalizeEmail } from '@/lib/auth-rate-limit'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -17,9 +18,21 @@ export const authOptions: NextAuthOptions = {
         email:    { label: 'Email',    type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        const user = await getUserByEmail(credentials.email)
+      async authorize(credentials, req) {
+        const email = normalizeEmail(credentials?.email)
+        if (!email || typeof credentials?.password !== 'string') return null
+        try {
+          // NextAuth passes the incoming headers as a plain object; identity and IP quotas
+          // are shared in Neon across all Vercel instances and apply to failed logins.
+          const authRequest = new Request('https://auth.internal/', {
+            headers: req?.headers as HeadersInit | undefined,
+          })
+          if (!await allowAuthAttempt(authRequest, 'login', email)) return null
+        } catch (error) {
+          console.error('[auth] login throttling unavailable', error)
+          return null // fail closed rather than allow unlimited online password guessing
+        }
+        const user = await getUserByEmail(email)
         if (!user) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null

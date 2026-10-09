@@ -43,6 +43,19 @@ export async function createUser(data: { email: string; name: string; password: 
 export async function setVerifyToken(userId: number, token: string, expires: Date): Promise<void> {
   await sql`UPDATE users SET verify_token=${token},token_expires=${expires.toISOString()} WHERE id=${userId}`
 }
+/** Bind numeric reset codes to the requested account, not just a globally matching 6-digit token. */
+export async function getUserByVerifyTokenAndEmail(token: string, email: string): Promise<User | null> {
+  const rows = await sql`SELECT * FROM users
+    WHERE LOWER(email)=${email} AND verify_token=${token} AND token_expires>NOW() LIMIT 1`
+  return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null
+}
+
+export async function getUserByVerifyTokenAndId(token: string, userId: number): Promise<User | null> {
+  const rows = await sql`SELECT * FROM users
+    WHERE id=${userId} AND verify_token=${token} AND token_expires>NOW() LIMIT 1`
+  return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null
+}
+
 export async function getUserByVerifyToken(token: string): Promise<User | null> {
   const rows = await sql`SELECT * FROM users WHERE verify_token=${token} AND token_expires>NOW() LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null

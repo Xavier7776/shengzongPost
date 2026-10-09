@@ -142,7 +142,7 @@ export function useProfileSettings() {
   async function handleChangePassword() {
     setPwError('')
     if (!pwCode.trim())      { setPwError('请输入验证码'); return }
-    if (pwNew.length < 8)    { setPwError('新密码至少 8 位'); return }
+    if (pwNew.length < 12)    { setPwError('新密码至少 12 位'); return }
     if (pwNew !== pwConfirm) { setPwError('两次密码不一致'); return }
     setPwStep('changing')
     try {
