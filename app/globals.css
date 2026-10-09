@@ -461,6 +461,24 @@ body::before {
   font-size: 0.95rem;
   line-height: 1.7;
 }
+.reader-content .learn-article > p.learn-article-lead {
+  max-width: 850px;
+  line-height: 1.82;
+}
+.reader-content .learn-article figure h3,
+.reader-content .learn-article section h3 {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+.reader-content .learn-article section h2 {
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
 .reader-content .learn-article pre {
   max-width: 100%;
   overflow-x: auto;
