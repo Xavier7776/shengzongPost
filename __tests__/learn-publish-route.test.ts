@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeEdition } from './fixtures/learn-edition'
+import { PublicationError } from '@/lib/learn/publication-contract'
 const { publish } = vi.hoisted(() => ({ publish: vi.fn() }))
 vi.mock('@/lib/learn/publish', () => ({ publishEdition: publish }))
 import { POST } from '@/app/api/internal/learn/publish/route'
@@ -19,7 +20,7 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date('2026-10-08T00:30:00Z'))
   vi.stubEnv('LEARN_PUBLISH_SECRET', secret)
-  publish.mockReset().mockResolvedValue({ created: true, slug: 'daily-learn-2026-10-08' })
+  publish.mockReset().mockResolvedValue({ created: true, alreadyExists:false, verified:true, dbStatus:'db_ready', publicStatus:'public_pending', slug: 'daily-learn-2026-10-08' })
 })
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs() })
 
@@ -46,9 +47,25 @@ describe('learn publication authorization and input boundaries', () => {
   })
   it('publishes only validated signed content and reports idempotent retries', async () => {
     const edition = makeEdition()
-    expect((await POST(request(JSON.stringify(edition)))).status).toBe(201)
+    const response = await POST(request(JSON.stringify(edition)))
+    expect(response.status).toBe(201)
+    expect(await response.json()).toMatchObject({created:true,verified:true,dbStatus:'db_ready',publicStatus:'public_pending'})
     expect(publish).toHaveBeenCalledWith(edition)
     publish.mockResolvedValue({ created: false, slug: 'daily-learn-2026-10-08' })
     expect((await POST(request(JSON.stringify(edition)))).status).toBe(200)
+  })
+  it.each([
+    ['conflict',409,false,'unknown'],
+    ['source_unverified',502,false,'unknown'],
+    ['readback_failed',500,true,'written_unverified'],
+  ] as const)('reports %s without a false verified result or sensitive error log', async (category,status,created,dbStatus) => {
+    const log = vi.spyOn(console,'error').mockImplementation(()=>{})
+    try {
+      publish.mockRejectedValue(new PublicationError(category,'daily-learn-2026-10-08',created))
+      const response = await POST(request(JSON.stringify(makeEdition())))
+      expect(response.status).toBe(status)
+      expect(await response.json()).toMatchObject({error:category,verified:false,dbStatus,requestId:expect.any(String)})
+      expect(log.mock.calls[0][1]).toEqual({category,date:'2026-10-08',requestId:expect.any(String)})
+    } finally {log.mockRestore()}
   })
 })

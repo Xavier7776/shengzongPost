@@ -81,6 +81,8 @@ async function main(){
  const res=await fetch(new URL('/api/internal/learn/publish',origin),{method:'POST',signal:AbortSignal.timeout(25000),
   headers:{'Content-Type':'application/json','x-learn-timestamp':timestamp,'x-learn-signature':signature},body})
  if(!res.ok)throw Error('Publisher API refused: '+res.status+' '+(await res.text()).slice(0,1000))
- console.log(JSON.stringify({status:'published',date:today,topic,...await res.json()}))
+ const result=await res.json() as {verified?:boolean;dbStatus?:string;publicStatus?:string;slug?:string}
+ if(!result||result.verified!==true||result.dbStatus!=='db_ready')throw Error('Publisher returned an unverified result')
+ console.log(JSON.stringify({...result,status:result.publicStatus==='public_ready'?'published':'database_verified_public_pending',date:today,topic}))
 }
 main().catch(e=>{console.error('[learn-daily]',e instanceof Error?e.message:e);process.exitCode=1})
