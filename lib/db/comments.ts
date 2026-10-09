@@ -13,22 +13,27 @@ export interface Comment {
   likes?: number; userLiked?: boolean
   replies?: Comment[]
 }
+/** Avoid nesting one Neon tagged template inside another.
+ * Inline SQL fragments were serialized as parameters and caused SQLSTATE 42601 ($1).
+ */
 export async function getApprovedComments(postSlug: string, userId?: number): Promise<Comment[]> {
+  const safeUserId = userId && Number.isSafeInteger(userId) && userId > 0 ? userId : -1
   const rows = await sql`
-    SELECT c.*, u.role as user_role, u.avatar as user_avatar, af.css_key as equipped_frame_css_key,
-      COALESCE((SELECT COUNT(*)::int FROM comment_likes cl WHERE cl.comment_id = c.id), 0) as likes
-      ${userId ? sql`, EXISTS(SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.id AND cl2.user_id = ${userId}) as user_liked` : sql``}
+    SELECT c.*, u.role as user_role, u.avatar as user_avatar,
+      af.css_key as equipped_frame_css_key,
+      COALESCE((SELECT COUNT(*)::int FROM comment_likes cl WHERE cl.comment_id=c.id), 0) as likes,
+      EXISTS(SELECT 1 FROM comment_likes cl2
+        WHERE cl2.comment_id=c.id AND cl2.user_id=${safeUserId}) as user_liked
     FROM comments c
-    LEFT JOIN users u ON u.id = c.user_id
-    LEFT JOIN avatar_frames af ON af.id = u.equipped_frame AND af.enabled = true
+    LEFT JOIN users u ON u.id=c.user_id
+    LEFT JOIN avatar_frames af ON af.id=u.equipped_frame AND af.enabled=true
     WHERE c.post_slug=${postSlug} AND c.status='approved'
     ORDER BY c.created_at ASC
   `
   const all = serializeRows(rows as Record<string, unknown>[]) as unknown as Comment[]
-  // Map user_liked -> userLiked if present
   all.forEach(c => {
-    const r = c as unknown as Record<string, unknown>
-    if ('user_liked' in r) { c.userLiked = r.user_liked as boolean; delete r.user_liked }
+    const item = c as unknown as Record<string, unknown>
+    if ('user_liked' in item) { c.userLiked = item.user_liked as boolean; delete item.user_liked }
   })
   const map = new Map<number, Comment>()
   const roots: Comment[] = []

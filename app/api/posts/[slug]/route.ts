@@ -4,7 +4,7 @@
 // DELETE /api/posts/:slug → 删除文章（管理员）
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
-import { updatePost, deletePost, getPostBySlugAdmin } from '@/lib/db'
+import { updatePost, deletePost, getPostBySlugAdmin, getPostBySlug, getUserRoleById } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
@@ -14,12 +14,25 @@ interface Ctx { params: { slug: string } }
 export async function GET(_req: NextRequest, { params }: Ctx) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
+
+  const user = session.user as { id?: string | number; role?: string }
+  const userId = Number(user.id)
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    return NextResponse.json({ error: '无效的用户身份' }, { status: 401 })
+  }
+
   try {
-    const post = await getPostBySlugAdmin(params.slug)
-    if (!post) return NextResponse.json({ error: '文章不存在' }, { status: 404 })
-    return NextResponse.json(post)
+    // Administrator-only drafts must never be exposed to arbitrary authenticated users.
+    // Check the live DB role; a JWT may still carry an old elevated role after revocation.
+    const role = await getUserRoleById(userId)
+    const isAdmin = user.role === 'admin' && role === 'admin'
+    const post = isAdmin ? await getPostBySlugAdmin(params.slug) : await getPostBySlug(params.slug)
+    if (!post || (!isAdmin && post.author_id !== userId)) {
+      return NextResponse.json({ error: '文章不存在' }, { status: 404 })
+    }
+    return NextResponse.json(post, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (e) {
-    console.error(e)
+    console.error('[posts GET]', e)
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })
   }
 }

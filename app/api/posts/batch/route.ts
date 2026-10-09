@@ -1,35 +1,52 @@
 // app/api/posts/batch/route.ts
+// Privileged bulk mutation only: a logged-in non-admin must not publish or delete articles.
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/authOptions'
+import { revalidatePath } from 'next/cache'
+import { requireAdminApi } from '@/lib/auth'
 import { sql } from '@/lib/db'
 
+const MAX_BATCH = 50
+const validActions = new Set(['publish', 'unpublish', 'delete'])
+
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
+  const admin = await requireAdminApi()
+  if (!admin) return NextResponse.json({ error: '无管理员权限' }, { status: 403 })
+
+  let payload: unknown
+  try { payload = await req.json() } catch {
+    return NextResponse.json({ error: '无效的 JSON' }, { status: 400 })
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return NextResponse.json({ error: '参数错误' }, { status: 400 })
+  }
+  const { action, slugs } = payload as { action?: unknown; slugs?: unknown }
+  if (typeof action !== 'string' || !validActions.has(action) ||
+      !Array.isArray(slugs) || slugs.length === 0 || slugs.length > MAX_BATCH ||
+      slugs.some(s => typeof s !== 'string' || !s.trim() || s.length > 160)) {
+    return NextResponse.json({ error: 'action 或 slugs 无效，单次最多 50 篇' }, { status: 400 })
+  }
+  const uniqueSlugs = [...new Set(slugs as string[])]
 
   try {
-    const { action, slugs } = await req.json()
-    if (!Array.isArray(slugs) || slugs.length === 0)
-      return NextResponse.json({ error: '缺少 slugs' }, { status: 400 })
-
-    let count = 0
+    let rows: Record<string, unknown>[]
     if (action === 'publish') {
-      await sql`UPDATE posts SET published=true, updated_at=NOW() WHERE slug = ANY(${slugs})`
-      count = slugs.length
+      rows = await sql`UPDATE posts SET published=true, updated_at=NOW()
+        WHERE slug = ANY(${uniqueSlugs}) RETURNING slug`
     } else if (action === 'unpublish') {
-      await sql`UPDATE posts SET published=false, updated_at=NOW() WHERE slug = ANY(${slugs})`
-      count = slugs.length
-    } else if (action === 'delete') {
-      await sql`DELETE FROM posts WHERE slug = ANY(${slugs})`
-      count = slugs.length
+      rows = await sql`UPDATE posts SET published=false, updated_at=NOW()
+        WHERE slug = ANY(${uniqueSlugs}) RETURNING slug`
     } else {
-      return NextResponse.json({ error: '无效操作' }, { status: 400 })
+      rows = await sql`DELETE FROM posts WHERE slug = ANY(${uniqueSlugs}) RETURNING slug`
     }
-
-    return NextResponse.json({ ok: true, count })
-  } catch (err) {
-    console.error('[posts batch]', err)
-    return NextResponse.json({ error: '操作失败' }, { status: 500 })
+    if (rows.length) {
+      revalidatePath('/blog')
+      revalidatePath('/learn')
+      for (const row of rows) revalidatePath('/blog/' + String(row.slug))
+    }
+    // Report actual affected rows, not the number of user-supplied slugs.
+    return NextResponse.json({ ok: true, count: rows.length })
+  } catch (e) {
+    console.error('[posts batch]', e)
+    return NextResponse.json({ error: '批量操作失败' }, { status: 500 })
   }
 }

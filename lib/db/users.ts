@@ -21,6 +21,13 @@ export async function getUserById(id: number): Promise<User | null> {
   const rows = await sql`SELECT * FROM users WHERE id=${id} LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null
 }
+/** Authoritative DB role check for privileged actions; JWT roles may be stale after revocation. */
+export async function getUserRoleById(id: number): Promise<string | null> {
+  if (!Number.isSafeInteger(id) || id <= 0) return null
+  const rows = await sql`SELECT role FROM users WHERE id=${id} LIMIT 1`
+  return (rows[0]?.role as string | undefined) ?? null
+}
+
 export async function getAdminUserId(): Promise<number | null> {
   const rows = await sql`SELECT id FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1`
   return rows[0] ? (rows[0].id as number) : null
