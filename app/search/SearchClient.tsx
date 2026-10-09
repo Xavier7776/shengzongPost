@@ -172,7 +172,7 @@ export default function SearchClient() {
     }
   }, [urlState, q, parameterError, retry])
 
-  function navigate(value: string, next: { type?: SearchType; sort?: SearchSort; page?: number } = {}) {
+  function navigate(value: string, next: { type?: SearchType; sort?: SearchSort; page?: number } = {}, replace = false) {
     cancelPending()
     setQuery(value)
     setShowHistory(false)
@@ -185,6 +185,7 @@ export default function SearchClient() {
     })
     const target = value.trim() ? `/search?${params}` : '/search'
     if (target === `/search${urlState ? `?${urlState}` : ''}`) setRetry(n => n + 1)
+    else if (replace) router.replace(target, { scroll: false })
     else router.push(target, { scroll: false })
   }
 
@@ -195,12 +196,12 @@ export default function SearchClient() {
     setData(null)
     setError('')
     setLoading(Boolean(value.trim()))
-    debounceRef.current = setTimeout(() => navigate(value), 350)
+    debounceRef.current = setTimeout(() => navigate(value, {}, true), 350)
   }
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) navigate(query)
   }
-  const handleClear = () => { navigate(''); inputRef.current?.focus() }
+  const handleClear = () => { navigate(''); setShowHistory(true); inputRef.current?.focus() }
   const handleHistoryClick = (item: string) => navigate(item)
   const handleSuggestionClick = (item: string) => navigate(item)
   const handleHistoryRemove = (e: React.MouseEvent, item: string) => {
@@ -214,7 +215,9 @@ export default function SearchClient() {
     setHistory(clearHistory())
   }
   const handleFocus = () => { if (!query.trim()) setShowHistory(true) }
-  const handleBlur = () => setShowHistory(false)
+  const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setShowHistory(false)
+  }
 
   useEffect(() => {
     return () => {
@@ -261,7 +264,7 @@ export default function SearchClient() {
       </div>
 
       {/* 搜索框 */}
-      <div className="relative mb-6">
+      <div className="relative mb-6" onBlur={handleBlur}>
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
         <input
           ref={inputRef}
@@ -272,7 +275,6 @@ export default function SearchClient() {
           onChange={e => handleInput(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
-          onBlur={handleBlur}
           placeholder="输入关键词…"
           className="w-full pl-12 pr-12 py-4 text-base bg-white border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
         />
@@ -295,7 +297,8 @@ export default function SearchClient() {
                 搜索历史
               </span>
               <button
-                onMouseDown={handleHistoryClear}
+                onMouseDown={e => e.preventDefault()}
+                onClick={handleHistoryClear}
                 className="text-xs text-gray-400 hover:text-red-500 transition-colors"
               >
                 清除历史
@@ -305,16 +308,21 @@ export default function SearchClient() {
               {history.map((item) => (
                 <li key={item}>
                   <div
-                    onMouseDown={(e) => { e.preventDefault(); handleHistoryClick(item) }}
                     className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 cursor-pointer group"
                   >
-                    <span className="flex items-center gap-2 text-sm text-gray-700 truncate">
-                      <Clock className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
-                      {item}
-                    </span>
                     <button
-                      onMouseDown={(e) => handleHistoryRemove(e, item)}
-                      className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label={`搜索 ${item}`}
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => handleHistoryClick(item)}
+                      className="flex flex-1 min-w-0 items-center gap-2 text-sm text-gray-700 text-left"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                      <span className="truncate">{item}</span>
+                    </button>
+                    <button
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={(e) => handleHistoryRemove(e, item)}
+                      className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
                       aria-label="删除该历史"
                     >
                       <X className="w-3.5 h-3.5" />

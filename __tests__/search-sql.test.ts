@@ -97,6 +97,14 @@ describe('search on the PostgreSQL engine', () => {
     expect(await response.json()).toMatchObject({ q: 'pagekey', page: 2, total: 40, totalPages: 2, counts: { all: 65 } })
   })
 
+  it('preserves the legacy API limit alias without limiting totals or facets', async () => {
+    const response = await GET(new NextRequest('http://localhost/api/search?q=pagekey&limit=4'))
+    const result = await response.json()
+    expect(response.status).toBe(200)
+    expect(result).toMatchObject({ pageSize: 4, total: 65, totalPages: 17, counts: { all: 65 } })
+    expect(result.results).toHaveLength(4)
+  })
+
   it.each(['q=' + 'a'.repeat(121), 'q=%00', 'page=0', 'page=-1', 'page=1.2', 'page=2oops',
     'page=9007199254740992', 'pageSize=0', 'pageSize=51', 'sort=stars', 'type=blog'])('rejects invalid parameters: %s', async params => {
     sql.mockClear()

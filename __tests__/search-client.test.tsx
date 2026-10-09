@@ -4,9 +4,9 @@ import { useSyncExternalStore } from 'react'
 import { parseSearchParams } from '@/lib/search'
 import type { SearchResponse } from '@/lib/search'
 
-const nav = vi.hoisted(() => ({ value: '', listeners: new Set<() => void>(), push: vi.fn() }))
+const nav = vi.hoisted(() => ({ value: '', listeners: new Set<() => void>(), push: vi.fn(), replace: vi.fn() }))
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: nav.push }),
+  useRouter: () => ({ push: nav.push, replace: nav.replace }),
   useSearchParams: () => new URLSearchParams(useSyncExternalStore(
     (fn) => { nav.listeners.add(fn); return () => { nav.listeners.delete(fn) } },
     () => nav.value,
@@ -32,6 +32,7 @@ function navigate(params: string) {
 beforeEach(() => {
   nav.value = 'q=RAG&type=all&page=1&sort=relevance'
   nav.push.mockReset().mockImplementation((url: string) => { nav.value = url.split('?')[1] ?? ''; nav.listeners.forEach(fn => fn()) })
+  nav.replace.mockReset().mockImplementation((url: string) => { nav.value = url.split('?')[1] ?? ''; nav.listeners.forEach(fn => fn()) })
   fetchMock.mockReset().mockImplementation(async (url: string) => response(result(url)))
   vi.stubGlobal('fetch', fetchMock)
   localStorage.clear()
@@ -88,6 +89,70 @@ describe('search state and asynchronous UI', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(1) })
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(screen.getByRole('heading', { name: 'DeepSeek article' })).toBeInTheDocument()
+    expect(nav.replace).toHaveBeenCalledExactlyOnceWith('/search?q=DeepSeek&type=all&sort=relevance&page=1', { scroll: false })
+    expect(nav.push).not.toHaveBeenCalled()
+  })
+
+  it('replaces each paused input without adding intermediate history entries', async () => {
+    vi.useFakeTimers()
+    render(<SearchClient />)
+    await settle()
+    for (const value of ['A', 'Ag', 'Agent']) {
+      fireEvent.change(screen.getByRole('textbox'), { target: { value } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(350) })
+    }
+    expect(nav.replace).toHaveBeenCalledTimes(3)
+    expect(nav.push).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox')).toHaveValue('Agent')
+  })
+
+  it('pushes explicit Enter, history, category, sort and page navigation', async () => {
+    vi.useFakeTimers()
+    render(<SearchClient />)
+    await settle()
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Agent' } })
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' })
+    await settle()
+    expect(nav.push).toHaveBeenLastCalledWith('/search?q=Agent&type=all&sort=relevance&page=1', { scroll: false })
+    await act(async () => { await vi.advanceTimersByTimeAsync(350) })
+    expect(nav.replace).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('tab', { name: 'Skills 20' }))
+    await settle()
+    expect(nav.push).toHaveBeenLastCalledWith('/search?q=Agent&type=skill&sort=relevance&page=1', { scroll: false })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'newest' } })
+    await settle()
+    expect(nav.push).toHaveBeenLastCalledWith('/search?q=Agent&type=skill&sort=newest&page=1', { scroll: false })
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }))
+    await settle()
+    expect(nav.push).toHaveBeenLastCalledWith('/search?q=Agent&type=skill&sort=newest&page=2', { scroll: false })
+    fireEvent.click(screen.getByRole('button', { name: '清空' }))
+    await settle()
+    fireEvent.focus(screen.getByRole('textbox'))
+    fireEvent.click(screen.getByRole('button', { name: '搜索 RAG' }))
+    await settle()
+    expect(nav.push).toHaveBeenLastCalledWith('/search?q=RAG&type=all&sort=relevance&page=1', { scroll: false })
+    expect(nav.replace).not.toHaveBeenCalled()
+  })
+
+  it('keeps history open when keyboard focus moves to a history control', async () => {
+    nav.value = ''
+    localStorage.setItem('mindstack:search-history', JSON.stringify(['Agent', 'RAG']))
+    render(<SearchClient />)
+    await settle()
+    const input = screen.getByRole('textbox')
+    const historyButton = screen.getByRole('button', { name: '搜索 Agent' })
+    fireEvent.blur(input, { relatedTarget: historyButton })
+    expect(historyButton).toBeInTheDocument()
+    fireEvent.click(historyButton)
+    await settle()
+    expect(nav.push).toHaveBeenLastCalledWith('/search?q=Agent&type=all&sort=relevance&page=1', { scroll: false })
+    fireEvent.click(screen.getByRole('button', { name: '清空' }))
+    await settle()
+    expect(screen.getByRole('button', { name: '搜索 Agent' })).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: '删除该历史' })[0])
+    expect(screen.queryByRole('button', { name: '搜索 Agent' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '清除历史' }))
+    expect(localStorage.getItem('mindstack:search-history')).toBeNull()
   })
 
   it('cancels page requests and ignores late responses after selecting another category', async () => {
