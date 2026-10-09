@@ -28,6 +28,9 @@ interface BlogListProps {
   total: number
   page: number
   pageSize: number
+  globalTags: { tag: string; count: number }[]
+  popularPostsData: PostMeta[]
+  selectedTag: string | null
 }
 
 type SortKey = 'newest' | 'oldest'
@@ -56,32 +59,26 @@ const TAG_COLORS = [
   'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100',
 ]
 
-export default function BlogList({ posts, total, page, pageSize }: BlogListProps) {
+export default function BlogList({ posts, total, page, pageSize, globalTags, popularPostsData, selectedTag }: BlogListProps) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<SortKey>('newest')
-  const [activeTag, setActiveTag] = useState<string | null>(null)
+  const activeTag = selectedTag
   const router = useRouter()
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(total / pageSize)
 
-  // 所有标签（带计数）
-  const allTags = useMemo(() => {
-    const count: Record<string, number> = {}
-    posts.forEach(p => p.tags?.forEach(t => { count[t] = (count[t] ?? 0) + 1 }))
-    return Object.entries(count)
-      .sort((a, b) => b[1] - a[1])
-      .map(([tag, cnt]) => ({ tag, count: cnt }))
-  }, [posts])
+  // Counts reflect the full set of published posts, not the current page.
+  const allTags = globalTags
+  const categories = globalTags.slice(0,8).map(({tag,count})=>({name:tag,count}))
 
-  // 分类导航：取所有文章的所有标签去重统计（不再只取第一个标签）
-  const categories = useMemo(() => {
-    const count: Record<string, number> = {}
-    posts.forEach(p => p.tags?.forEach(t => { count[t] = (count[t] ?? 0) + 1 }))
-    return Object.entries(count)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, count]) => ({ name, count }))
-      .slice(0, 8)
-  }, [posts])
+  function selectTag(next: string | null) {
+    setQuery('')
+    const params = new URLSearchParams(searchParams.toString())
+    if (next) params.set('tag', next)
+    else params.delete('tag')
+    params.delete('page')
+    router.push('/blog' + (params.toString() ? '?' + params.toString() : ''))
+  }
 
   const processed = useMemo(() => {
     let list = [...posts]
@@ -117,10 +114,13 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
   // 仅在第一页 + 非筛选时展示混合布局
   const showMixedLayout = !isFiltering && page === 1
 
-  // 最新文章（前 3 篇）+ 热门文章（4-8 篇）
+  // Latest and popular are independent: popularity comes from whole-site view_count.
   const latestPosts = showMixedLayout ? processed.slice(0, 3) : []
-  const popularPosts = showMixedLayout ? processed.slice(3, 8) : []
-  const restPosts = showMixedLayout ? processed.slice(8) : processed
+  const popularPosts = showMixedLayout
+    ? popularPostsData.filter(p => !latestPosts.some(latest => latest.slug === p.slug)).slice(0,5)
+    : []
+  // Every current-page post still appears, regardless of the popular recommendation rail.
+  const restPosts = showMixedLayout ? processed.slice(3) : processed
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-24 animate-in">
@@ -133,7 +133,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="搜索标题、摘要或标签…"
+          placeholder="搜索当前页标题、摘要或标签…"
           className="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 transition-colors shadow-sm"
         />
         {query && (
@@ -154,7 +154,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
               <Tag className="w-3.5 h-3.5 text-gray-300 mr-1" />
               {activeTag && (
                 <button
-                  onClick={() => setActiveTag(null)}
+                  onClick={() => selectTag(null)}
                   className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                 >
                   全部
@@ -163,7 +163,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
               {allTags.slice(0, 10).map(({ tag }) => (
                 <button
                   key={tag}
-                  onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                  onClick={() => selectTag(activeTag === tag ? null : tag)}
                   className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest transition-all duration-200 ${
                     activeTag === tag
                       ? 'bg-blue-600 text-white shadow-sm'
@@ -205,7 +205,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
           <Search className="w-10 h-10 opacity-30" />
           <p className="text-sm">没有找到匹配的文章</p>
           <button
-            onClick={() => { setQuery(''); setActiveTag(null) }}
+            onClick={() => { setQuery(''); selectTag(null) }}
             className="text-xs text-blue-500 hover:underline mt-1"
           >
             清空筛选
@@ -230,7 +230,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
                     最新文章
                   </h2>
                   <Link
-                    href="/blog?page=2"
+                    href="#all-posts"
                     className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors"
                   >
                     更多 <ChevronRight className="w-3 h-3" />
@@ -252,7 +252,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
                     <Flame className="w-4 h-4 text-orange-500" />
                     热门文章
                   </h2>
-                  <span className="text-xs text-gray-400">精选推荐</span>
+                  <span className="text-xs text-gray-400">按累计浏览量</span>
                 </div>
                 <ul className="divide-y divide-gray-50">
                   {popularPosts.map((post, i) => (
@@ -278,7 +278,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
                   {categories.map(cat => (
                     <li key={cat.name}>
                       <button
-                        onClick={() => setActiveTag(cat.name)}
+                        onClick={() => selectTag(cat.name)}
                         className="w-full flex items-center justify-between px-6 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors group"
                       >
                         <span className="flex items-center gap-2 min-w-0">
@@ -306,7 +306,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
                   {allTags.slice(0, 16).map(({ tag, count }, i) => (
                     <button
                       key={tag}
-                      onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                      onClick={() => selectTag(activeTag === tag ? null : tag)}
                       className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-all duration-200 hover:scale-105 ${
                         activeTag === tag
                           ? 'bg-blue-600 text-white border-blue-600'
@@ -330,7 +330,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
       {processed.length > 0 && (
         <>
           {showMixedLayout && restPosts.length > 0 && (
-            <div className="mb-6">
+            <div id="all-posts" className="mb-6 scroll-mt-28">
               <h2 className="flex items-center gap-2 text-sm font-black text-gray-900 mb-4">
                 <FileText className="w-4 h-4 text-gray-400" />
                 全部文章
@@ -351,7 +351,7 @@ export default function BlogList({ posts, total, page, pageSize }: BlogListProps
       )}
 
       {/* 分页 */}
-      {!isFiltering && totalPages > 1 && (
+      {!query.trim() && totalPages > 1 && (
         <Pagination page={page} totalPages={totalPages} goToPage={goToPage} />
       )}
     </div>
