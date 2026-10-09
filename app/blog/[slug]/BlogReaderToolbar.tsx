@@ -13,6 +13,7 @@ const MODE_KEY = 'blog-reader-mode'
 const MIN_FONT = 14
 const MAX_FONT = 24
 const DEFAULT_FONT = 16
+const LEARN_DEFAULT_FONT = 18
 const STEP = 2
 
 type Mode = 'default' | 'sepia' | 'dark'
@@ -23,54 +24,59 @@ const MODES: { value: Mode; label: string; icon: typeof Sun }[] = [
   { value: 'dark', label: '深色', icon: Moon },
 ]
 
-export default function BlogReaderToolbar() {
-  const [fontSize, setFontSize] = useState(DEFAULT_FONT)
+export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 'standard' | 'learn' }) {
+  const storageKey = variant === 'learn' ? 'learn-reader-font-size' : FONT_KEY
+  const initialFont = variant === 'learn' ? LEARN_DEFAULT_FONT : DEFAULT_FONT
+  const [fontSize, setFontSize] = useState(initialFont)
   const [mode, setMode] = useState<Mode>('default')
   const [mounted, setMounted] = useState(false)
 
   // 初始化：从 localStorage 读取用户偏好
   useEffect(() => {
-    const savedFont = localStorage.getItem(FONT_KEY)
-    if (savedFont) {
-      const n = Number(savedFont)
-      if (!Number.isNaN(n) && n >= MIN_FONT && n <= MAX_FONT) {
-        setFontSize(n)
-      }
-    }
+    const savedFont = localStorage.getItem(storageKey)
+    const n = savedFont ? Number(savedFont) : initialFont
+    setFontSize(Number.isFinite(n) && n >= MIN_FONT && n <= MAX_FONT ? n : initialFont)
     const savedMode = localStorage.getItem(MODE_KEY) as Mode | null
     if (savedMode && ['default', 'sepia', 'dark'].includes(savedMode)) {
       setMode(savedMode)
     }
     setMounted(true)
-  }, [])
+  }, [storageKey, initialFont])
 
-  // 将字号和阅读模式应用到文章正文容器
+  // Suspense may render the article after the toolbar hydrates. Apply when it arrives.
   useEffect(() => {
     if (!mounted) return
-    const container = document.querySelector('.reader-content') as HTMLElement | null
-    if (!container) return
-    // 字号：通过 CSS 变量控制
-    container.style.setProperty('--reader-font-size', `${fontSize}px`)
-    // 阅读模式：切换 class
-    container.classList.remove('reader-mode-default', 'reader-mode-sepia', 'reader-mode-dark')
-    container.classList.add(`reader-mode-${mode}`)
+    const apply = () => {
+      const container = document.querySelector('.reader-content') as HTMLElement | null
+      if (!container) return false
+      container.style.setProperty('--reader-font-size', fontSize + 'px')
+      container.classList.remove('reader-mode-default', 'reader-mode-sepia', 'reader-mode-dark')
+      container.classList.add('reader-mode-' + mode)
+      return true
+    }
+    if (apply()) return
+    const observer = new MutationObserver(() => {
+      if (apply()) observer.disconnect()
+    })
+    observer.observe(document.getElementById('blog-reader-root') || document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
   }, [fontSize, mode, mounted])
 
   const decreaseFont = useCallback(() => {
     setFontSize(prev => {
       const next = Math.max(MIN_FONT, prev - STEP)
-      localStorage.setItem(FONT_KEY, String(next))
+      localStorage.setItem(storageKey, String(next))
       return next
     })
-  }, [])
+  }, [storageKey])
 
   const increaseFont = useCallback(() => {
     setFontSize(prev => {
       const next = Math.min(MAX_FONT, prev + STEP)
-      localStorage.setItem(FONT_KEY, String(next))
+      localStorage.setItem(storageKey, String(next))
       return next
     })
-  }, [])
+  }, [storageKey])
 
   const changeMode = useCallback((m: Mode) => {
     setMode(m)
@@ -80,7 +86,7 @@ export default function BlogReaderToolbar() {
   if (!mounted) return null
 
   return (
-    <div className="sticky top-20 z-30 mb-6 flex items-center gap-3 rounded-xl border border-gray-100 bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md">
+    <div className={variant === 'learn' ? 'learn-reader-toolbar sticky top-20 z-30 mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white/95 px-4 py-2 shadow-sm backdrop-blur-md' : 'sticky top-20 z-30 mb-6 flex items-center gap-3 rounded-xl border border-gray-100 bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md'}>
       {/* 字号调节 */}
       <div className="flex items-center gap-1.5">
         <span className="mr-1 text-[10px] font-black uppercase tracking-widest text-gray-400">字号</span>

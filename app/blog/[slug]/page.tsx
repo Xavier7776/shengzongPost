@@ -14,6 +14,7 @@ import PostContent from './PostContent'
 import PostComments from './PostComments'
 import BlogReaderToolbar from './BlogReaderToolbar'
 import BlogToc from './BlogToc'
+import LearnToc from './LearnToc'
 import type { Metadata } from 'next'
 
 export const revalidate = 60 // 启用 ISR：60s 失效；文章更新时 revalidateTag('post-${slug}') 立即刷新
@@ -116,6 +117,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     getAdjacentPosts(params.slug),
   ])
   if (!post) notFound()
+  const isLearnPost = /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(params.slug)
 
   // JSON-LD 结构化数据（Article schema）
   const jsonLd = {
@@ -153,32 +155,54 @@ export default async function BlogPostPage({ params }: PageProps) {
     <BackToTop />
     <ReadingHistory slug={params.slug} title={post.title} />
 
-    {/* 全宽布局：内容居中，最大宽度 900px */}
-    <div className="min-h-screen pt-24 pb-16">
-      <BlogToc />
-      <div className="max-w-[900px] mx-auto px-6 lg:px-8">
-        <Link href="/blog" className="inline-flex items-center text-gray-400 hover:text-blue-600 transition-colors mb-12 group font-bold uppercase tracking-widest text-xs">
-          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-2 transition-transform duration-300" />
-          返回博客列表
-        </Link>
-
-        <article>
-          <Suspense fallback={<PostHeaderSkeleton />}>
-            <PostHeader slug={params.slug} />
-          </Suspense>
-
-          {/* 阅读工具栏：字号调节 + 阅读模式切换 */}
-          <BlogReaderToolbar />
-
-          <Suspense fallback={<PostContentSkeleton />}>
-            <PostContent slug={params.slug} />
-          </Suspense>
-        </article>
-
-        <Suspense fallback={<PostCommentsSkeleton />}>
-          <PostComments slug={params.slug} />
-        </Suspense>
-      </div>
+    <div className={isLearnPost ? 'learn-post-page min-h-screen pb-20 pt-24' : 'min-h-screen pt-24 pb-16'}>
+      {isLearnPost ? (
+        <div className="learn-page-container">
+          <Link href="/blog" className="mb-8 inline-flex items-center text-xs font-bold text-gray-400 transition-colors hover:text-blue-600">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            返回博客列表
+          </Link>
+          <div className="learn-post-grid">
+            <div className="learn-post-main min-w-0" id="blog-reader-root">
+              <article>
+                <Suspense fallback={<PostHeaderSkeleton />}>
+                  <PostHeader slug={params.slug} variant="learn" />
+                </Suspense>
+                <BlogReaderToolbar variant="learn" />
+                <Suspense fallback={<PostContentSkeleton />}>
+                  <PostContent slug={params.slug} />
+                </Suspense>
+              </article>
+              <Suspense fallback={<PostCommentsSkeleton />}>
+                <PostComments slug={params.slug} />
+              </Suspense>
+            </div>
+            <LearnToc />
+          </div>
+        </div>
+      ) : (
+        <>
+          <BlogToc />
+          <div className="mx-auto max-w-[900px] px-6 lg:px-8" id="blog-reader-root">
+            <Link href="/blog" className="group mb-12 inline-flex items-center text-xs font-bold uppercase tracking-widest text-gray-400 transition-colors hover:text-blue-600">
+              <ArrowLeft className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:-translate-x-2" />
+              返回博客列表
+            </Link>
+            <article>
+              <Suspense fallback={<PostHeaderSkeleton />}>
+                <PostHeader slug={params.slug} />
+              </Suspense>
+              <BlogReaderToolbar />
+              <Suspense fallback={<PostContentSkeleton />}>
+                <PostContent slug={params.slug} />
+              </Suspense>
+            </article>
+            <Suspense fallback={<PostCommentsSkeleton />}>
+              <PostComments slug={params.slug} />
+            </Suspense>
+          </div>
+        </>
+      )}
     </div>
     </>
   )

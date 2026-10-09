@@ -4,6 +4,7 @@ import AuthorCard from '@/components/sections/AuthorCard'
 
 interface PostHeaderProps {
   slug: string
+  variant?: 'standard' | 'learn'
 }
 
 // 判断是否是新文章（7天内发布）
@@ -39,11 +40,49 @@ function calculateReadingStats(content: string): { totalWords: number; minutes: 
   return { totalWords, minutes }
 }
 
-export default async function PostHeader({ slug }: PostHeaderProps) {
+export default async function PostHeader({ slug, variant = 'standard' }: PostHeaderProps) {
   const post = await getPostBySlug(slug)
   if (!post) return null
 
   const { totalWords, minutes } = calculateReadingStats(post.content)
+
+  if (variant === 'learn') {
+    // The study edition may explicitly distinguish reading time from hands-on practice.
+    // Use its published reading estimate instead of showing an unrelated text-only estimate.
+    const lead = post.content.slice(0, 380)
+    const readingMatch = lead.match(/(?:阅读时间约|阅读约|预计阅读)\s*(\d{1,3})\s*分钟/)
+    const practiceMatch = lead.match(/(?:动手实验|动手实践|动手练习)\s*约?\s*(\d{1,3})\s*分钟/)
+    const readingMinutes = readingMatch ? Number(readingMatch[1]) : minutes
+    const practiceMinutes = practiceMatch ? Number(practiceMatch[1]) : null
+    return (
+      <header className="learn-post-header">
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+          <time className="font-mono font-medium text-blue-600">{post.created_at.slice(0, 10)}</time>
+          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">技术深度精读</span>
+          {isNew(post.created_at) && <span className="text-xs font-semibold text-amber-600">NEW</span>}
+        </div>
+        <h1 className="learn-post-title text-gray-900">{post.title}</h1>
+        <p className="learn-post-excerpt text-gray-600">{post.excerpt}</p>
+        <div className="learn-post-byline flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
+          <span className="inline-flex items-center gap-2">
+            <span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
+              {(post.author_name || 'M').slice(0, 1)}
+            </span>
+            {post.author_id ? (
+              <a href={'/profile/' + post.author_id} className="font-semibold text-gray-700 hover:text-blue-600">{post.author_name || 'MindStack'}</a>
+            ) : <span className="font-semibold text-gray-700">{post.author_name || 'MindStack'}</span>}
+          </span>
+          <span>预计阅读 {readingMinutes} 分钟</span>
+          {practiceMinutes && <span>动手练习约 {practiceMinutes} 分钟</span>}
+          <div className="flex flex-wrap gap-2">
+            {post.tags.filter(t => t !== '自动发布').slice(0, 2).map(t =>
+              <span key={t} className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-500">{t}</span>
+            )}
+          </div>
+        </div>
+      </header>
+    )
+  }
 
   return (
     <header className="mb-12">
