@@ -145,7 +145,7 @@ flowchart TD
 - [x] 旧 `/api/search?limit=...` 兼容；`/api/posts/public?limit=4` 不泄漏未公开数据；空搜索不触发不必要查询。
 - [x] 检查页面 1440×900、1024×768、390×844，横向滚动、Tab、错误/超时/重试与搜索历史可用。
 - [x] 更新 PR #13，**真实记录** CI、PGlite/Neon 只读对照、Vercel Preview、浏览器 QA；对 Vercel Authentication 限制明确备注，不能把本地浏览器当成线上已测。
-- [ ] 测试全通过后标记 Ready，用户验收通过再合并；核对 Production READY 并做搜索 smoke。
+- [x] 测试全通过后标记 Ready，用户验收通过再合并；核对 Production READY 并做搜索 smoke。（用户持续执行授权；证据见最新日志。）
 
 ### 验收硬门槛
 
@@ -156,7 +156,7 @@ flowchart TD
 
 **回滚**：Git revert PR #13 的合并提交 + Vercel 回滚到前一稳定部署。不改数据或索引，回滚成本低。
 
-**结果登记**：PR `#13` ｜ 合并 SHA `________` ｜ CI `________` ｜ Preview `________` ｜ Production `________` ｜ 完成日期 `________`
+**结果登记**：PR `#13` ｜ 合并 SHA `e4b894bdd1ce57c1efad0505af924e4c2212a2f7` ｜ CI `37904129515` ｜ Preview `dpl_7A4r3Dt2HzUB3cv66QfqridBTgok` ｜ Production `dpl_8czf41qX1VyuLzqvE9orrLLz8LVS` ｜ 完成日期 `2026-10-09`
 
 ---
 
