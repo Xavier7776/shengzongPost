@@ -33,7 +33,7 @@ async function verifySources(e: Edition) {
   const reasons = verified.filter((reason): reason is string => reason !== null)
   if (reasons.length) throw new PublicationError('source_unverified', slugFor(e), false, reasons)
 }
-async function publicVisibility(e: Edition) {
+export async function publicVisibility(e: Edition) {
   const fingerprint = editionFingerprint(e)
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
