@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-const { session, dbRole, header, cookie, redirect } = vi.hoisted(() => ({
+import { NextRequest } from 'next/server'
+const { session, dbRole, header, cookie, redirect, sql, invalidate } = vi.hoisted(() => ({
   session: vi.fn(), dbRole: vi.fn(), header: vi.fn(), cookie: vi.fn(), redirect: vi.fn(),
+  sql: vi.fn(), invalidate: vi.fn(),
 }))
 vi.mock('next-auth', () => ({ getServerSession: session }))
 vi.mock('@/lib/authOptions', () => ({ authOptions: {} }))
-vi.mock('@/lib/db', () => ({ getUserRoleById: dbRole }))
+vi.mock('@/lib/db', () => ({ getUserRoleById: dbRole, sql }))
+vi.mock('next/cache', () => ({ revalidatePath: invalidate }))
 vi.mock('next/headers', () => ({
   headers: () => ({ get: header }), cookies: () => ({ get: cookie }),
 }))
@@ -13,6 +16,7 @@ vi.mock('next/navigation', () => ({ redirect: (url: string) => {
   throw new Error('NEXT_REDIRECT')
 } }))
 import { requireAdmin, requireAdminApi } from '@/lib/auth'
+import { POST as batchPost } from '@/app/api/posts/batch/route'
 
 beforeEach(() => {
   session.mockReset()
@@ -20,6 +24,8 @@ beforeEach(() => {
   header.mockReset()
   cookie.mockReset()
   redirect.mockReset()
+  sql.mockReset().mockResolvedValue([{ slug: 'test-only-post' }])
+  invalidate.mockReset()
   cookie.mockReturnValue(undefined)
   header.mockReturnValue(null)
   session.mockResolvedValue({ user: { id: '7', role: 'admin', name: 'Admin' } })
@@ -72,5 +78,30 @@ describe('central admin authorization', () => {
     cookie.mockReturnValue({ value: '1' })
     session.mockResolvedValue(null)
     expect(await requireAdminApi()).toBeNull()
+  })
+  it.each([
+    ['anonymous', null, null, null, 403],
+    ['ordinary user', { user: { id: '7', role: 'user' } }, 'user', null, 403],
+    ['active admin', { user: { id: '7', role: 'admin' } }, 'admin', null, 200],
+    ['revoked admin JWT', { user: { id: '7', role: 'admin' } }, 'user', null, 403],
+    ['explicit API key', null, null, 'fixture-batch-key', 200],
+    ['invalid API key', null, null, 'incorrect-key', 403],
+  ])('enforces %s at the actual batch publishing route', async (_, actor, role, key, status) => {
+    session.mockResolvedValue(actor)
+    dbRole.mockResolvedValue(role)
+    vi.stubEnv('ADMIN_API_KEY', 'fixture-batch-key')
+    header.mockImplementation((name: string) => name === 'x-admin-api-key' ? key : null)
+    const response = await batchPost(new NextRequest('http://localhost/api/posts/batch', {
+      method: 'POST', body: JSON.stringify({ action: 'publish', slugs: ['test-only-post'] }),
+    }))
+    expect(response.status).toBe(status)
+    if (status === 200) {
+      expect(await response.json()).toMatchObject({ ok: true, count: 1 })
+      expect(sql).toHaveBeenCalledTimes(1)
+      expect(invalidate).toHaveBeenCalledWith('/blog/test-only-post')
+    } else {
+      expect(sql).not.toHaveBeenCalled()
+      expect(invalidate).not.toHaveBeenCalled()
+    }
   })
 })
