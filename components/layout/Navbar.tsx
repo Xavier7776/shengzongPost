@@ -29,6 +29,7 @@ const SWING_STYLE = `
 const NAV_ITEMS = [
   { label: '首页',     href: '/' },
   { label: '博客',     href: '/blog' },
+  { label: '精读',     href: '/learn' },
   { label: '热门',     href: '/skills' },
   { label: '个人项目', href: '/work' },
   { label: '关于',     href: '/projects' },

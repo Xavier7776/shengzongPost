@@ -40,7 +40,8 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
   const [visited, setVisited] = useState<Set<string>>(new Set())
   const [lastRead, setLastRead] = useState<{slug:string;title:string}|null>(null)
   useEffect(() => {
-    const history = getReadingHistory().filter(item => /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(item.slug))
+    const rawHistory = getReadingHistory()
+    const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(item => /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(item.slug))
     setVisited(new Set(history.map(item => item.slug)))
     if (history[0]) setLastRead({slug:history[0].slug,title:history[0].title})
   }, [])

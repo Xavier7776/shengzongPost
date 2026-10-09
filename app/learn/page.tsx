@@ -27,11 +27,11 @@ export default async function LearnIndex({ searchParams }: { searchParams?: Para
   let total = 0
   try {
     const items = topic
-      ? sql`SELECT p.slug,p.title,p.excerpt,l.topic,l.edition_date
+      ? sql`SELECT p.slug,p.title,p.excerpt,l.topic,l.edition_date::text AS edition_date
           FROM learn_editions l JOIN posts p ON p.id=l.post_id
           WHERE p.published=TRUE AND l.topic=${topic}
           ORDER BY l.edition_date DESC LIMIT ${PAGE_SIZE} OFFSET ${offset}`
-      : sql`SELECT p.slug,p.title,p.excerpt,l.topic,l.edition_date
+      : sql`SELECT p.slug,p.title,p.excerpt,l.topic,l.edition_date::text AS edition_date
           FROM learn_editions l JOIN posts p ON p.id=l.post_id
           WHERE p.published=TRUE
           ORDER BY l.edition_date DESC LIMIT ${PAGE_SIZE} OFFSET ${offset}`
