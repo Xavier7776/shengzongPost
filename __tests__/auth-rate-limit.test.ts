@@ -3,7 +3,7 @@ const { query } = vi.hoisted(() => ({ query: vi.fn() }))
 vi.mock('@/lib/db/_core', () => ({ sql: query }))
 import {
   allowAuthAttempt, normalizeEmail, validNewPassword,
-  MIN_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH, MAX_BCRYPT_UTF8_BYTES,
 } from '@/lib/auth-rate-limit'
 
 beforeEach(() => {
@@ -28,6 +28,11 @@ describe('persistent authentication throttle boundaries', () => {
     expect(MIN_PASSWORD_LENGTH).toBe(12)
     expect(validNewPassword('这是一条足够长的中文安全口令')).toBe(true)
     expect(validNewPassword('abcdefgh')).toBe(false)
+    expect(MAX_BCRYPT_UTF8_BYTES).toBe(72)
+    expect(validNewPassword('a'.repeat(72))).toBe(true)
+    expect(validNewPassword('a'.repeat(73))).toBe(false)
+    expect(validNewPassword('中'.repeat(24))).toBe(true)
+    expect(validNewPassword('中'.repeat(25))).toBe(false)
   })
   it('limits repeated operations on one email, even across changing client IPs', async () => {
     for (let i = 0; i < 3; i++) {

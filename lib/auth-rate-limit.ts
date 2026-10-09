@@ -3,13 +3,15 @@ import { sql } from '@/lib/db/_core'
 import { clientIp } from '@/lib/rate-limit'
 
 export const MIN_PASSWORD_LENGTH = 12
-export const MAX_PASSWORD_LENGTH = 128
+export const MAX_PASSWORD_LENGTH = 72
+export const MAX_BCRYPT_UTF8_BYTES = 72
 
-/** Permit Unicode and long passphrases, reject length extremes without arbitrary complexity rules. */
+/** bcrypt hashes only the first 72 UTF-8 bytes; reject longer passwords rather than silently truncating. */
 export const validNewPassword = (password: unknown): password is string =>
   typeof password === 'string' &&
   password.length >= MIN_PASSWORD_LENGTH &&
-  password.length <= MAX_PASSWORD_LENGTH
+  password.length <= MAX_PASSWORD_LENGTH &&
+  Buffer.byteLength(password, 'utf8') <= MAX_BCRYPT_UTF8_BYTES
 
 export const normalizeEmail = (value: unknown): string | null => {
   if (typeof value !== 'string') return null

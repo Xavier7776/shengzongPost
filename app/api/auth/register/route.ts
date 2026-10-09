@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { getUserByEmail, createUser, setVerifyToken } from '@/lib/db'
 import { sendVerificationEmail } from '@/lib/email'
-import { allowAuthAttempt, normalizeEmail, validNewPassword, MIN_PASSWORD_LENGTH } from '@/lib/auth-rate-limit'
+import { allowAuthAttempt, normalizeEmail, validNewPassword, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from '@/lib/auth-rate-limit'
 
 export async function POST(req: NextRequest) {
   let data: Record<string, unknown>
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '请输入有效邮箱及昵称' }, { status: 400 })
   }
   if (!validNewPassword(data?.password)) {
-    return NextResponse.json({ error: '密码需为 ' + MIN_PASSWORD_LENGTH + '–128 位' }, { status: 400 })
+    return NextResponse.json({ error: '密码需为 ' + MIN_PASSWORD_LENGTH + '–' + MAX_PASSWORD_LENGTH + ' 字符，且 UTF-8 不超过 72 字节' }, { status: 400 })
   }
   try {
     if (!await allowAuthAttempt(req, 'registration', email)) {
