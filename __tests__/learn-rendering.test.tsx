@@ -16,12 +16,12 @@ beforeEach(() => { sql.mockReset(); post.mockReset() })
 describe('learn migration and legacy article compatibility', () => {
   it('keeps the index available before the migration is applied', async () => {
     sql.mockRejectedValue({ code: '42P01' })
-    render(await LearnIndex())
+    render(await LearnIndex({}))
     expect(screen.getByText('精读专刊准备中，敬请期待。')).toBeInTheDocument()
   })
   it('keeps unexpected database failures visible', async () => {
     sql.mockRejectedValue(new Error('connection lost'))
-    await expect(LearnIndex()).rejects.toThrow('connection lost')
+    await expect(LearnIndex({})).rejects.toThrow('connection lost')
   })
   it('preserves a legacy article with the daily-learn prefix', async () => {
     post.mockResolvedValue({ content: '旧文章正文仍应显示' })

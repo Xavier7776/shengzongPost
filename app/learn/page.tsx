@@ -15,7 +15,7 @@ function selectedTopic(value: string | undefined): Topic | null {
   return value && Object.prototype.hasOwnProperty.call(TOPICS, value) ? value as Topic : null
 }
 
-export default async function LearnIndex({ searchParams }: { searchParams?: Params | Promise<Params> } = {}) {
+export default async function LearnIndex({ searchParams }: { searchParams?: Params | Promise<Params> }) {
   const params = await searchParams
   const topic = selectedTopic(params?.topic)
   const rawPage = Number.parseInt(params?.page ?? '1', 10)

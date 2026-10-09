@@ -22,7 +22,7 @@ beforeEach(() => {
 })
 describe('AI technology study center', () => {
   it('shows featured issue, permalink and all four engineering tracks', async () => {
-    render(await LearnIndex())
+    render(await LearnIndex({}))
     expect(screen.getByRole('heading',{name:'每天真正掌握一项技术'})).toBeInTheDocument()
     expect(screen.getByRole('heading',{name:article.title})).toBeInTheDocument()
     expect(screen.getByRole('link',{name:/阅读本期/})).toHaveAttribute('href','/blog/'+article.slug)
@@ -38,11 +38,11 @@ describe('AI technology study center', () => {
   })
   it('keeps an empty state when the editions table does not yet exist', async () => {
     sql.mockRejectedValue({code:'42P01'})
-    render(await LearnIndex())
+    render(await LearnIndex({}))
     expect(screen.getByText('精读专刊准备中，敬请期待。')).toBeInTheDocument()
   })
   it('surfaces real database outages', async () => {
     sql.mockRejectedValue(new Error('database unavailable'))
-    await expect(LearnIndex()).rejects.toThrow('database unavailable')
+    await expect(LearnIndex({})).rejects.toThrow('database unavailable')
   })
 })
