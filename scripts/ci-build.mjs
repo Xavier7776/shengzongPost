@@ -60,8 +60,8 @@ try {
         ? ['--input-type=module', '-e', `import assert from 'node:assert/strict'; import { neon } from '@neondatabase/serverless';
           const rows = await neon(process.env.DATABASE_URL).query('SELECT tags, published FROM posts WHERE published=true');
           assert.deepEqual(rows, [{tags:['CI'], published:true}]);
-          await assert.rejects(fetch('https://example.invalid', {method:'POST'}));
-          await assert.rejects(fetch('https://api.neon.tech/sql', {method:'POST'}));
+          await assert.rejects(async () => fetch('https://example.invalid', {method:'POST'}));
+          await assert.rejects(async () => fetch('https://api.neon.tech/sql', {method:'POST'}));
           console.log('CI SQL transport self-test passed');`]
         : [process.env.npm_execpath, 'run', 'build']
       const child = spawn(process.execPath, args, { env, stdio: 'inherit' })
