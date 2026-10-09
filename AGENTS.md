@@ -164,8 +164,8 @@ __tests__/   Vitest 用例
 - **Batch 2（已完成）** 共享编辑器内核
   - `features/editor/`（内核，与业务无关）：`extensions.ts` / `markdown.ts` / `types.ts` /
     `VideoEmbed.ts` / `EditorToolbar.tsx` / `EditorBody.tsx`（含 `EditorPreview`、`EditorErrorBar`）/
-    `PostMetaForm.tsx` / `AiSidebar.tsx` / `useEditorDialogs.ts` / `useImageUpload.ts` /
-    `useAiWriting.ts` / `ai-stream.ts`
+    `PostMetaForm.tsx` / `useEditorDialogs.ts` / `useImageUpload.ts` /
+    （已移除 AI 流式写作）
   - `features/admin-posts/AdminPostEditor.tsx` + `AttachmentsPanel.tsx`（取代 48 KB 的
     `components/admin/PostEditor.tsx`）
   - `features/submissions/UserPostEditor.tsx`（取代 43 KB 的
@@ -255,3 +255,9 @@ __tests__/   Vitest 用例
 > 已核实**不成立**、勿再当遗留项的两条旧说法：
 > ①「`{app` 与 `blog` 两个空目录」—— 当前根目录已无此二目录；
 > ②「ESLint 配置缺失」—— `.eslintrc.json` 存在（`extends: next/core-web-vitals`）。
+
+## 8. 模型服务移出 Web（2026-10-09）
+- 站点不再提供 `/api/ai/write`、`/api/ai/write-gemini`、`/api/ai/comment` 和 `/api/ai/review-comment`；后台/投稿编辑器只提供人工编辑与本地 Slug 生成。
+- 新评论默认 `pending`，由现有管理员评论审核界面批准或拒绝；不要为了恢复自动审核而直接公开未审评论。
+- 每日精读由 GitHub Actions 外部执行 OpenAI Responses API，Web 只保留严格校验的 HMAC 发布接口。Vercel 不需要模型密钥。
+- 保留 `/skills/research` 与 OnlyUs 业务，不在此 PR 中删除其独立产品能力。

@@ -2,7 +2,8 @@ import { createHmac } from 'node:crypto'
 import { chinaDate, TOPICS, validateEdition, type Edition, type Source, type Topic } from '../lib/learn/document'
 const today=chinaDate(),topics=Object.keys(TOPICS) as Topic[]
 const topic=topics[Math.floor(Date.parse(today+'T00:00:00Z')/86400000)%topics.length]
-const key=process.env.XIAOMI_API_KEY,secret=process.env.LEARN_PUBLISH_SECRET,site=process.env.LEARN_SITE_URL
+// The publisher runs in GitHub Actions, never in the Next.js/Vercel runtime.
+const key=process.env.OPENAI_API_KEY,secret=process.env.LEARN_PUBLISH_SECRET,site=process.env.LEARN_SITE_URL
 if(!key||!secret||secret.length<32||!site)throw Error('Publisher credentials missing')
 const origin=new URL(site)
 if(origin.protocol!=='https:'||origin.pathname!=='/'||origin.search||origin.hash||origin.username||origin.password)throw Error('Invalid HTTPS origin')
@@ -40,14 +41,32 @@ const instructions=[
  'otherUpdates:[{sourceId:s2,summary:40+ chars}]. Use 2-5 sources and make s1 primary. No markdown wrappers.'
 ].join('\n')
 async function generate(sources:Source[]):Promise<Edition>{
- const url=(process.env.XIAOMI_BASE_URL||'https://api.xiaomimimo.com/v1').replace(/\/$/,'')+'/chat/completions'
- const request={model:process.env.MIMO_MODEL||'mimo-v2.5-pro',temperature:0.2,max_tokens:13500,stream:false,
-  messages:[{role:'system',content:instructions},{role:'user',content:JSON.stringify({date:today,topic,sources})}]}
- const res=await fetch(url,{method:'POST',signal:AbortSignal.timeout(150000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},body:JSON.stringify(request)})
- if(!res.ok)throw Error('Generation failed '+res.status)
- const data=await res.json() as {choices?:{message?:{content?:string}}[]}
- const edition=JSON.parse(data.choices?.[0]?.message?.content?.trim()||'') as Edition
- if(JSON.stringify(edition.sources)!==JSON.stringify(sources)||edition.topic!==topic||edition.date!==today)throw Error('Provenance mutated')
+ const request={
+  model:process.env.OPENAI_MODEL || 'gpt-6.1-sol',
+  instructions,
+  input:JSON.stringify({date:today,topic,sources}),
+  text:{format:{type:'json_object' as const}},
+  max_output_tokens:20000,
+  store:false,
+ }
+ const res=await fetch('https://api.openai.com/v1/responses',{
+  method:'POST',signal:AbortSignal.timeout(180000),
+  headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},
+  body:JSON.stringify(request),
+ })
+ if(!res.ok)throw Error('OpenAI generation failed ('+res.status+')')
+ const data=await res.json() as {
+  status?:string
+  output?:Array<{type?:string;content?:Array<{type?:string;text?:string}>}>
+ }
+ if(data.status!=='completed')throw Error('OpenAI response did not complete')
+ const body=(data.output||[]).flatMap(item=>item.type==='message'?(item.content||[]):[])
+   .filter(item=>item.type==='output_text')
+   .map(item=>item.text||'').join('')
+ if(!body.trim())throw Error('OpenAI response contained no output_text')
+ const edition=JSON.parse(body) as Edition
+ if(JSON.stringify(edition.sources)!==JSON.stringify(sources)||
+    edition.topic!==topic||edition.date!==today)throw Error('Provenance mutated')
  return edition
 }
 async function main(){

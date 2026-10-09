@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { createPost, getAdminUserId } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
-import { getSiteUrl } from '@/lib/site-url'
 
 export async function POST(req: NextRequest) {
   const session = await requireAdminApi()
@@ -29,19 +28,6 @@ export async function POST(req: NextRequest) {
     // 发布后立刻刷新相关缓存
     revalidateTag('posts')
     revalidateTag(`post-${slug}`)
-
-    // 若文章直接发布，异步触发 AI 评论（fire-and-forget，不阻塞响应）
-    if (published) {
-      const baseUrl = getSiteUrl()
-      fetch(`${baseUrl}/api/ai/comment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.AI_COMMENT_SECRET ?? 'ai-comment-internal'}`,
-        },
-        body: JSON.stringify({ slug }),
-      }).catch(err => console.error('[posts] AI 评论触发失败:', err))
-    }
 
     return NextResponse.json(post, { status: 201 })
   } catch (e: any) {

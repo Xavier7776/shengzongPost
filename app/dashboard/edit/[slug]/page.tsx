@@ -7,8 +7,6 @@ import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import UserPostEditor from '@/features/submissions/UserPostEditor'
 
-const AI_ENABLED_ROLES = ['admin', 'wife', 'payMember']
-
 interface PostData {
   slug: string; title: string; excerpt: string
   content: string; tags: string[]; cover_image: string | null
@@ -16,7 +14,7 @@ interface PostData {
 
 function EditPageInner() {
   const { slug }                  = useParams<{ slug: string }>()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router                    = useRouter()
   const searchParams              = useSearchParams()
   const fromId                    = searchParams.get('from')
@@ -55,10 +53,7 @@ function EditPageInner() {
     </div>
   )
 
-  const role     = (session?.user as { role?: string })?.role ?? ''
-  const enableAi = AI_ENABLED_ROLES.includes(role)
-
-  return <UserPostEditor mode="edit" enableAi={enableAi} fromId={fromId ? Number(fromId) : null} initialData={post!} />
+  return <UserPostEditor mode="edit" fromId={fromId ? Number(fromId) : null} initialData={post!} />
 }
 
 export default function UserEditPage() {

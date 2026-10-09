@@ -8,7 +8,7 @@ interface Props {
   slug: string
   onSlugChange: (v: string) => void
   slugReadOnly?: boolean
-  /** slug 输入框右侧的附加控件（AI 生成 / 自动生成按钮） */
+  /** slug 输入框右侧的附加控件（自动生成按钮） */
   slugActions?: React.ReactNode
   /** slug 输入框下方的提示（如 /blog/xxx） */
   slugHint?: React.ReactNode
@@ -16,8 +16,6 @@ interface Props {
   onTagsChange: (v: string) => void
   excerpt: string
   onExcerptChange: (v: string) => void
-  /** 摘要标签右侧的「应用 AI 摘要」入口 */
-  excerptAction?: React.ReactNode
   coverImage: string
   onCoverClear: () => void
   coverFileRef: React.RefObject<HTMLInputElement>
@@ -37,7 +35,7 @@ export function PostMetaForm({
   title, onTitleChange,
   slug, onSlugChange, slugReadOnly, slugActions, slugHint,
   tagsRaw, onTagsChange,
-  excerpt, onExcerptChange, excerptAction,
+  excerpt, onExcerptChange,
   coverImage, onCoverClear, coverFileRef, onCoverFileChange, uploadingCover, coverUploadError, onPickCover,
   children,
 }: Props) {
@@ -62,7 +60,7 @@ export function PostMetaForm({
         <input value={tagsRaw} onChange={e => onTagsChange(e.target.value)} placeholder="Next.js, TypeScript, AI" className={inputCls} />
       </div>
       <div className="md:col-span-2">
-        <label className={labelCls}>摘要{excerptAction}</label>
+        <label className={labelCls}>摘要</label>
         <input value={excerpt} onChange={e => onExcerptChange(e.target.value)} placeholder="文章摘要，显示在列表页" className={inputCls} />
       </div>
       <div>

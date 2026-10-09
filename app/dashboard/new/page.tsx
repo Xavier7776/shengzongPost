@@ -6,15 +6,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import UserPostEditor from '@/features/submissions/UserPostEditor'
 
-const AI_ENABLED_ROLES = ['admin', 'wife', 'payMember']
-
 interface InitialData {
   slug: string; title: string; excerpt: string
   content: string; tags: string[]; cover_image: string | null
 }
 
 function NewPageInner() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router       = useRouter()
   const searchParams = useSearchParams()
   const fromId       = searchParams.get('from')
@@ -50,10 +48,7 @@ function NewPageInner() {
     </div>
   )
 
-  const role     = (session?.user as { role?: string })?.role ?? ''
-  const enableAi = AI_ENABLED_ROLES.includes(role)
-
-  return <UserPostEditor mode="new" enableAi={enableAi} fromId={fromId ? Number(fromId) : null} initialData={initialData} />
+  return <UserPostEditor mode="new" fromId={fromId ? Number(fromId) : null} initialData={initialData} />
 }
 
 export default function DashboardNewPage() {

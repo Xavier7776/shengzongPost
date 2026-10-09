@@ -24,7 +24,7 @@
 | 编辑器 | Tiptap + lowlight（代码高亮）；另用 `marked` 渲染 Markdown |
 | 图片存储 | Cloudinary（通过自定义 `next/image` loader 自动 AVIF/WebP + 响应式） |
 | 邮件服务 | Resend |
-| AI 服务 | 小米 **MiMo**（主，`mimo-v2.5-pro`）；**Gemini** 作为编辑器可选写作品道 |
+| 每日精读生产 | GitHub Actions 外部 OpenAI API；网站本身不含 AI 模型推理 |
 | 客户端状态 | zustand（目前仅 OnlyUs 使用） |
 | 测试 | Vitest + Testing Library |
 | 部署 | Vercel |
@@ -51,7 +51,7 @@
 
 - 邮箱注册 + 邮件验证激活；GitHub OAuth 登录（仅限管理员账号）
 - 头像上传（Cloudinary）
-- 文章收藏、点赞/踩、评论（含 AI 自动评论）
+- 文章收藏、点赞/踩、评论（人工审核）
 - 关注/粉丝系统，互相关注标识
 - **通知 `/notifications`** — 未读计数与批量已读
 - **编辑中心 `/dashboard`** — 提交文章编辑申请，查看审核状态与历史
@@ -77,7 +77,6 @@
 ### 管理员后台 `/admin`
 
 - 文章管理（新建、编辑、发布/草稿切换、删除）
-- AI 写作助手（生成草稿 / 续写 / 生成摘要，流式输出）
 - 封面图与正文插图上传
 - 评论审核（待审核红点提醒）
 - **编辑审核 `/admin/reviews`** — 对比用户提交的修改请求，一键批准或拒绝，批准后自动更新文章
@@ -126,15 +125,9 @@ CLOUDINARY_API_SECRET=your-api-secret
 RESEND_API_KEY=re_xxxxxxxxxxxx
 EMAIL_FROM=MindStack <no-reply@your-domain.com>
 
-# ── AI（按需，用哪个配哪个）───────────────────────────
-XIAOMI_API_KEY=your-api-key
-XIAOMI_BASE_URL=https://api.xiaomimimo.com/v1
-MIMO_MODEL=mimo-v2.5-pro
-GEMINI_API_KEY=your-api-key
-GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-GEMINI_MODEL=gemini-2.0-flash
-# 触发 AI 自动评论的接口的共享密钥
-AI_COMMENT_SECRET=any-random-string
+# ── 文章发布（不调用模型）─────────────────────────────
+# Vercel 与 GitHub Actions 共享的发布签名密钥
+LEARN_PUBLISH_SECRET=at-least-32-characters-of-random-secret
 
 # ── 爬虫（Skills / Trending 抓取脚本用）────────────────
 # 提升 GitHub API 限额
@@ -296,3 +289,7 @@ shengzongPost/
 ## License
 
 MIT
+
+## 每日精读生产与发布
+
+博客 Web 进程只承担文章展示、手动编辑、人工评论审核与带签名的精读发布接口。外部 `GitHub Actions` 使用 OpenAI API 生成结构化文章，数据通过 `POST /api/internal/learn/publish` 提交；Web 端不需要、也不应部署任何模型 API Key。`GitHub Actions Secrets` 需配置 `OPENAI_API_KEY` 与 `LEARN_PUBLISH_SECRET`，变量需配置 `LEARN_SITE_URL`，可选 `OPENAI_MODEL`。详见 [`docs/daily-learn-autopublish.md`](docs/daily-learn-autopublish.md)。
