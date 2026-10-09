@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       slugs.some(s => typeof s !== 'string' || !s.trim() || s.length > 160)) {
     return NextResponse.json({ error: 'action 或 slugs 无效，单次最多 50 篇' }, { status: 400 })
   }
-  const uniqueSlugs = [...new Set(slugs as string[])]
+  const uniqueSlugs = Array.from(new Set(slugs as string[]))
 
   try {
     let rows: Record<string, unknown>[]
