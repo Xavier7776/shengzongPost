@@ -136,13 +136,13 @@ flowchart TD
 
 ### Codex 执行清单
 
-- [ ] 再次检查 PR #13 是否被其他任务更新、合并；核对 head SHA、Action 结果和 Preview 的**同一提交**。
+- [x] 再次检查 PR #13 是否被其他任务更新、合并；核对 head SHA、Action 结果和 Preview 的**同一提交**。
 - [x] 检查 `app/search/SearchClient.tsx`：自动防抖搜索目前使用 `router.push` 更新 URL；**仅输入停顿更新采用 `router.replace`**，显式按回车提交/点击历史词、切类型/切排序/分页继续 `router.push`。这样不会把每次停顿输入变成一条浏览器历史。补前进、后退与刷新回归。
 - [x] 复核 `lib/db-search.ts` 的 `UNION ALL` / materialized CTE：草稿不可检索、字段权重、特殊字符转义、稳定排序与空页 Facet；避免逻辑和 `lib/search.ts` 类型分叉。
-- [ ] 对 `q=Agent/RAG/Transformer/%/_/中文/不存在词`、筛选 type、排序 newest、page 1/2/最后页及无结果使用 Preview 或可信本地浏览器执行测试。
+- [x] 对 `q=Agent/RAG/Transformer/%/_/中文/不存在词`、筛选 type、排序 newest、page 1/2/最后页及无结果使用 Preview 或可信本地浏览器执行测试。
 - [x] 旧 `/api/search?limit=...` 兼容；`/api/posts/public?limit=4` 不泄漏未公开数据；空搜索不触发不必要查询。
-- [ ] 检查页面 1440×900、1024×768、390×844，横向滚动、Tab、错误/超时/重试与搜索历史可用。
-- [ ] 更新 PR #13，**真实记录** CI、PGlite/Neon 只读对照、Vercel Preview、浏览器 QA；对 Vercel Authentication 限制明确备注，不能把本地浏览器当成线上已测。
+- [x] 检查页面 1440×900、1024×768、390×844，横向滚动、Tab、错误/超时/重试与搜索历史可用。
+- [x] 更新 PR #13，**真实记录** CI、PGlite/Neon 只读对照、Vercel Preview、浏览器 QA；对 Vercel Authentication 限制明确备注，不能把本地浏览器当成线上已测。
 - [ ] 测试全通过后标记 Ready，用户验收通过再合并；核对 Production READY 并做搜索 smoke。
 
 ### 验收硬门槛
@@ -674,7 +674,7 @@ git diff --check
 
 | 阶段 | 当前状态 | PR/提交 | CI | Preview | Production | 人工/浏览器验收 | 日期 |
 |---|---|---|---|---|---|---|---|
-| M00 搜索 V2 | [-] 修复与本地验收完成，更新 PR #13 | [#13](https://github.com/Xavier7776/shengzongPost/pull/13) | 新提交待运行 | 新提交待验收 | 未合并 | 本地三个尺寸通过；在线待复核 | 2026-10-09 |
+| M00 搜索 V2 | [-] 代码/Preview 验收通过，待合并与生产验收 | [#13](https://github.com/Xavier7776/shengzongPost/pull/13) / `195f2a0` | run 37903421784 通过 | dpl_5FGmCudVXZpRCuFLK76xXjV6d1ja READY | 未合并 | 本地与在线 Edge 三尺寸通过；真机未测 | 2026-10-09 |
 | M01 CI 门禁 | [ ] | — | — | — | — | — | — |
 | M02 发布完整性 | [ ] | — | — | — | — | — | — |
 | M03 发布监控 | [ ] | — | — | — | — | — | — |
@@ -816,3 +816,13 @@ Production：未发布 / BUILDING / READY / ERROR
 - 在线七类关键词、六页完整分页、分类/newest、limit=4、公开推荐和三个尺寸通过；但立即清空再用 Tab/Enter 选择刚才历史词复现竞态，故这版没有标记 Ready。
 - 根因：navigate 对等于旧 URL 的目标只触发重试，未覆盖尚未完成的清空跳转。现已保证导航命令总会分发；同 URL 重试仍回读，Next 14 自身避免重复当前 URL 的 history entry。先新增可重复失败用例，修复后 typecheck/lint/28 文件 190 tests 通过。
 - 最终代码提交的 build、CI 与线上完整回放仍须重新核对；此前失败记录不作为最终通过证据。
+### 2026-10-09 M00 代码验收结果（待合并与生产验收）
+
+- 最终代码提交：`195f2a05e44f823d9cbf37b552bcf1143020870a`；[Actions 37903421784](https://github.com/Xavier7776/shengzongPost/actions/runs/37903421784) 成功。Windows typecheck/lint/190 tests/build（92 静态页）及完整 PR diff check 均通过；本地全流程已复跑通过。
+- [代码 Preview](https://shengzong-post-bs7mewfmn-leonidasholya-2025s-projects.vercel.app/search?q=Agent) 对应同一代码 SHA，部署 `dpl_5FGmCudVXZpRCuFLK76xXjV6d1ja` READY；通过临时授权与现有代理，完成在线 Edge 1440×900、1024×768、390×844 的截图、布局及实际交互，未出现横向溢出或框架 overlay。
+- 线上 Agent/RAG/Transformer/%/_/中文/不存在词、六页完整遍历、分类/newest、末页/越界 Facet、旧 limit=4、四条公开推荐全部通过；防抖不新增历史、后退/前进/刷新、Enter、Tab/Enter 历史词、立即清空再选择历史词竞态通过。浏览器注入 500 与请求挂起验证错误/15 秒超时/重试；不修改服务或数据库。
+- `/`、`/learn`、公开文章返回 200 且有实质内容；Blog 全站搜索保留含中文的关键词；匿名 `/admin` 跳转 `/admin/login`。管理员真实登录和写操作、真机测试尚未执行，不能据此声称它们已通过。
+- 控制台验收：无应用运行时错误；预览中现有 CSP 阻止 Vercel 注入的 `vercel.live/_next-live/feedback/feedback.js`，形成可解释的控制台提示。已确认 `next.config.js` 与 main 相同；不放宽 CSP。测试故意注入的 500 单独记录。原“控制台必须零错误”的 QA 断言因这些提示失败，经来源核对，验收以无未解释应用错误为准；最终文档提交继续用明确分类后的脚本检查。
+- 后续提交仅更新验收文档；需确认其运行时代码与上述 SHA 一致，并核对该提交的 CI/Preview。每个 SHA 的证据分别保留，不把旧部署当成新提交的验证。
+- M00 保持 `[-]`，最终 PR 标记 Ready 后等待用户明确确认合并；合并后还需 Production READY 和只读 smoke。M01 尚未开始，按阶段依赖执行。
+- 截图与真实回放记录保留在 `D:\download\search-v2-validation\m00`；线上截图前缀 `preview-final-code-`。没有关闭保护、改密钥、生产 DML/DDL、定时任务或模型调用。
