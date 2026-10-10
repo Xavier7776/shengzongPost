@@ -232,6 +232,7 @@ export default function DistortionEffect() {
       camera.bottom = -0.5
       camera.updateProjectionMatrix()
       uniforms.resolution.value.set(w, h, 1, 1)
+      if (reduced) renderer.render(scene, camera)
     }
 
     // ====== 鼠标 ======
@@ -256,9 +257,10 @@ export default function DistortionEffect() {
     window.addEventListener('resize', resize)
 
     // ====== 动画 ======
-    let rafId: number
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    let rafId = 0
     function animate() {
-      rafId = requestAnimationFrame(animate)
+      if (!reduced) rafId = requestAnimationFrame(animate)
       uniforms.time.value += 0.05
 
       const arr = dataTexture.image.data as Float32Array

@@ -448,19 +448,19 @@ error_detail_sanitized TEXT NULL
 
 ### SEO 正确性
 
-- [ ] 给 `/blog/[slug]`、`/learn`、`/work/[slug]` 提供准确 canonical、OG/Twitter 摘要、发布日期/更新时间、Article JSON-LD/Breadcrumb 等；禁止将测试/后台/搜索参数页作为独立索引目标。
-- [ ] Sitemap 只包含真实公开页面；取消不应入索引的带查询参数项。RSS 只包含已发布文章，GUID 稳定，`pubDate` 真实。
-- [ ] 文章内自动生成的标题 ID 保持稳定，目录锚点在刷新和多个版本之间可定位；避免 React hydration 错误。
-- [ ] 首页与技术精读首页要描述清楚内容定位，并对原创技术文章设定合理摘要与内部链接。
-- [ ] 验证 Google Search Console、Bing Webmaster 和结构化数据检查工具：先记录现状再优化。**没有已连接的站长账号时不得宣称提交成功。**
+- [x] 给 `/blog/[slug]`、`/learn`、`/work/[slug]` 提供准确 canonical、OG/Twitter 摘要、发布日期/更新时间、Article JSON-LD/Breadcrumb 等；禁止将测试/后台/搜索参数页作为独立索引目标。
+- [x] Sitemap 只包含真实公开页面；取消不应入索引的带查询参数项。RSS 只包含已发布文章，GUID 稳定，`pubDate` 真实。
+- [x] 文章内自动生成的标题 ID 保持稳定，目录锚点在刷新和多个版本之间可定位；避免 React hydration 错误。
+- [x] 首页与技术精读首页要描述清楚内容定位，并对原创技术文章设定合理摘要与内部链接。
+- [-] 验证 Google Search Console、Bing Webmaster 和结构化数据检查工具：先记录现状再优化。**没有已连接的站长账号时不得宣称提交成功。**
 
 ### 性能与前端
 
-- [ ] 在 390px 手机、1024px 笔记本和 1440px 桌面分别建立 Lighthouse 基线，记录 LCP/CLS/INP/TTFB、JS 体积、图片传输体积。
-- [ ] 减少非首屏交互组件的初始 JS；搜索、3D/WebGL、图表、评论及大型富文本编辑器按需加载，避免阅读页加载后台编辑器依赖。
-- [ ] 使用符合实际的图片宽高与 loader，优化 Cloudinary 格式和懒加载；不破坏旧图片源、点击放大和附件链接。
-- [ ] Markdown 长代码、架构图、表格横向滚动只在自身容器内，整页移动端不得横溢。
-- [ ] 检查触控区域、Tab 焦点顺序、ARIA 对话框、Esc 关闭、动态内容播报、对比度和 `prefers-reduced-motion`。
+- [-] 在 390px 手机、1024px 笔记本和 1440px 桌面分别建立 Lighthouse 基线，记录 LCP/CLS/INP/TTFB、JS 体积、图片传输体积。
+- [x] 减少非首屏交互组件的初始 JS；搜索、3D/WebGL、图表、评论及大型富文本编辑器按需加载，避免阅读页加载后台编辑器依赖。
+- [x] 使用符合实际的图片宽高与 loader，优化 Cloudinary 格式和懒加载；不破坏旧图片源、点击放大和附件链接。
+- [x] Markdown 长代码、架构图、表格横向滚动只在自身容器内，整页移动端不得横溢。
+- [x] 检查触控区域、Tab 焦点顺序、ARIA 对话框、Esc 关闭、动态内容播报、对比度和 `prefers-reduced-motion`。
 
 ### 候选门槛（以同一测量条件比较）
 
@@ -473,6 +473,8 @@ error_detail_sanitized TEXT NULL
 **结果登记**：PR `________` ｜ Lighthouse 对比 `________` ｜ 完成日期 `________`
 
 ---
+
+**M09-A 本地结果**：335 测试/类型/lint/构建、浏览器 SEO/稳定锚点/焦点/Esc/减少动态效果/旧刊兼容通过，12 组前后 Lighthouse 完成，手机三项 ≥90。详见 `docs/content/seo-reading-accessibility-v2.md`。**M09-B 保留**：手机 LCP 高于 2.5s、桌面旧刊 TBT/分数、实用户 INP/p75、Google/Bing 账号与富媒体工具验证；本地结构化数据解析不能替代官方工具验收。
 
 ## M10 · 安全/隐私第二轮治理与威胁模型
 
@@ -684,8 +686,8 @@ git diff --check
 | M05 来源与图表 | [x] | #19 | 286 tests/build/CI | READY | READY | 旧刊/三尺寸通过 | 无生产数据变更 |
 | M06 搜索评测 | [-] | [#20](https://github.com/Xavier7776/shengzongPost/pull/20) 已合并 | 41 查询、102+20 实测 | 0c0d5ff 全绿 | sin1 READY | 07efb32 READY | M06-B 延迟/人工复核未通过 |
 | M07 学习中心 V3 | [x] | [#21](https://github.com/Xavier7776/shengzongPost/pull/21) 已合并 | 317 tests、三尺寸学习通过 | 412affb 全绿 | 同 head READY | 6af12cc READY/复核通过 | M07-A 完成；可选 B 未选择 |
-| M08 内容推荐/作品集 | [-] | PR 待创建 | 本地 330 测试/类型/lint/构建通过 | 浏览器路线/推荐/返回通过 | 跨 Blog/Learn/Work 失效待最终构建复核 | 待 CI/Preview/正式域名 | 无生产写入 |
-| M09 SEO/性能 | [ ] | — | — | — | — | — | — |
+| M08 内容推荐/作品集 | [x] | PR #22 / 8f74cdc | 330 测试/类型/lint/构建通过 | Chrome 3 宽度/路线/推荐/项目返回通过 | 跨 Blog/Learn/Work 停用/撤回缓存通过 | CI 38020243985 全通过；Preview/正式 READY 同 SHA | 无生产写入 |
+| M09 SEO/性能 | [-] | PR 待创建 | 335 测试/类型/lint/构建通过 | 前后 Lighthouse/手机三项 ≥90 候选 | 浏览器 SEO/锚点/焦点/Esc 通过 | 待 CI/Preview/正式域名 | LCP/INP/站长验证保留 |
 | M10 安全二轮 | [ ] | — | — | — | — | — | — |
 | M11 数据与恢复 | [ ] | — | — | — | — | — | — |
 | M12 Next LTS | [ ] | — | — | — | — | — | — |
@@ -749,7 +751,7 @@ Production：未发布 / BUILDING / READY / ERROR
 - [x] M05 高质量来源与证据质量治理（兼容 Edition v1）。
 - [ ] M06 搜索效果/性能基准和可选索引评估。
 - [x] M07 学习进度本地版（云同步仅在必要时申请迁移）。
-- [ ] M08 文章系列与作品集联动。
+- [x] M08 文章系列与作品集联动。
 
 **第三批完成标志**：文章有可追溯证据，读者可找到相关学习路线，学习完成度有真实定义。
 
@@ -951,3 +953,20 @@ Production：未发布 / BUILDING / READY / ERROR
 - M07 PR #21 普通 squash 合并为 `6af12ccf9c3a409787524ee5508288a8ff14f1f8`。CI 38018784796 全通过；Preview 与正式部署 `dpl_4Hh462T6rYiwm4owUYK42sSnNMLu` READY 且 SHA 一致。正式域名学习状态、答题完成、存储阻断、跨标签、阅读位置、旧刊兼容和分发读取通过；运行时 error/fatal 聚合为空。M07-A 完成，M07-B 账号同步仍为未选择可选项。
 - M08 基于该 main 的独立 `codex/content-discovery-v2` 工作树。三条策展路线、五条公开元数据推荐、项目双向入口、发布时间相邻导航已实现；330 用例、类型/lint、真实本地 Chrome 验证通过。报告 `docs/content/content-discovery-v2.md`。跨作品集的文章撤回缓存已纳入共享失效，最终构建/API 复核后提交 PR。
 - M02-B、M03-B 和 M06-B 的既有证据缺口继续保留，不随其他阶段通过而关闭；未修改 08:30 任务、密钥或生产数据库。
+
+- M08 PR #22 已创建并附加，head `a3666047a02eb1f9c17c2e6c5d6af62ddc2cc2cc`，最终 330 测试/构建及跨 Work 撤回缓存复核通过。CI 和 Preview 构建中，尚未合并。
+
+### 2026-10-10 M08 正式验收 / M09 启动
+
+- M08 PR #22 已合并 `8f74cdc3588d1d180b81d43b882340616f322474`，正式部署 `dpl_8GhCtAr7sBeGy49ZPF5HkLimc8N3` READY 同 SHA。正式域名三条路线、12 入口、五条推荐、焦点、三宽度、项目返回位置误差 <3px、旧刊/自测/图表/原始来源/RSS/sitemap/真实 404 通过，应用错误为空，error/fatal 聚合为空。未写生产数据。
+- M09 `codex/seo-reading-accessibility-v2` 基于该 main 独立工作树。Chrome 154/Lighthouse 13.5.0 本机生产构建完成首页、Learn、真实旧刊及合成 Mnemo 12 组基线；包含 390/1024/1440，原始报告保留在外部验证目录。实验室结果不能视为真实用户 p75 或生产服务器 TTFB。正在修正元数据、稳定锚点、CLS 和无障碍。
+
+### 2026-10-10 M09-A 本地候选
+
+- 已完成 SEO/稳定锚点/无障碍修正，首轮浏览器发现的 418/422 水合错误已由 React 直接渲染兼容锚点修复，最终浏览器零应用错误；335 用例全通过。
+- 同工具/同本机内容/同模拟设置的 12 组前后结果完整登记，首页手机图片 728.0→339.5KB（最终 m09-final），Learn 1024px CLS 0.2212→0.0012。手机性能/无障碍/SEO ≥90，但旧刊部分 LCP/TBT 退化，四个手机 LCP >2.5s；保留 M09-B，不报告真实用户 p75 已通过。
+- 最后补充减少动态效果时的静态页脚窗口重绘；不影响 Lighthouse 默认动态偏好场景，浏览器复核由 PR Preview 继续验证。
+
+- M09 截图复核发现继承的普通博客列表 flex 规则将架构图步骤压成竖排；已限定精读列表规则并增加手机卡片标题宽度断言。此前 `m09-after-*` 候选测量保留，最终样式使用 `m09-final-*` 重新测量后替换主报告；不把无横溢当成可读性通过。
+
+- M09 最终 12 组记录已取代主报告的候选值：390px 性能 96/96/94/95、无障碍 100/100/96/96、SEO 均 100；旧刊 1440px 性能 63→58，完整退化记录保留。M09-B 尚未关闭。

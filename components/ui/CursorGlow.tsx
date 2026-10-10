@@ -6,6 +6,7 @@ export default function CursorGlow() {
   const [pos, setPos] = useState({ x: -300, y: -300 })
 
   useEffect(() => {
+    if (!window.matchMedia('(pointer: fine)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const handler = (e: MouseEvent) => setPos({ x: e.clientX, y: e.clientY })
     window.addEventListener('mousemove', handler, { passive: true })
     return () => window.removeEventListener('mousemove', handler)

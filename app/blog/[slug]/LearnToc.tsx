@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { List, X } from 'lucide-react'
+import { headingId } from '@/shared/markdown/heading-id'
 
 type TocItem = { id: string; text: string; level: 2 | 3; parentId: string | null }
 
@@ -15,16 +16,18 @@ export default function LearnToc() {
 
   useEffect(() => {
     const root = document.getElementById('blog-reader-root') ?? document.body
+    let restoredHash = false
 
     const scan = () => {
       const reader = root.querySelector('.reader-content')
       if (!reader) return
       const result: TocItem[] = []
+      const used = new Set(Array.from(reader.querySelectorAll('[id]'), element => element.id))
       let parentId: string | null = null
       reader.querySelectorAll('h2, h3').forEach((element, index) => {
         const text = element.textContent?.trim()
         if (!text) return
-        if (!element.id) element.id = 'learn-section-' + index
+        if (!element.id) element.id = headingId(text, used)
         const level = element.tagName === 'H2' ? 2 : 3
         if (level === 2) parentId = element.id
         result.push({ id: element.id, text, level, parentId: level === 2 ? null : parentId })
@@ -35,6 +38,12 @@ export default function LearnToc() {
         )) return previous
         return result
       })
+      if (!restoredHash && location.hash) {
+        try {
+          const target = document.getElementById(decodeURIComponent(location.hash.slice(1)))
+          if (target && reader.contains(target)) { target.scrollIntoView(); restoredHash = true }
+        } catch { /* Invalid URL fragments leave the article readable. */ }
+      }
     }
 
     scan()

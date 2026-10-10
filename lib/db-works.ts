@@ -23,6 +23,8 @@ function mapProject(p: DbProject): WorkProject {
     demoUrl: p.demo_url ?? null,
     githubUrl: p.github_url ?? null,
     year: p.year ?? '',
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
     attachments: p.attachments ?? [],
   }
 }

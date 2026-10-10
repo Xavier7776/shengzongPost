@@ -101,9 +101,9 @@ export default async function PostHeader({ slug, variant = 'standard' }: PostHea
         {post.title}
       </h1>
       {/* 字数统计 + 预计阅读时间 */}
-      <div className="flex items-center gap-2 mb-8 text-sm text-gray-400">
+      <div className="flex items-center gap-2 mb-8 text-sm text-gray-600">
         <span>约 {totalWords} 字</span>
-        <span className="text-gray-300">·</span>
+        <span className="text-gray-600">·</span>
         <span>预计阅读 {minutes} 分钟</span>
       </div>
       {post.author_name && (

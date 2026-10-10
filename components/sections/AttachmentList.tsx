@@ -21,7 +21,7 @@ export default function AttachmentList({ attachments }: Props) {
 
   return (
     <div className="mt-12 border-t border-gray-100 pt-8">
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3">
         附件 · {attachments.length} 份
       </p>
       <div className="flex flex-col gap-2">

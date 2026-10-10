@@ -91,7 +91,7 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
     <div className={variant === 'learn' ? 'learn-reader-toolbar sticky top-20 z-30 mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white/95 px-4 py-2 shadow-sm backdrop-blur-md' : 'sticky top-20 z-30 mb-6 flex items-center gap-3 rounded-xl border border-gray-100 bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md'}>
       {/* 字号调节 */}
       <div className="flex items-center gap-1.5">
-        <span className="mr-1 text-[10px] font-black uppercase tracking-widest text-gray-400">字号</span>
+        <span className="mr-1 text-[10px] font-black uppercase tracking-widest text-gray-600">字号</span>
         <button
           onClick={decreaseFont}
           disabled={fontSize <= MIN_FONT}
@@ -118,7 +118,7 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
 
       {/* 阅读模式 */}
       <div className="flex items-center gap-1">
-        <span className="mr-1 text-[10px] font-black uppercase tracking-widest text-gray-400">模式</span>
+        <span className="mr-1 text-[10px] font-black uppercase tracking-widest text-gray-600">模式</span>
         {MODES.map(({ value, label, icon: Icon }) => (
           <button
             key={value}

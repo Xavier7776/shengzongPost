@@ -3,6 +3,8 @@ import { getPostBySlug } from '@/lib/db'
 import AttachmentList from '@/components/sections/AttachmentList'
 import CodeCopyButton from '@/components/sections/CodeCopyButton'
 import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
+import { withHeadingIds } from '@/lib/html/heading-ids'
+import { headingId } from '@/shared/markdown/heading-id'
 import LearnArticle from './LearnArticle'
 import { sanitizeRichHtml, safePostImageUrl } from '@/lib/html/sanitize-post'
 
@@ -17,6 +19,8 @@ function renderInline(text: string) {
 }
 
 function renderMarkdown(content: string) {
+  const used = new Set<string>()
+  let headingIndex = 0
   const lines = content.split('\n')
   const elements: React.ReactNode[] = []
   let i = 0
@@ -25,11 +29,11 @@ function renderMarkdown(content: string) {
     const trimmed = line.trim()
     if (!trimmed) { i++; continue }
     if (trimmed.startsWith('## ')) {
-      elements.push(<h2 key={i} className="text-2xl font-black text-gray-900 mt-14 mb-5 tracking-tight border-b border-gray-100 pb-3">{trimmed.slice(3)}</h2>)
+      elements.push(<h2 id={headingId(trimmed.slice(3),used)} key={i} className="text-2xl font-black text-gray-900 mt-14 mb-5 tracking-tight border-b border-gray-100 pb-3"><span id={'blog-toc-heading-'+headingIndex}/><span id={'learn-section-'+headingIndex++}/>{trimmed.slice(3)}</h2>)
       i++; continue
     }
     if (trimmed.startsWith('### ')) {
-      elements.push(<h3 key={i} className="text-lg font-black text-gray-800 mt-10 mb-3 tracking-tight">{trimmed.slice(4)}</h3>)
+      elements.push(<h3 id={headingId(trimmed.slice(4),used)} key={i} className="text-lg font-black text-gray-800 mt-10 mb-3 tracking-tight"><span id={'blog-toc-heading-'+headingIndex}/><span id={'learn-section-'+headingIndex++}/>{trimmed.slice(4)}</h3>)
       i++; continue
     }
     const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
@@ -123,7 +127,7 @@ export default async function PostContent({ slug }: PostContentProps) {
         {isHtml ? (
           <div
             className="post-content"
-            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(post.content) }}
+            dangerouslySetInnerHTML={{ __html: withHeadingIds(sanitizeRichHtml(post.content)) }}
           />
         ) : (
           <div className="space-y-5">{renderMarkdown(post.content)}</div>

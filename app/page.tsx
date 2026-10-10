@@ -10,6 +10,7 @@ import { getAllPosts } from '@/lib/db'
 import { getSkills } from '@/lib/db-skills'
 
 export const revalidate = 60 // ISR plus explicit publication-path invalidation.
+export const metadata = { alternates: { canonical: '/' } }
 
 // 博客区域骨架屏：样式与 loading.tsx 一致
 function BlogSkeleton() {

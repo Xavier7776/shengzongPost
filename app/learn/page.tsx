@@ -2,17 +2,23 @@ import { sql } from '@/lib/db/_core'
 import { TOPICS, type Topic } from '@/lib/learn/document'
 import LearnCatalog, { type LearnCatalogArticle } from './LearnCatalog'
 import type { Metadata } from 'next'
-import { Suspense } from 'react'
 import LearningPaths from '@/components/learn/LearningPaths'
+import { breadcrumbs, jsonLdText } from '@/lib/seo'
 
 export const revalidate = 60
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: 'AI 技术图解精读 · MindStack',
   description: 'Agent 前沿、RAG 与检索、AI 原生软件工程、多模态技术：可核对的一手资料、架构图、代码、自测和实践。',
   alternates: { canonical: '/learn' },
+  openGraph: { title: 'AI 技术图解精读 · MindStack', description: '可核对的一手资料、架构图、代码、自测和实践。', url: '/learn', type: 'website' },
+  twitter: { card: 'summary_large_image', title: 'AI 技术图解精读 · MindStack', description: '可核对的一手资料、架构图、代码、自测和实践。' },
 }
 const PAGE_SIZE = 24
 type Params = { topic?: string; page?: string }
+export async function generateMetadata({ searchParams }: { searchParams?: Params | Promise<Params> }): Promise<Metadata> {
+  const params = await searchParams
+  return { ...metadata, ...(params && Object.keys(params).length ? { robots: { index: false, follow: true } } : {}) }
+}
 function selectedTopic(value: string | undefined): Topic | null {
   return value && Object.prototype.hasOwnProperty.call(TOPICS, value) ? value as Topic : null
 }
@@ -20,6 +26,7 @@ function selectedTopic(value: string | undefined): Topic | null {
 export default async function LearnIndex({ searchParams }: { searchParams?: Params | Promise<Params> }) {
   const params = await searchParams
   const topic = selectedTopic(params?.topic)
+  const paths = LearningPaths({ topic })
   const rawPage = Number.parseInt(params?.page ?? '1', 10)
   const page = Number.isFinite(rawPage) ? Math.max(1, Math.min(10000, rawPage)) : 1
   const offset = (page-1) * PAGE_SIZE
@@ -64,9 +71,9 @@ export default async function LearnIndex({ searchParams }: { searchParams?: Para
   const topicCounts = Object.fromEntries(
     counts.map(row => [String(row.topic), Number(row.total)]),
   ) as Partial<Record<Topic, number>>
-  return <LearnCatalog
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(breadcrumbs([{name:'首页',path:'/'},{name:'技术精读',path:'/learn'}])) }}/><LearnCatalog
     articles={articles} topic={topic} topicCounts={topicCounts}
     total={total} page={page} pageSize={PAGE_SIZE}
-    learningPaths={<Suspense fallback={null}><LearningPaths topic={topic}/></Suspense>}
-  />
+    learningPaths={await paths}
+  /></>
 }
