@@ -33,13 +33,15 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
 
   // 初始化：从 localStorage 读取用户偏好
   useEffect(() => {
-    const savedFont = localStorage.getItem(storageKey)
-    const n = savedFont ? Number(savedFont) : initialFont
-    setFontSize(Number.isFinite(n) && n >= MIN_FONT && n <= MAX_FONT ? n : initialFont)
-    const savedMode = localStorage.getItem(MODE_KEY) as Mode | null
-    if (savedMode && ['default', 'sepia', 'dark'].includes(savedMode)) {
-      setMode(savedMode)
-    }
+    try {
+      const savedFont = localStorage.getItem(storageKey)
+      const n = savedFont ? Number(savedFont) : initialFont
+      setFontSize(Number.isFinite(n) && n >= MIN_FONT && n <= MAX_FONT ? n : initialFont)
+      const savedMode = localStorage.getItem(MODE_KEY) as Mode | null
+      if (savedMode && ['default', 'sepia', 'dark'].includes(savedMode)) {
+        setMode(savedMode)
+      }
+    } catch { /* Keep default reader controls when storage is blocked. */ }
     setMounted(true)
   }, [storageKey, initialFont])
 
@@ -65,7 +67,7 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
   const decreaseFont = useCallback(() => {
     setFontSize(prev => {
       const next = Math.max(MIN_FONT, prev - STEP)
-      localStorage.setItem(storageKey, String(next))
+      try { localStorage.setItem(storageKey, String(next)) } catch { /* The current page remains adjustable. */ }
       return next
     })
   }, [storageKey])
@@ -73,14 +75,14 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
   const increaseFont = useCallback(() => {
     setFontSize(prev => {
       const next = Math.min(MAX_FONT, prev + STEP)
-      localStorage.setItem(storageKey, String(next))
+      try { localStorage.setItem(storageKey, String(next)) } catch { /* The current page remains adjustable. */ }
       return next
     })
   }, [storageKey])
 
   const changeMode = useCallback((m: Mode) => {
     setMode(m)
-    localStorage.setItem(MODE_KEY, m)
+    try { localStorage.setItem(MODE_KEY, m) } catch { /* The current page remains adjustable. */ }
   }, [])
 
   if (!mounted) return null

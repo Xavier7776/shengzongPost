@@ -11,8 +11,10 @@ export default function ViewTracker({ slug }: { slug: string }) {
 
   useEffect(() => {
     const key = `viewed:${slug}`
-    if (sessionStorage.getItem(key)) return
-    sessionStorage.setItem(key, '1')
+    try {
+      if (sessionStorage.getItem(key)) return
+      sessionStorage.setItem(key, '1')
+    } catch { return }
     fetch('/api/posts/view', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

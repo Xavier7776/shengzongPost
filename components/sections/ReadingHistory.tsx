@@ -14,7 +14,8 @@ interface HistoryItem {
 export function getReadingHistory(): HistoryItem[] {
   if (typeof window === 'undefined') return []
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    return Array.isArray(raw) ? raw.filter((h: HistoryItem) => h && typeof h.slug === 'string' && typeof h.title === 'string' && typeof h.readAt === 'string').slice(0, MAX_ITEMS) : []
   } catch {
     return []
   }
@@ -26,9 +27,11 @@ export function hasRead(slug: string): boolean {
 
 export default function ReadingHistory({ slug, title }: { slug: string; title: string }) {
   useEffect(() => {
-    const history = getReadingHistory().filter(h => h.slug !== slug)
-    history.unshift({ slug, title, readAt: new Date().toISOString() })
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, MAX_ITEMS)))
+    try {
+      const history = getReadingHistory().filter(h => h.slug !== slug)
+      history.unshift({ slug, title, readAt: new Date().toISOString() })
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, MAX_ITEMS)))
+    } catch { /* Reading stays available when browser storage is blocked. */ }
   }, [slug, title])
 
   return null

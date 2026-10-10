@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 import { BookOpen, ArrowRight, Clock, CheckCircle2, Layers, CalendarDays } from 'lucide-react'
 import { getReadingHistory } from '@/components/sections/ReadingHistory'
 import { TOPICS, type Topic } from '@/lib/learn/document'
+import { learningLabels } from '@/lib/learn/progress'
+import { useLearningProgress } from '@/components/learn/useLearningProgress'
 
 export interface LearnCatalogArticle {
   slug: string
@@ -39,6 +41,8 @@ const iconFor: Record<Topic,string> = {
 export default function LearnCatalog({ articles, topic, topicCounts, total, page, pageSize }: Props) {
   const [visited, setVisited] = useState<Set<string>>(new Set())
   const [lastRead, setLastRead] = useState<{slug:string;title:string}|null>(null)
+  const { records, available } = useLearningProgress()
+  const [learningFilter, setLearningFilter] = useState('all')
   useEffect(() => {
     const rawHistory = getReadingHistory()
     const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(item => /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(item.slug))
@@ -46,12 +50,19 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
     if (history[0]) setLastRead({slug:history[0].slug,title:history[0].title})
   }, [])
 
-  const featured = !topic && page===1 ? articles[0] : undefined
-  const listing = featured ? articles.slice(1) : articles
+  const filtered = articles.filter(article => {
+    const r = records[article.slug]
+    return learningFilter === 'all' || (learningFilter === 'learning' ? r && r.state !== 'completed' : learningFilter === 'practice' ? r && !r.practiceDone : r?.state === 'completed')
+  })
+  const featured = !topic && page===1 && learningFilter === 'all' ? articles[0] : undefined
+  const listing = featured ? filtered.slice(1) : filtered
+  const continuing = Object.values(records).find(r => r.state !== 'completed')
+  const completed = Object.values(records).filter(r => r.state === 'completed').length
   const totalPages = Math.max(1,Math.ceil(total / pageSize))
 
   function ArticleCard({article}:{article:LearnCatalogArticle}) {
-    return <Link href={'/blog/'+article.slug}
+    const progress = records[article.slug]
+    return <Link scroll={!(progress && progress.state !== 'completed')} href={'/blog/'+article.slug+(progress && progress.state !== 'completed' ? '?resume=1' : '')}
       className="group flex h-full flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500">
         <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">{TOPICS[article.topic]}</span>
@@ -59,11 +70,12 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
         {visited.has(article.slug) && <span className="inline-flex items-center gap-1 text-emerald-700">
           <CheckCircle2 className="h-3.5 w-3.5" /> 浏览过
         </span>}
+        {progress && <span className="rounded-full bg-indigo-50 px-2 py-1 text-indigo-700">{learningLabels[progress.state]}（本机）</span>}
       </div>
       <h3 className="text-lg font-bold leading-snug text-gray-900 group-hover:text-blue-700">{article.title}</h3>
       <p className="mt-3 line-clamp-3 text-sm leading-7 text-gray-600">{article.excerpt}</p>
       <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-blue-700">
-        开始精读 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1"/>
+        {progress?.state === 'completed' ? '复习本期' : progress ? '继续学习' : '开始精读'} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1"/>
       </span>
     </Link>
   }
@@ -81,10 +93,20 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
       </p>
     </header>
 
-    {lastRead && <Link href={'/blog/'+lastRead.slug}
+    <section aria-label="本机学习记录" className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border p-4 text-sm">
+      <p>本机完成记录：<strong>{completed}</strong> 期 · 已浏览不等于已完成；记录仅在此浏览器保存，保留最近 100 期。</p>
+      <label>当前页学习状态 <select className="ml-2 rounded border px-2 py-1" value={learningFilter} onChange={event => setLearningFilter(event.target.value)}>
+        <option value="all">全部</option><option value="learning">学习中</option><option value="practice">待练习</option><option value="completed">已完成</option>
+      </select></label>
+      {!available && <p role="status">浏览器无法读取或保存学习记录，仍可阅读公开文章。</p>}
+    </section>
+    {continuing && <Link scroll={false} href={'/blog/'+continuing.slug+'?resume=1'} className="mb-7 flex items-center justify-between gap-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-5 py-4 hover:border-indigo-300">
+      <div className="min-w-0"><p className="text-xs font-bold text-indigo-600">继续学习 · {learningLabels[continuing.state]}（本机）</p><p className="mt-1 truncate text-sm font-semibold text-indigo-950">{continuing.title}</p></div><ArrowRight className="h-5 w-5 shrink-0 text-indigo-600"/>
+    </Link>}
+    {!continuing && lastRead && <Link href={'/blog/'+lastRead.slug}
       className="mb-7 flex items-center justify-between gap-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-5 py-4 hover:border-indigo-300">
       <div className="min-w-0">
-        <p className="text-xs font-bold text-indigo-600">最近浏览 · 继续学习</p>
+        <p className="text-xs font-bold text-indigo-600">最近浏览 · 开始学习</p>
         <p className="mt-1 truncate text-sm font-semibold text-indigo-950">{lastRead.title}</p>
       </div>
       <ArrowRight className="h-5 w-5 shrink-0 text-indigo-600" />
@@ -111,6 +133,7 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
         <Link href={'/blog/'+featured.slug} className="hover:text-blue-700">{featured.title}</Link>
       </h2>
       <p className="mt-4 max-w-4xl text-base leading-8 text-gray-600">{featured.excerpt}</p>
+      {records[featured.slug] && <p className="mt-3 text-sm font-semibold text-indigo-700">{learningLabels[records[featured.slug].state]}（本机）</p>}
       <Link href={'/blog/'+featured.slug}
         className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">
         阅读本期 <ArrowRight className="h-4 w-4"/>
@@ -129,7 +152,7 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
         : listing.length
           ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listing.map(item=>
               <ArticleCard article={item} key={item.slug}/>)}</div>
-          : <p className="rounded-2xl bg-gray-50 p-8 text-gray-500">当前页暂无更多文章。</p>
+          : <p className="rounded-2xl bg-gray-50 p-8 text-gray-500">{learningFilter === 'all' ? '当前页暂无更多文章。' : '当前页暂无符合学习状态的文章，可切换筛选或查看其他归档页。'}</p>
       }
     </section>
 

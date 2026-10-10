@@ -1,7 +1,7 @@
 import { sql } from '@/lib/db/_core'
 import { validateEdition, type Edition } from '@/lib/learn/document'
 import { editionFingerprint, textVersion } from '@/lib/learn/publication-contract'
-import LearnInteractive from '@/components/learn/LearnInteractive'
+import StudyArticle from '@/components/learn/StudyArticle'
 export default async function LearnArticle({slug,content}:{slug:string;content:string}) {
   let rows
   try {
@@ -13,7 +13,8 @@ export default async function LearnArticle({slug,content}:{slug:string;content:s
   }
   const edition=rows[0]?.document as Edition | undefined
   if (!edition || !validateEdition(edition).ok || textVersion(edition)!==content) return null
-  return <div data-learn-fingerprint={editionFingerprint(edition)} data-learn-slug={slug}>
-    <LearnInteractive edition={edition}/>
+  const fingerprint = editionFingerprint(edition)
+  return <div data-learn-fingerprint={fingerprint} data-learn-slug={slug}>
+    <StudyArticle key={slug+':'+fingerprint} edition={edition} slug={slug} fingerprint={fingerprint}/>
   </div>
 }
