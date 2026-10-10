@@ -94,6 +94,7 @@ describe('search on the PostgreSQL engine', () => {
   it('keeps true API totals and facet counts', async () => {
     const response = await GET(new NextRequest('http://localhost/api/search?q=pagekey&type=post&page=2'))
     expect(response.status).toBe(200)
+    expect(response.headers.get('server-timing')).toMatch(/^search;dur=\d+\.\d$/)
     expect(await response.json()).toMatchObject({ q: 'pagekey', page: 2, total: 40, totalPages: 2, counts: { all: 65 } })
   })
 
@@ -118,6 +119,7 @@ describe('search on the PostgreSQL engine', () => {
     sql.mockRejectedValueOnce(new Error('database down'))
     const response = await GET(new NextRequest('http://localhost/api/search?q=pagekey'))
     expect(response.status).toBe(500)
+    expect(response.headers.has('server-timing')).toBe(false)
     expect(await response.json()).not.toHaveProperty('total')
     log.mockRestore()
   })

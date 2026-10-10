@@ -1,0 +1,712 @@
+{
+  "version": 2,
+  "snapshotAt": "2026-10-10T02:13:29.820Z",
+  "counts": {
+    "post": 104,
+    "skill": 49,
+    "gallery": 5
+  },
+  "judgedBy": "Codex source review before running ranks; editorial candidate labels, not independent human approval",
+  "judgmentScope": "Known relevant pool only; unjudged documents have grade zero. A single-document pool has coarse nDCG. Diagnostic queries are excluded from relevance averages.",
+  "queries": [
+    {
+      "id": "rag-cn",
+      "q": "检索增强生成",
+      "category": "zh",
+      "relevant": [
+        {
+          "key": "post:rag-deep-dive",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:rag-deep-dive"
+      ],
+      "note": "RAG 入门全文与摘要"
+    },
+    {
+      "id": "rag-en",
+      "q": "Retrieval-Augmented Generation",
+      "category": "body",
+      "relevant": [
+        {
+          "key": "post:rag-deep-dive",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:rag-deep-dive"
+      ],
+      "note": "术语展开，只在正文"
+    },
+    {
+      "id": "hyde",
+      "q": "HyDE",
+      "category": "acronym",
+      "relevant": [
+        {
+          "key": "post:rag-deep-dive",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:rag-deep-dive"
+      ],
+      "note": "RAG 的 HyDE 小节"
+    },
+    {
+      "id": "pgvector",
+      "q": "pgvector",
+      "category": "body",
+      "relevant": [
+        {
+          "key": "post:rag-deep-dive",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:rag-deep-dive"
+      ],
+      "note": "向量数据库清单"
+    },
+    {
+      "id": "self-attention",
+      "q": "Self-Attention",
+      "category": "en",
+      "relevant": [
+        {
+          "key": "post:transformer-architecture",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:transformer-architecture"
+      ],
+      "note": "核心计算引擎"
+    },
+    {
+      "id": "pos-encoding",
+      "q": "位置编码",
+      "category": "zh",
+      "relevant": [
+        {
+          "key": "post:transformer-architecture",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:transformer-architecture"
+      ],
+      "note": "位置编码章节"
+    },
+    {
+      "id": "flash",
+      "q": "Flash Attention",
+      "category": "en",
+      "relevant": [
+        {
+          "key": "post:flash-attention-deep-dive-20260520",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:flash-attention-deep-dive-20260520"
+      ],
+      "note": "注意力算法专文"
+    },
+    {
+      "id": "hbm",
+      "q": "HBM",
+      "category": "body",
+      "relevant": [
+        {
+          "key": "post:flash-attention-deep-dive-20260520",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:flash-attention-deep-dive-20260520"
+      ],
+      "note": "IO 瓶颈实验解释"
+    },
+    {
+      "id": "qlora",
+      "q": "QLoRA",
+      "category": "acronym",
+      "relevant": [
+        {
+          "key": "post:llm-finetuning-guide",
+          "grade": 3
+        },
+        {
+          "key": "post:deep-dive-llm-fine-tuning-20260521",
+          "grade": 2
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:llm-finetuning-guide",
+        "post:deep-dive-llm-fine-tuning-20260521"
+      ],
+      "note": "微调专文与全景对照"
+    },
+    {
+      "id": "nf4",
+      "q": "NF4",
+      "category": "body",
+      "relevant": [
+        {
+          "key": "post:llm-finetuning-guide",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:llm-finetuning-guide"
+      ],
+      "note": "已核对 NF4 小节；初稿误把仅讨论 QLoRA 的全景文章纳入，修正标注并同时重跑基线/候选，不改排序"
+    },
+    {
+      "id": "lora",
+      "q": "LoRA",
+      "category": "acronym",
+      "relevant": [
+        {
+          "key": "post:llm-finetuning-guide",
+          "grade": 3
+        },
+        {
+          "key": "post:deep-dive-llm-fine-tuning-20260521",
+          "grade": 2
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:llm-finetuning-guide",
+        "post:deep-dive-llm-fine-tuning-20260521"
+      ],
+      "note": "参数高效微调"
+    },
+    {
+      "id": "sft",
+      "q": "SFT",
+      "category": "acronym",
+      "relevant": [
+        {
+          "key": "post:deep-dive-llm-fine-tuning-20260521",
+          "grade": 3
+        },
+        {
+          "key": "post:llm-finetuning-guide",
+          "grade": 2
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:deep-dive-llm-fine-tuning-20260521",
+        "post:llm-finetuning-guide"
+      ],
+      "note": "微调训练阶段"
+    },
+    {
+      "id": "plugin",
+      "q": "AI Plugin",
+      "category": "en",
+      "relevant": [
+        {
+          "key": "post:ai-plugin-explained",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:ai-plugin-explained"
+      ],
+      "note": "插件系统入门"
+    },
+    {
+      "id": "openapi",
+      "q": "OpenAPI 3.0",
+      "category": "body",
+      "relevant": [
+        {
+          "key": "post:ai-plugin-explained",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:ai-plugin-explained"
+      ],
+      "note": "插件规范示例"
+    },
+    {
+      "id": "skill-cn",
+      "q": "能力单元",
+      "category": "zh",
+      "relevant": [
+        {
+          "key": "post:ai-skill-explained",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:ai-skill-explained"
+      ],
+      "note": "Skill 基础概念"
+    },
+    {
+      "id": "kernel",
+      "q": "Semantic Kernel",
+      "category": "body",
+      "relevant": [
+        {
+          "key": "post:ai-skill-explained",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:ai-skill-explained"
+      ],
+      "note": "Skill 工程实现章节"
+    },
+    {
+      "id": "hermes",
+      "q": "Hermes Agent",
+      "category": "en",
+      "relevant": [
+        {
+          "key": "post:hermes-agent",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:hermes-agent"
+      ],
+      "note": "记忆与工具架构"
+    },
+    {
+      "id": "hrr",
+      "q": "HRR",
+      "category": "body",
+      "relevant": [
+        {
+          "key": "post:hermes-agent",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:hermes-agent"
+      ],
+      "note": "全息记忆正文"
+    },
+    {
+      "id": "moe",
+      "q": "MoE 架构",
+      "category": "zh",
+      "relevant": [
+        {
+          "key": "post:moe-architecture-deep-dive-20260520",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:moe-architecture-deep-dive-20260520"
+      ],
+      "note": "专家混合架构专题"
+    },
+    {
+      "id": "mixtral",
+      "q": "Mixtral",
+      "category": "en",
+      "relevant": [
+        {
+          "key": "post:moe-architecture-deep-dive-20260520",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:moe-architecture-deep-dive-20260520"
+      ],
+      "note": "混合专家专题"
+    },
+    {
+      "id": "long-title",
+      "q": "结构化切块真的让 RAG 更准吗？用安慰剂实验拆解四种检索机制",
+      "category": "long",
+      "relevant": [
+        {
+          "key": "post:daily-learn-2026-10-09",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:daily-learn-2026-10-09"
+      ],
+      "note": "完整精读标题"
+    },
+    {
+      "id": "placebo",
+      "q": "安慰剂实验",
+      "category": "zh",
+      "relevant": [
+        {
+          "key": "post:daily-learn-2026-10-09",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:daily-learn-2026-10-09"
+      ],
+      "note": "精读机制对照"
+    },
+    {
+      "id": "tag-graph",
+      "q": "KNOWLEDGE-GRAPH",
+      "category": "tag",
+      "relevant": [
+        {
+          "key": "post:ai-agent-memory-knowledge-graphs-20260531",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:ai-agent-memory-knowledge-graphs-20260531"
+      ],
+      "note": "标签专有拼写，正文采用其他写法"
+    },
+    {
+      "id": "tag-tools",
+      "q": "DEVELOPER TOOLS",
+      "category": "tag",
+      "relevant": [
+        {
+          "key": "post:ai-coding-agent-infra-20260525",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "post"
+      ],
+      "expectedTop3": [
+        "post:ai-coding-agent-infra-20260525"
+      ],
+      "note": "工程工具标签"
+    },
+    {
+      "id": "obsidian",
+      "q": "obsidian-mcp-tools",
+      "category": "skill",
+      "relevant": [
+        {
+          "key": "skill:obsidian-mcp-tools",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "skill"
+      ],
+      "expectedTop3": [
+        "skill:obsidian-mcp-tools"
+      ],
+      "note": "Obsidian 工具项目"
+    },
+    {
+      "id": "browser",
+      "q": "browser-tools-mcp",
+      "category": "skill",
+      "relevant": [
+        {
+          "key": "skill:browser-tools-mcp",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "skill"
+      ],
+      "expectedTop3": [
+        "skill:browser-tools-mcp"
+      ],
+      "note": "浏览器日志工具项目"
+    },
+    {
+      "id": "science",
+      "q": "scientific-agent-skills",
+      "category": "skill",
+      "relevant": [
+        {
+          "key": "skill:scientific-agent-skills",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "skill"
+      ],
+      "expectedTop3": [
+        "skill:scientific-agent-skills"
+      ],
+      "note": "科学技能库项目"
+    },
+    {
+      "id": "sequential",
+      "q": "mcp-sequentialthinking-tools",
+      "category": "skill",
+      "relevant": [
+        {
+          "key": "skill:mcp-sequentialthinking-tools",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "skill"
+      ],
+      "expectedTop3": [
+        "skill:mcp-sequentialthinking-tools"
+      ],
+      "note": "顺序思考工具项目"
+    },
+    {
+      "id": "claude-kit",
+      "q": "claudekit-skills",
+      "category": "skill",
+      "relevant": [
+        {
+          "key": "skill:claudekit-skills",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "skill"
+      ],
+      "expectedTop3": [
+        "skill:claudekit-skills"
+      ],
+      "note": "ClaudeKit 项目"
+    },
+    {
+      "id": "context-skills",
+      "q": "Agent-Skills-for-Context-Engineering",
+      "category": "skill",
+      "relevant": [
+        {
+          "key": "skill:agent-skills-for-context-engineering",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "skill"
+      ],
+      "expectedTop3": [
+        "skill:agent-skills-for-context-engineering"
+      ],
+      "note": "上下文技能项目"
+    },
+    {
+      "id": "gallery-pastoral",
+      "q": "田园风景",
+      "category": "gallery",
+      "relevant": [
+        {
+          "key": "gallery:2",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "gallery"
+      ],
+      "expectedTop3": [
+        "gallery:2"
+      ],
+      "note": "画廊标题"
+    },
+    {
+      "id": "gallery-corner",
+      "q": "一个无人的角落",
+      "category": "gallery",
+      "relevant": [
+        {
+          "key": "gallery:3",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "gallery"
+      ],
+      "expectedTop3": [
+        "gallery:3"
+      ],
+      "note": "画廊标题"
+    },
+    {
+      "id": "gallery-flower",
+      "q": "盛开的花海",
+      "category": "gallery",
+      "relevant": [
+        {
+          "key": "gallery:4",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "gallery"
+      ],
+      "expectedTop3": [
+        "gallery:4"
+      ],
+      "note": "画廊标题"
+    },
+    {
+      "id": "gallery-small",
+      "q": "微小的发现",
+      "category": "gallery",
+      "relevant": [
+        {
+          "key": "gallery:5",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "gallery"
+      ],
+      "expectedTop3": [
+        "gallery:5"
+      ],
+      "note": "画廊标题"
+    },
+    {
+      "id": "gallery-snow",
+      "q": "独钓寒江雪",
+      "category": "gallery",
+      "relevant": [
+        {
+          "key": "gallery:9",
+          "grade": 3
+        }
+      ],
+      "expectedTypes": [
+        "gallery"
+      ],
+      "expectedTop3": [
+        "gallery:9"
+      ],
+      "note": "画廊标题"
+    },
+    {
+      "id": "no-result",
+      "q": "不存在的M06专属词20261010",
+      "category": "zero",
+      "relevant": [],
+      "expectedTypes": [],
+      "expectedTop3": [],
+      "note": "快照中不存在的测试词"
+    },
+    {
+      "id": "percent",
+      "q": "%",
+      "category": "diagnostic",
+      "relevant": [],
+      "expectedTypes": [],
+      "expectedTop3": [],
+      "note": "字面百分号，检查数值/URL 噪声"
+    },
+    {
+      "id": "underscore",
+      "q": "_",
+      "category": "diagnostic",
+      "relevant": [],
+      "expectedTypes": [],
+      "expectedTop3": [],
+      "note": "字面下划线，检查代码/URL 噪声"
+    },
+    {
+      "id": "html",
+      "q": "<p>",
+      "category": "diagnostic",
+      "relevant": [],
+      "expectedTypes": [],
+      "expectedTop3": [],
+      "note": "HTML 标记命中不代表自然语言相关"
+    },
+    {
+      "id": "one-cjk",
+      "q": "雪",
+      "category": "diagnostic",
+      "relevant": [],
+      "expectedTypes": [],
+      "expectedTop3": [],
+      "note": "单字宽召回与画廊标题"
+    },
+    {
+      "id": "backslash",
+      "q": "\\",
+      "category": "diagnostic",
+      "relevant": [],
+      "expectedTypes": [],
+      "expectedTop3": [],
+      "note": "字面反斜线不能变成匹配运算符"
+    }
+  ]
+}

@@ -15,7 +15,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    return NextResponse.json(await searchAll(query))
+    const started = performance.now()
+    const result = await searchAll(query)
+    return NextResponse.json(result, {
+      // Includes Neon network/retries; database EXPLAIN and browser RTT are separate measurements.
+      headers: { 'Server-Timing': `search;dur=${(performance.now() - started).toFixed(1)}` },
+    })
   } catch (err) {
     console.error('[search] error:', err)
     return NextResponse.json(
