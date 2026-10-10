@@ -8,8 +8,6 @@ import { requireAdminApi } from '@/lib/auth'
 import {
   getEditRequestById,
   reviewEditRequest,
-  updatePost,
-  createPost,
 } from '@/lib/db'
 import { invalidatePublishedContent } from '@/lib/content-cache'
 import { EditionEditConflict } from '@/lib/learn/edit-conflict'
@@ -22,49 +20,22 @@ async function handlePATCH(
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
   const id = Number(params.id)
-  if (isNaN(id)) return NextResponse.json({ error: '参数错误' }, { status: 400 })
+  if (!Number.isSafeInteger(id) || id<=0) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   try {
     const { status, admin_note } = await req.json()
     if (status !== 'approved' && status !== 'rejected')
       return NextResponse.json({ error: 'status 必须为 approved 或 rejected' }, { status: 400 })
-
-    const editReq = await getEditRequestById(id)
-    if (!editReq) return NextResponse.json({ error: '请求不存在' }, { status: 404 })
-    if (editReq.status !== 'pending')
-      return NextResponse.json({ error: '该请求已审核' }, { status: 409 })
-
-    if (status === 'approved') {
-      const isNew = editReq.post_slug.startsWith('__new__:')
-
-      if (isNew) {
-        // post_slug 格式：__new__:desired-slug
-        const desiredSlug = editReq.post_slug.slice('__new__:'.length) || 'untitled'
-        await createPost({
-          slug:        desiredSlug,
-          title:       editReq.title,
-          excerpt:     editReq.excerpt,
-          content:     editReq.content,
-          tags:        editReq.tags,
-          published:   false,   // 管理员审核通过后创建草稿，再决定是否发布
-          cover_image: editReq.cover_image,
-        })
-      } else {
-        const post=await updatePost(editReq.post_slug, {
-          title:       editReq.title,
-          excerpt:     editReq.excerpt,
-          content:     editReq.content,
-          tags:        editReq.tags,
-          cover_image: editReq.cover_image ?? undefined,
-        })
-        if(post.published)invalidatePublishedContent([editReq.post_slug,post.slug])
-      }
-    }
-
-    const updated = await reviewEditRequest(id, status, admin_note)
-    return NextResponse.json({ ok: true, request: updated })
+    if (admin_note != null && typeof admin_note !== 'string') return NextResponse.json({error:'审核备注必须为文字'},{status:400})
+    const { request, post } = await reviewEditRequest(id, status, admin_note)
+    const cacheStatus = post?.published ? invalidatePublishedContent([post.slug]) : 'unchanged'
+    return NextResponse.json({ ok: true, request }, {headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (err) {
     if(err instanceof EditionEditConflict)return NextResponse.json({error:err.message},{status:409})
+    if(err instanceof Error && err.message==='Request already reviewed')return NextResponse.json({error:'该请求已审核或内容已变更'},{status:409})
+    if(err instanceof Error && err.message==='Request target unavailable')return NextResponse.json({error:'文章已撤回或不属于申请人，请拒绝该申请'},{status:409})
+    if(err instanceof Error && ['Request not found','Post not found'].includes(err.message))return NextResponse.json({error:'请求或文章不存在'},{status:404})
+    if((err as {code?:string})?.code==='23505')return NextResponse.json({error:'目标 Slug 已存在，请重新提交'},{status:409})
     logFailure('app/api/edit-requests/all/[id]', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
@@ -78,7 +49,7 @@ export async function GET(
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
   const id = Number(params.id)
-  if (isNaN(id)) return NextResponse.json({ error: '参数错误' }, { status: 400 })
+  if (!Number.isSafeInteger(id) || id<=0) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   try {
     const req = await getEditRequestById(id)

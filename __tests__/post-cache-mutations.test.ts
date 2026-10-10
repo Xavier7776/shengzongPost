@@ -16,7 +16,7 @@ beforeEach(()=>{
   create.mockResolvedValue({slug:'new',published:true});update.mockResolvedValue({slug:'new',published:false})
   invalidate.mockReturnValue('invalidated')
   edit.mockResolvedValue({status:'pending',post_slug:'old',title:'Approved',content:'body',tags:[]})
-  review.mockResolvedValue({status:'approved'})
+  review.mockResolvedValue({request:{status:'approved'},post:null})
 })
 describe('successful content commits invalidate public distribution',()=>{
   it('invalidates a new publication, preserves a draft and never invalidates a rejected request',async()=>{
@@ -41,10 +41,12 @@ describe('successful content commits invalidate public distribution',()=>{
     expect(remove.mock.invocationCallOrder[0]).toBeLessThan(invalidate.mock.invocationCallOrder[0])
   })
   it('invalidates an approved edit to an existing published post',async()=>{
-    update.mockResolvedValue({slug:'old',published:true})
+    review.mockResolvedValue({request:{status:'approved'},post:{slug:'old',published:true}})
     expect((await reviewPatch(req('PATCH',{status:'approved'}),{params:{id:'1'}})).status).toBe(200)
-    expect(invalidate).toHaveBeenCalledWith(['old','old'])
+    expect(invalidate).toHaveBeenCalledWith(['old'])
+    expect(review.mock.invocationCallOrder[0]).toBeLessThan(invalidate.mock.invocationCallOrder[0])
     invalidate.mockClear()
+    review.mockResolvedValue({request:{status:'rejected'},post:null})
     await reviewPatch(req('PATCH',{status:'rejected'}),{params:{id:'1'}})
     expect(invalidate).not.toHaveBeenCalled()
   })

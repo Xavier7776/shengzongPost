@@ -45,8 +45,8 @@ describe('administrator correction boundary',()=>{
   })
   it('keeps an edition edit request pending when approval would drift JSON',async()=>{
     m.getEdit.mockResolvedValue({status:'pending',post_slug:ctx.params.slug,title:'Changed'})
-    m.updatePost.mockRejectedValue(new EditionEditConflict())
+    m.review.mockRejectedValue(new EditionEditConflict())
     const r=await approve(new NextRequest('http://localhost/api/edit-requests/all/1',{method:'PATCH',body:JSON.stringify({status:'approved'})}),{params:{id:'1'}})
-    expect(r.status).toBe(409);expect(m.review).not.toHaveBeenCalled()
+    expect(r.status).toBe(409);expect(m.review).toHaveBeenCalledOnce();expect(m.updatePost).not.toHaveBeenCalled()
   })
 })
