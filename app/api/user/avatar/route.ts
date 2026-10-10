@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { sql } from '@/lib/db'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { randomUUID } from 'node:crypto'
 import { uploadLarge } from '@/lib/uploadLarge'
 
 async function handlePOST(req: NextRequest) {
@@ -16,7 +15,7 @@ async function handlePOST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
   const userId = Number((session.user as { id?: string }).id)
-  if (!userId) return NextResponse.json({ error: '用户信息异常' }, { status: 400 })
+  if (!Number.isSafeInteger(userId) || userId < 1) return NextResponse.json({ error: '用户信息异常' }, { status: 400 })
 
   if (!await allowAuthAttempt(req, 'upload', String((session.user as { id?: string }).id))) return NextResponse.json({ error: '操作太频繁，请稍后重试' }, { status: 429 })
 
@@ -31,39 +30,19 @@ async function handlePOST(req: NextRequest) {
     if (!allowed.includes(file.type))
       return NextResponse.json({ error: '只支持 JPG/PNG/WebP' }, { status: 400 })
 
-    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
-    const fileName = `user_${userId}.${ext}`
-    const avatarsDir = join(process.cwd(), 'public', 'avatars')
-    const localUrl = `/avatars/${fileName}`
-
     const buffer = Buffer.from(await file.arrayBuffer())
-    if (!isRasterImage(buffer)) return NextResponse.json({ error: '文件不是支持的 JPG/PNG/WebP/GIF 图片' }, { status: 400 })
+    if (!isRasterImage(buffer) || ['GIF87a','GIF89a'].includes(buffer.subarray(0,6).toString('ascii'))) return NextResponse.json({ error: '文件不是支持的 JPG/PNG/WebP 图片' }, { status: 400 })
 
-    await mkdir(avatarsDir, { recursive: true })
-
-    // 1. 始终保存本地
-    await writeFile(join(avatarsDir, fileName), buffer)
-
-    // 2. 尝试上传 Cloudinary
-    let avatarUrl = localUrl
-    try {
-      const result = await uploadLarge(buffer, {
-        folder: 'avatars',
-        public_id: `user_${userId}`,
-        overwrite: true,
-        resource_type: 'image',
-        transformation: [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }],
-      })
-      avatarUrl = result.secure_url
-
-    } catch (cldErr) {
-      logFailure('app/api/user/avatar', cldErr)
-    }
-
-    // 加版本号防止浏览器缓存旧头像，同时写入 DB 确保重新登录后也拿到最新 URL
-    const cacheBustUrl = `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
-    await sql`UPDATE users SET avatar=${cacheBustUrl} WHERE id=${userId}`
-    return NextResponse.json({ url: cacheBustUrl, localUrl })
+    const result = await uploadLarge(buffer, {
+      folder: 'avatars',
+      public_id: `user_${userId}_${randomUUID()}`,
+      overwrite: false,
+      resource_type: 'image',
+      transformation: [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }],
+    })
+    // A new immutable asset keeps the old avatar usable if database confirmation fails.
+    await sql`UPDATE users SET avatar=${result.secure_url} WHERE id=${userId}`
+    return NextResponse.json({ url: result.secure_url })
   } catch (err) {
     logFailure('app/api/user/avatar', err)
     return NextResponse.json({ error: '上传失败，请重试' }, { status: 500 })

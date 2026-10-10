@@ -1,65 +1,34 @@
-// lib/uploadLarge.ts
-// 所有上传接口统一走这里，底层用 cloudinary.uploader.upload_large（分片上传）
-// upload_large 接受文件路径，所以先把 buffer 写临时文件，上传完立即删除
-
 import { cloudinary } from '@/lib/cloudinary'
-import { writeFile, unlink } from 'fs/promises'
-import { tmpdir } from 'os'
-import { join } from 'path'
-import { randomUUID } from 'crypto'
+import { allowedCloudinaryUrl } from '@/lib/security/remote-assets'
 
 export interface UploadResult {
   secure_url: string
-  public_id:  string
-  width?:     number
-  height?:    number
+  public_id: string
+  width?: number
+  height?: number
 }
 
-const MAX_RETRIES = 2
-const TIMEOUT_MS = 60_000 // 60 秒超时
-
-function uploadOnce(tmpPath: string, options: Record<string, unknown>): Promise<UploadResult> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('上传超时，请检查网络后重试')), TIMEOUT_MS)
-
-    cloudinary.uploader.upload_large(
-      tmpPath,
-      { chunk_size: 6 * 1024 * 1024, ...options },
-      (error: unknown, result: UploadResult | undefined) => {
-        clearTimeout(timer)
-        if (error || !result) return reject(error ?? new Error('upload_large 返回空结果'))
-        resolve({
-          secure_url: result.secure_url,
-          public_id:  result.public_id,
-          width:      result.width,
-          height:     result.height,
-        })
-      }
-    )
-  })
-}
-
-export async function uploadLarge(
+/** Current callers cap files at 16 MiB; stream once without ephemeral disk or ambiguous retries. */
+export function uploadLarge(
   buffer: Buffer,
   options: Record<string, unknown> & { resource_type?: 'raw' | 'image' | 'video' | 'auto' }
 ): Promise<UploadResult> {
-  const tmpPath = join(tmpdir(), randomUUID())
-  await writeFile(tmpPath, buffer)
-
-  try {
-    let lastError: unknown
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        return await uploadOnce(tmpPath, options)
-      } catch (err) {
-        lastError = err
-        if (attempt < MAX_RETRIES) {
-          await new Promise(r => setTimeout(r, 1000))
-        }
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const finish = (error: unknown, result?: UploadResult) => {
+      if (settled) return
+      settled = true
+      if (error) { reject(error); return }
+      if (!result || typeof result.secure_url !== 'string' || !allowedCloudinaryUrl(result.secure_url) ||
+          typeof result.public_id !== 'string' || !result.public_id.trim()) {
+        reject(new Error('Upload provider returned an invalid result')); return
       }
+      resolve({secure_url:result.secure_url,public_id:result.public_id,width:result.width,height:result.height})
     }
-    throw lastError ?? new Error('上传失败')
-  } finally {
-    await unlink(tmpPath).catch(() => {})
-  }
+    try {
+      const stream = cloudinary.uploader.upload_stream({timeout:60_000,...options}, finish)
+      stream.on('error', error => finish(error))
+      stream.end(buffer)
+    } catch (error) { finish(error) }
+  })
 }

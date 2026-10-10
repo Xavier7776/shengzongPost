@@ -688,7 +688,7 @@ git diff --check
 | M07 学习中心 V3 | [x] | [#21](https://github.com/Xavier7776/shengzongPost/pull/21) 已合并 | 317 tests、三尺寸学习通过 | 412affb 全绿 | 同 head READY | 6af12cc READY/复核通过 | M07-A 完成；可选 B 未选择 |
 | M08 内容推荐/作品集 | [x] | PR #22 / 8f74cdc | 330 测试/类型/lint/构建通过 | Chrome 3 宽度/路线/推荐/项目返回通过 | 跨 Blog/Learn/Work 停用/撤回缓存通过 | CI 38020243985 全通过；Preview/正式 READY 同 SHA | 无生产写入 |
 | M09 SEO/性能 | [-] A 完成/B 待验收 | [#23](https://github.com/Xavier7776/shengzongPost/pull/23) 已合并 | 335 测试/类型/lint/构建通过 | 完整 Lighthouse 对照/手机三项 ≥90 | Preview/正式域名读取通过 | CI 全绿/生产 READY | LCP/INP/站长验证保留 |
-| M10 安全二轮 | [-] A/B1 已交付 / B2A 本地验证通过 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) d939025；[#25](https://github.com/Xavier7776/shengzongPost/pull/25) 12a739d；B2A 候选 | A:407/B1:425 全门禁；B2A:439 tests/类型/lint/构建/真实 Neon 并发/浏览器通过 | A/B1 同 SHA READY；B2A 待验 | B1 dpl_61rbicDVuhCDVz95thpWNPsT45J8 READY | docs/security/m10-threat-model.md；m10-points-consistency.md；m10-edit-review.md | 2026-10-10 |
+| M10 安全二轮 | [-] A/B1/B2A 已交付 / B2B 验证中 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) d939025；[#25](https://github.com/Xavier7776/shengzongPost/pull/25) 12a739d；[#26](https://github.com/Xavier7776/shengzongPost/pull/26) 2d2684e | A:407/B1:425/B2A:439 全门禁与集成；B2B门禁中 | A/B1/B2A 同 SHA READY | B2A dpl_E3QEARrQp2SLUvVEQQLyz4m53gRY READY/正式只读通过 | docs/security/m10-threat-model.md；m10-points-consistency.md；m10-edit-review.md | 2026-10-10 |
 | M11 数据与恢复 | [ ] | — | — | — | — | — | — |
 | M12 Next LTS | [ ] | — | — | — | — | — | — |
 | M13 可选增强 | [ ] | — | — | — | — | — | — |
@@ -1000,3 +1000,11 @@ Production：未发布 / BUILDING / READY / ERROR
 - B2A 独立工作树 shengzongPost-m10c / codex/security-approval-v2，基线12a739d。正文/草稿与申请状态在单个事务提交，以行锁+完整快照阻止重复审批与旧正文复用；旧编辑申请也核对当前作者/公开状态。新稿归属提交者但仍为草稿，Slug冲突/精读漂移保留待审。被拒申请删除+替换原子执行，只允许本人，失败保留旧申请。公开缓存只在提交后清除。
 - 61文件/439tests、typecheck/lint/完整fixture build/diff通过。原生Neon临时分支新合成m10c_parallel_v2_* 的批准、批准/拒绝竞争和替换各6并发只有1成功，真实重叠后台数5/6/6。Chrome真实本地认证和后台按钮、公开缓存更新、草稿404、角色/旧申请拒绝、4次替换与三尺寸通过，错误为空。报告docs/security/m10-edit-review.md；材料m10c-local.json、m10c-neon-parallel.json。B2A CI/Preview/生产尚待验收。
 - M10-B2B上传持久性/公开防刷继续推进；历史JWT策略、生产审计、密钥及权限保持独立批准边界。生产DB/08:30 Neon任务不变。
+
+
+### 2026-10-10 M10-B2A 正式交付 / B2B 验证中
+
+- B2A PR #26 head b2fe9808da1088c5c52ec46fd1fd73127bc1270b，CI 38027822355/job114142318550 全成功，Preview dpl_AgWtzrEAR8zuXJkk6VQAY13Rfh5k READY/只读通过；正常 expected-head squash 合并2d2684ec873fad50ecbafdf146ee75281affa150。
+- 自动 Production 未出现后，经用户明确批准重试该提交，生产 dpl_E3QEARrQp2SLUvVEQQLyz4m53gRY 同 SHA READY，正式域名指向该部署。Chrome 正式公开/Markdown/PDF/登录、编辑申请 JSON401/空审核界面/投稿登录跳转、旧刊指纹/自测/图表/RSS/sitemap/404 与390/1024/1440通过；预期401单独记录，无未解释错误，部署范围error/fatal统计为空。未执行生产审批/上传/数据库写入，08:30任务、生产DB/密钥未改变。证据 m10c-production{,-smoke,-review}.json。
+- B2B 在 shengzongPost-m10d / codex/security-storage-v2 基于2d2684e实现：复用 Cloudinary upload_stream 一次传输，移除临时磁盘与结果不确定时的重试；头像/GIF/宠物写持久资源且唯一ID不覆盖旧资源。公共订阅/画廊点赞/浏览/互动/统计复用既有055持久限流；统计路径去查询、来源只存origin、不存UA/真实IP、IP每日HMAC、私有路由不追踪。新增21项协议/路由/实际SQL用例已通过，完整门禁与真实本地集成验证继续。
+- M11只读准备已有同提供商快照恢复至新分支并核对哈希，未切换生产分支；独立备份与生产治理尚未批准，不标记整阶段完成。

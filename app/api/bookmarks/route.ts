@@ -4,6 +4,7 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
+import { allowAuthAttempt } from '@/lib/auth-rate-limit'
 import { isBookmarked, toggleBookmark, getUserBookmarks } from '@/lib/db'
 
 // GET /api/bookmarks?slug=xxx  → { bookmarked: bool }
@@ -37,6 +38,7 @@ async function handlePOST(req: NextRequest) {
   try {
     const { slug } = await req.json()
     if (typeof slug !== 'string' || !slug) return NextResponse.json({ error: '缺少 slug' }, { status: 400 })
+    if (!await allowAuthAttempt(req,'interaction',String(userId))) return NextResponse.json({error:'操作太频繁，请稍后再试'},{status:429})
     const bookmarked = await toggleBookmark(slug, userId)
     return NextResponse.json({ bookmarked })
   } catch (err) {

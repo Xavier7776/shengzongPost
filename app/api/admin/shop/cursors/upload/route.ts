@@ -1,17 +1,15 @@
 import { logFailure } from '@/lib/security/log'
-import { isRasterImage } from '@/lib/security/image'
 import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/admin/shop/cursors/upload/route.ts
 // POST /api/admin/shop/cursors/upload  FormData: { file, key }
-// 把 GIF 写入 public/cursor-effects/<key>.gif，返回可访问 URL
+// 把 GIF 存到持久对象存储，返回可访问 URL
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { uploadLarge } from '@/lib/uploadLarge'
+import { randomUUID } from 'node:crypto'
 
 export const dynamic = 'force-dynamic'
 
-const PUBLIC_DIR = join(process.cwd(), 'public', 'cursor-effects')
 const MAX_SIZE = 8 * 1024 * 1024 // 8MB
 
 async function handlePOST(req: NextRequest) {
@@ -20,11 +18,12 @@ async function handlePOST(req: NextRequest) {
 
     const formData = await req.formData()
     const file = formData.get('file') as File | null
-    const key  = (formData.get('key') as string | null)?.trim().toLowerCase()
+    const rawKey = formData.get('key')
+    const key = typeof rawKey === 'string' ? rawKey.trim().toLowerCase() : ''
 
     if (!file || typeof file.arrayBuffer !== 'function')  return NextResponse.json({ error: '请选择文件' }, { status: 400 })
     if (!key)   return NextResponse.json({ error: '请输入 key' }, { status: 400 })
-    if (!/^[a-z0-9-]+$/.test(key)) {
+    if (!/^[a-z0-9-]{1,100}$/.test(key)) {
       return NextResponse.json({ error: 'key 只能包含小写字母、数字、连字符' }, { status: 400 })
     }
     if (file.size > MAX_SIZE) {
@@ -40,14 +39,10 @@ async function handlePOST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    if (!isRasterImage(buffer)) return NextResponse.json({ error: '文件不是支持的 JPG/PNG/WebP/GIF 图片' }, { status: 400 })
-    await mkdir(PUBLIC_DIR, { recursive: true })
+    if (!['GIF87a','GIF89a'].includes(buffer.subarray(0,6).toString('ascii'))) return NextResponse.json({error:'文件不是 GIF 图片'},{status:400})
     const filename = `${key}.${ext}`
-    const filepath = join(PUBLIC_DIR, filename)
-    await writeFile(filepath, buffer)
-
-    const url = `/cursor-effects/${filename}`
-    return NextResponse.json({ success: true, url, filename })
+    const result = await uploadLarge(buffer,{folder:'arc-portfolio/cursor-effects',public_id:`${key}_${randomUUID()}`,overwrite:false,resource_type:'image'})
+    return NextResponse.json({ success: true, url:result.secure_url, filename })
   } catch (err) {
     logFailure('app/api/admin/shop/cursors/upload', err)
     return NextResponse.json({ error: '上传失败' }, { status: 500 })

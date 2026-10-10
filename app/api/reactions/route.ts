@@ -4,6 +4,7 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
+import { allowAuthAttempt } from '@/lib/auth-rate-limit'
 import { getPostReactions, toggleReaction } from '@/lib/db'
 
 // GET /api/reactions?slug=xxx
@@ -33,6 +34,7 @@ async function handlePOST(req: NextRequest) {
     const { slug, type } = await req.json()
     if (typeof slug !== 'string' || !slug || !['like', 'dislike'].includes(type))
       return NextResponse.json({ error: '参数错误' }, { status: 400 })
+    if (!await allowAuthAttempt(req,'interaction',String(userId))) return NextResponse.json({error:'操作太频繁，请稍后再试'},{status:429})
 
     await toggleReaction(slug, userId, type)
     return NextResponse.json(await getPostReactions(slug, userId))
