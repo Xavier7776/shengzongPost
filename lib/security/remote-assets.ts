@@ -35,4 +35,3 @@ export async function readRemoteBytes(url: string, maxBytes: number): Promise<Ui
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
   return bytes
 }
-
