@@ -26,9 +26,29 @@ beforeEach(() => {
   })
   localStorage.clear()
 })
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('daily learn layout compatibility', () => {
+  it.each([0, 240])('avoids initial layout reads at the top and measures restored position %d', position => {
+    vi.stubGlobal('scrollY', position)
+    const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1)
+    const cancelFrame = vi.spyOn(window, 'cancelAnimationFrame')
+    const measure = vi.spyOn(Element.prototype, 'getBoundingClientRect')
+    const { unmount } = render(<><div id="blog-reader-root"><div className="reader-content"><h2 id="first">First chapter</h2></div></div><LearnToc /></>)
+    expect(measure).not.toHaveBeenCalled()
+    if (position === 0) {
+      expect(requestFrame).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: 'First chapter' })).toHaveAttribute('aria-current', 'location')
+      fireEvent.scroll(window)
+    }
+    expect(requestFrame).toHaveBeenCalledTimes(1)
+    act(() => requestFrame.mock.calls[0][0](0))
+    expect(measure).toHaveBeenCalled()
+    fireEvent.scroll(window)
+    expect(requestFrame).toHaveBeenCalledTimes(2)
+    unmount()
+    expect(cancelFrame).toHaveBeenCalledWith(1)
+  })
   it('uses a compact edition byline with explicit lesson and practice estimates', async () => {
     render(await PostHeader({ slug: 'daily-learn-2026-10-09', variant: 'learn' }))
     expect(screen.getByRole('heading', { level: 1 })).toHaveClass('learn-post-title')

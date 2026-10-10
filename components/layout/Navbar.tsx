@@ -173,7 +173,7 @@ export default function Navbar() {
         <div className={`${pathname === '/gallery' ? 'relative px-5 sm:px-8 lg:px-12' : 'max-w-6xl mx-auto px-6'} flex items-center justify-between`}>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" prefetch={false} className="flex items-center gap-2.5">
             <Image
               src="/logo.png"
               alt="MindStack"
@@ -194,6 +194,7 @@ export default function Navbar() {
                 <Link
                   key={href}
                   href={href}
+                  prefetch={false}
                   className={`capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
                     isGalleryHero
                       ? isActive ? 'text-white' : 'text-white/65 hover:text-white'
@@ -210,6 +211,7 @@ export default function Navbar() {
             {/* 搜索入口：跳转 /search（原 ⌘K 命令面板已移除） */}
             <Link
               href="/search"
+              prefetch={false}
               className={`flex items-center gap-2 text-xs font-black tracking-widest transition-colors py-2 ${isGalleryHero ? 'text-white/65 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
               title="搜索 (Cmd/Ctrl + K)"
             >
@@ -237,7 +239,7 @@ export default function Navbar() {
                 </div>
               </Link>
             ) : (
-              <Link href="/login" className={`text-xs font-black transition-colors px-3 py-1.5 rounded-xl border ${isGalleryHero ? 'border-white/20 text-white/70 hover:border-white/40 hover:text-white' : 'border-gray-200 text-gray-500 hover:text-gray-900'}`}>
+              <Link href="/login" prefetch={false} className={`text-xs font-black transition-colors px-3 py-1.5 rounded-xl border ${isGalleryHero ? 'border-white/20 text-white/70 hover:border-white/40 hover:text-white' : 'border-gray-200 text-gray-500 hover:text-gray-900'}`}>
                 登录
               </Link>
             )}
@@ -269,7 +271,7 @@ export default function Navbar() {
           >
             {/* 抽屉顶部 */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50">
-              <Link href="/" onClick={handleClose} className="flex items-center gap-2">
+              <Link href="/" prefetch={false} onClick={handleClose} className="flex items-center gap-2">
                 <Image src="/logo.png" alt="MindStack" width={24} height={24} className="w-6 h-6 rounded-full" />
                 <span className="tracking-tighter text-lg font-black text-gray-900">
                   Mind<span className="text-blue-600">Stack</span>
@@ -293,6 +295,7 @@ export default function Navbar() {
                   <Link
                     key={href}
                     href={href}
+                    prefetch={false}
                     onClick={handleClose}
                     className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-colors ${
                       isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'
@@ -310,6 +313,7 @@ export default function Navbar() {
               {/* 搜索入口 */}
               <Link
                 href="/search"
+                prefetch={false}
                 onClick={handleClose}
                 className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
               >
@@ -395,7 +399,7 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="px-3 py-4 border-t border-gray-50">
-                <Link href="/login" onClick={handleClose}
+                <Link href="/login" prefetch={false} onClick={handleClose}
                   className="w-full flex items-center justify-center py-2.5 rounded-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-700 transition-colors">
                   登录 / 注册
                 </Link>

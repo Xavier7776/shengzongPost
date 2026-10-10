@@ -1,18 +1,18 @@
 # M12 runtime candidate: Next16 / React19
 
-Date: 2026-10-10. Base: `4badb72bbaf76fb8bdbaca2a9ba5517a60d7bc4a` (M12-A, Next14/React18). Candidate: Next16.4.0, React/DOM19.3.0, NextAuth4.24.15. **Not approved for release: mobile article performance remains below the candidate target.**
+Date: 2026-10-10. Base: `4badb72bbaf76fb8bdbaca2a9ba5517a60d7bc4a` (M12-A, Next14/React18). Candidate: Next16.4.0, React/DOM19.3.0, NextAuth4.24.15. **Keep Draft per the user's instruction. The optimized mobile laboratory candidate reaches the90-point floor; release approval and latest-head CI/Preview remain pending.**
 
 ## Scope and checks
 
-Windows Node24.9.0/npm11.6.0; isolated worktree, clean npm ci with valid peer dependencies; webpack production build, fixture-only database transport, no production writes. 70 Vitest files / 471 tests, typecheck, five real OnlyUs lint boundary probes and complete build pass. Lint has 0 errors / 100 warnings; the Compiler diagnostics remain visible and React Compiler is not enabled. All 136 existing app manifest entries remain; Next16 adds only its global error page. Static-generation counters (89 vs85) are framework output, not removed routes.
+Windows Node24.9.0/npm11.6.0; isolated worktree, npm ci with valid declared peers; webpack production build, fixture-only database transport, no production writes. 71 Vitest files / 474 tests, typecheck and complete build pass. Five real OnlyUs lint boundary probes passed the framework candidate and remain mandatory in CI. Lint has0 errors /101 warnings; the Compiler diagnostics remain visible and React Compiler is not enabled. All136 existing app manifest entries remain; Next16 adds only its global error page. Static-generation counters(89 vs85) are framework output, not removed routes.
 
-Actual production browser sessions across 390/1024/1440 pass public reading, login-page layout and hydration checks. Synthetic accounts exercise real NextAuth CSRF/credentials and both Tiptap editors: admin draft save/reload/preview/publish/withdraw, user submission stays pending/private. Local review approval/replacement/collision checks, atomic points and ledger checks, persistent uploads/provider failures/sprite access and public throttling all pass. Real logout, role revocation, changed-password rejection and relogin pass. Remote Preview remains pending. Existing native Neon concurrency evidence from M10 is not re-run or relabeled as M12 evidence.
+Actual production browser sessions across390/1024/1440 pass public reading, login-page layout and hydration checks. Synthetic accounts exercise real NextAuth CSRF/credentials and both Tiptap editors: admin draft save/reload/preview/publish/withdraw, user submission stays pending/private. Local review approval/replacement/collision checks, atomic points and ledger checks, persistent uploads/provider failures/sprite access and public throttling all pass. Real logout, role revocation, changed-password rejection and relogin pass. Previous-head Preview passes; the optimized head's exact Preview remains pending. Existing native Neon concurrency evidence from M10 is not re-run or relabeled as M12 evidence.
 
 Two hydration defects were fixed at their source: toolbar preferences now apply to the hydrated article shell without modifying streamed reader nodes; comments wait for their own hydration before rendering session-dependent controls. The delayed-reader preferences test and real renderToString/hydrateRoot session-race test preserve those invariants. No hydration warning is suppressed.
 
-The first exact-head Preview (`af3f2ce`, CI38036975899/job114169328581, deployment dpl_AjHLvwWXskTZx3srvCJE1g3tf4so READY) passes the public-read/security checks, but its multi-page smoke test fails with React418. Instrumented diagnostic playback identifies the Navbar active-link span, not the reader. Active links now wait for Navbar hydration; a real SSR/hydrate route-change test passes. Complete local gates are rerun for this follow-up. Final Preview and performance validation remain pending; the earlier deployment is not called a full pass. The scoped15-minute error/fatal log query is empty, which does not negate the browser failure.
+The first exact-head Preview(`af3f2ce`, CI38036975899/job114169328581, deployment dpl_AjHLvwWXskTZx3srvCJE1g3tf4so READY) passes the public-read/security checks, but its multi-page smoke test fails with React418. Instrumented diagnostic playback identifies the Navbar active-link span. Active links now wait for Navbar hydration; a real SSR/hydrate route-change test passes. Follow-up2e93ad4 passes CI38037984006/job114172330743 and exact Preview dpl_FzfUoJHkbX9xJfFksCCzLHAqBAy2, including public/security, multi-page smoke and Shop/Research at three widths with no browser errors. That head still scores87 on mobile article; the user explicitly kept PR30 Draft and requested optimization. Its empty scoped15-minute error/fatal log query does not negate the initial deployment's browser failure.
 
-## Comparable laboratory observations
+## Prior candidate laboratory observations
 
 Chrome154, Lighthouse13.5.0, identical synthetic/public-content fixture, port3332 and settings; fresh Chrome instance per Lighthouse case. Before: `m12-before-sequential-lh-*`; after: `m12-after-delivery-lh-*`. Runs are sequential with no concurrent build or browser benchmark. These are single laboratory observations, **not field p75 or INP**. The desktop run retains the pre-existing mobile throttling settings with desktop viewport/form factor, so its absolute score is not a standard desktop-network claim.
 
@@ -28,6 +28,25 @@ SEO is100 throughout; accessibility is100 on mobile home and96 on the other case
 The 18-case production browser footprint compares `m12-before-sequential-metrics.json` with `m12-after-delivery-retry-metrics.json`: home gzip JS137411→176824 bytes; old article162149→201343 bytes at390px. Those roughly39KB increases include the framework/router upgrade. Script bytes include viewport-triggered and prefetched resources, not only an entry chunk. Work/search/login differ in footer/prefetch loading and must not be advertised as uniformly improved.
 
 SQL counts include navigation prefetch and background ISR; a fresh browser context is not a cold server. Final page totals are home0–5, Learn3–12, old article2–3, search5–6, Work3–4, login0. Next15+ no longer caches fetch by default; only public Learn/Blog pages explicitly restore their60-second default cache, with immediate post-commit invalidation retained. Shared Neon, authentication and private/API calls have no blanket force-cache. Theme filters skip automatic prefetch, while article links retain it. Counts do not establish server p95, cost savings or publication freshness on their own.
+
+## Optimized candidate: complete repeated observations
+
+The unchanged QR generator now loads only when the reader clicks WeChat. Public Navbar links and the shared anonymous UserMenu login link load target routes on click; authenticated menu links and article links retain their behavior. At page top the chapter rail selects the first heading without measuring every heading; restored/deep-linked positions and scrolling keep the existing frame-coalesced measurements. These changes add no dependency or UI redesign. The tradeoff is waiting for a first uncached destination/QR chunk on interaction.
+
+QR-only produced one mobile article91. QR plus public prefetch changes produced90/90/89, so it was not treated as stable acceptance. Moving the initial geometry read to the next frame produced88/88/88 and was rejected. The final top-position branch produces91/90/90. All twelve final cases ran sequentially, after every build/test/browser check completed, with a fresh Chrome instance per case and the same fixture/settings. Baseline still has one comparable sample; repeated candidate observations are not a repeated baseline distribution.
+
+| Viewport / page | Baseline score | All three final scores | Baseline → median LCP ms | Baseline → median TBT ms | Baseline → final CLS |
+|---|---:|---:|---:|---:|---:|
+|390 / home|95|94 /94 /94|2886 →3012|0 →32.5|.000060 →.000060|
+|390 / old edition|92|91 /90 /90|3238 →3325|0 →155|.030446 →.000434|
+|1440 / home|69|69 /69 /69|3258 →3263|0 →37|.000431 →.000431|
+|1440 / old edition|59|65 /68 /69|3328 →3671|354 →198.5|.017587 →.000511–.000605|
+
+Every final mobile observation reaches90; all SEO scores are100, mobile-home accessibility100 and the other cases96. The old article mobile LCP remains about2.7% above baseline; desktop-viewport article LCP remains about10.3% above baseline under the inherited mobile throttling. M09's2500ms/field p75/INP and broader desktop targets are not passed.
+
+Final18-case footprint: old article gzip JS187412 bytes at all three widths, down13948 bytes from the navigation-fix candidate's201360 at390px, but still25263 bytes above the Next14 baseline162149. Home173074 bytes versus137411 baseline. The framework/router overhead remains explicit; this optimization does not restore baseline bundle size. SQL totals remain home0–5, Learn3–12, article2–3, search5–6, Work3–4 and login0, including prefetch/ISR.
+
+The QR browser self-check proves its generator is absent on initial navigation, loads on click and renders a real SVG; copy and close work. Three widths prove background home/login scripts are absent, route/back/keyboard navigation works, and mobile Escape restores focus. Chapter checks cover initial location, rapid scroll, return to top and deep-link refresh at all three widths. Old-edition fingerprint/quiz/chart/sources/RSS/sitemap/404 checks pass with no browser errors. Evidence: m12-qr-lazy-local.json, m12-nav-lazy-local.json, m12-toc-local.json and m12b-top-local-smoke.json; m12-after-top-metrics.json and m12-after-top-lh-{one,two,three}-* preserve all observations. The RAF-only failure is m12-after-frame-*; previous failures remain intact.
 
 ## Failed attempts and release limits
 
