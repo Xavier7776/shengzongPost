@@ -184,7 +184,7 @@ npm run dev
 npm run dev            # 开发服务器
 npm run build          # 生产构建
 npm run start          # 启动构建产物
-npm run lint           # next lint
+npm run lint           # ESLint CLI
 npm run typecheck      # tsc --noEmit（含 scripts/）
 npm test               # vitest run
 npm run test:watch

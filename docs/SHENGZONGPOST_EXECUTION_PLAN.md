@@ -511,13 +511,13 @@ error_detail_sanitized TEXT NULL
 
 ### 实施清单
 
-- [ ] 清点关键数据域：`posts`、`learn_editions`、`users`、`comments`、`skills`、`gallery_images`、`auth_rate_limits`、`projects`、学习记录（如有）。记录主外键、唯一性、索引和典型增长率。
-- [ ] 盘点 migration 目录与真实 schema 的漂移；输出 `schema-drift-report.md`，不自动应用陈旧 SQL，也不重复执行 055。
-- [ ] 审查孤儿数据/引用失效：Edition 不存在的 post、孤立附件、删除文章后的评论/反应记录；先生成**只读报告**，不能擅自清理。
-- [ ] 查询 Neon 支持的 PITR、备份、分支还原及保留周期，定义可接受的 RPO/RTO，并记录费用。若需要定期导出，建议脱敏/加密并存到经过授权的安全位置。
-- [ ] 至少进行一次**临时分支恢复演练**：只在隔离环境恢复与比对文章数、关系、随机记录哈希；严禁在主分支做清库/还原测试。
-- [ ] 估算检索、列表、tag COUNT、学习进度和发布审计的查询增长；只有证据充分时才申请新索引，记录索引写放大与存储开销。
-- [ ] `auth_rate_limits` 如需过期桶清理，采用受控低频维护任务；先跑只读候选数量查询，生产 DELETE 需要明确审批，不能假设“定期清理”可自行执行。
+- [x] 清点关键数据域：`posts`、`learn_editions`、`users`、`comments`、`skills`、`gallery_images`、`auth_rate_limits`、`projects`、学习记录（如有）。记录主外键、唯一性、索引和典型增长率。
+- [x] 盘点 migration 目录与真实 schema 的漂移；输出 `schema-drift-report.md`，不自动应用陈旧 SQL，也不重复执行 055。
+- [x] 审查孤儿数据/引用失效：Edition 不存在的 post、孤立附件、删除文章后的评论/反应记录；先生成**只读报告**，不能擅自清理。
+- [x] 查询 Neon 支持的 PITR、备份、分支还原及保留周期，定义可接受的 RPO/RTO，并记录费用。若需要定期导出，建议脱敏/加密并存到经过授权的安全位置。
+- [x] 至少进行一次**临时分支恢复演练**：只在隔离环境恢复与比对文章数、关系、随机记录哈希；严禁在主分支做清库/还原测试。
+- [x] 估算检索、列表、tag COUNT、学习进度和发布审计的查询增长；只有证据充分时才申请新索引，记录索引写放大与存储开销。
+- [x] `auth_rate_limits` 如需过期桶清理，采用受控低频维护任务；先跑只读候选数量查询，生产 DELETE 需要明确审批，不能假设“定期清理”可自行执行。
 
 ### 验收
 
@@ -527,7 +527,7 @@ error_detail_sanitized TEXT NULL
 
 **回滚**：本阶段以报告和演练为主；若无明确批准，不在生产执行 DML/DDL。
 
-**结果登记**：PR `________` ｜ 恢复演练日期 `________` ｜ RPO/RTO `________`
+**结果登记**：PR `#28` ｜ 恢复演练日期 `2026-10-10` ｜ RPO/RTO `目标24h/60m，单次已验证，非SLA`
 
 ---
 
@@ -689,7 +689,7 @@ git diff --check
 | M08 内容推荐/作品集 | [x] | PR #22 / 8f74cdc | 330 测试/类型/lint/构建通过 | Chrome 3 宽度/路线/推荐/项目返回通过 | 跨 Blog/Learn/Work 停用/撤回缓存通过 | CI 38020243985 全通过；Preview/正式 READY 同 SHA | 无生产写入 |
 | M09 SEO/性能 | [-] A 完成/B 待验收 | [#23](https://github.com/Xavier7776/shengzongPost/pull/23) 已合并 | 335 测试/类型/lint/构建通过 | 完整 Lighthouse 对照/手机三项 ≥90 | Preview/正式域名读取通过 | CI 全绿/生产 READY | LCP/INP/站长验证保留 |
 | M10 安全二轮 | [-] A/B1/B2A 已交付 / B2B 验证中 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) d939025；[#25](https://github.com/Xavier7776/shengzongPost/pull/25) 12a739d；[#26](https://github.com/Xavier7776/shengzongPost/pull/26) 2d2684e | A:407/B1:425/B2A:439 全门禁与集成；B2B门禁中 | A/B1/B2A 同 SHA READY | B2A dpl_E3QEARrQp2SLUvVEQQLyz4m53gRY READY/正式只读通过 | docs/security/m10-threat-model.md；m10-points-consistency.md；m10-edit-review.md | 2026-10-10 |
-| M11 数据与恢复 | [ ] | — | — | — | — | — | — |
+| M11 数据与恢复 | [x] 基础完成 | #28 | 0af5225 | CI38032462556 | READY/通过 | READY/通过 | 2026-10-10；首次定时/异地实机待观察 |
 | M12 Next LTS | [ ] | — | — | — | — | — | — |
 | M13 可选增强 | [ ] | — | — | — | — | — | — |
 
@@ -1018,3 +1018,11 @@ Production：未发布 / BUILDING / READY / ERROR
 - recovery-private.pem与验证脚本放桌面shengzongPost-Recovery-Key；真实CMS经可移植密钥验证成功，无DPAPI依赖、无明文dump。用户表示已备份到其他电脑，但新PEM需同步，另一台电脑实机恢复未测试。RPO24h/RTO60m为接受的目标，单次观测不是保证；03:00日程待代码交付后启用，首次保留全部副本/演练资源，不自动删除。
 - public-only真实基线在新空库m11_schema_baseline重建通过；列/索引一致，70约束定义相同、1处CHECK cast重解析但枚举/非法/空/NULL真值一致。不通过legacy迁移脚本执行，不重排OnlyUs历史，不把元数据JSON当基线。
 - M11本地464 Vitest、Windowstypecheck/lint/89页完整隔离build通过；Node3项加密/认证损坏/缺失密钥/导出失败保留与连接/恢复边界检查通过。初次Node check被Vitest误收为0test已更名；并行build时4个既有PGlite初始化超时不算通过，未改超时门槛，build结束后原测试全部通过。PR/CI/Preview与日程仍待交付登记。
+
+
+### 2026-10-10 M11 正式交付 / M12-A 工具链
+
+- M11 PR #28 head78e2e9b4149d0ac99043dc2a7333d37e48de3b6c，CI38032462556/job114156080143全成功、Preview dpl_3Byeyyuvyuwjcsv7t55j45j9Tq5U READY/只读通过；正常expected-head squash合并0af52257af4279eb18d56f320007f7df067b15c3。自动Production dpl_BpAgXTmUczLoU9W6XwCWEDoK1KhQ READY/正式域名同SHA；公共/安全/Shop/Research、旧刊指纹/自测/图表、RSS/sitemap/404及390/1024/1440只读通过，浏览器错误为空，近15分钟部署error/fatal统计为空。
+- 每日北京时间03:00桌面加密备份经Codex应用启用，heartbeat ID shengzongpost/ACTIVE、本机China Standard Time；尚未发生首个无人值守定时触发。交付后同命令07:01:33Z–07:01:45Z另产735775字节CMS，清单工具版本/大小/SHA核对、桌面可移植密钥认证及PGDMP735162字节通过。之前恢复演练归档保留；不称新归档已再次恢复或异地实机测试完成。M11基础清点、报告、独立备份/隔离恢复及基线验收完成，RPO24h/RTO60m仍为目标，本机离线可能超限。
+- M12-A最新main0af5225独立Windows工作树codex/next-lts-toolchain：Vitest4.1.11、Node类型24.19.2、现有ESLint CLI及OnlyUs双向边界探针、同版本three类型转dev。Next14/React18/NextAuth4运行时保持。干净npm ci、typecheck/lint/边界探针和66文件464tests已通过，完整构建/CI/Preview继续。
+- 官方支持/registry已核对候选Next16.4.0 Active LTS、React19.3.0、稳定NextAuth4.24.15支持Next16；兼容矩阵与分批迁移见docs/quality/m12-upgrade-compatibility.md。A后audit57项（34moderate/21high/2critical），不是全清；框架、认证及编辑器公告仍待后续修复。08:30既有Neon发布、生产DB/密钥/角色/DSN不动；M02三次独立发布审计及M06/M09未满足指标继续保留。

@@ -27,9 +27,9 @@
 npm run dev           # 开发服务器
 npm run build         # 生产构建（见下方 Windows 注意）
 npm run start         # 启动构建产物
-npm run lint          # next lint
+npm run lint          # ESLint CLI；检查目录与 OnlyUs 双向边界保持一致
 npm run typecheck     # tsc --noEmit（含 scripts/）
-npm test              # vitest run（当前 11 个文件 / 85 个用例）
+npm test              # vitest run；文件/用例数以当前执行结果为准
 npm run test:watch
 
 npm run crawl:skills    # 爬取 AI Agent Skills → Neon
