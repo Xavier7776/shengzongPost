@@ -46,3 +46,4 @@ describe('AI technology study center', () => {
     await expect(LearnIndex({})).rejects.toThrow('database unavailable')
   })
 })
+vi.mock('@/components/learn/LearningPaths', () => ({ default: () => null }))

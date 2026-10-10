@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { updateProject, deleteProject } from '@/lib/db'
-import { revalidatePath } from 'next/cache'
+import { invalidatePublishedContent } from '@/lib/content-cache'
 import { cloudinary } from '@/lib/cloudinary'
 
 // PATCH /api/projects/[id] 更新项目（支持部分字段更新）
@@ -38,8 +38,8 @@ export async function PATCH(
     if (body.attachments !== undefined) data.attachments = Array.isArray(body.attachments) ? body.attachments : []
 
     const project = await updateProject(id, data)
-    revalidatePath('/work')
-    return NextResponse.json({ ok: true, project })
+    const cacheStatus = invalidatePublishedContent([])
+    return NextResponse.json({ ok: true, project }, { headers: { 'X-Content-Cache-Status': cacheStatus } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : '更新失败'
     if (msg.includes('unique') || msg.includes('duplicate')) {
@@ -71,6 +71,6 @@ export async function DELETE(
     }
   }
 
-  revalidatePath('/work')
-  return NextResponse.json({ ok: true })
+  const cacheStatus = invalidatePublishedContent([])
+  return NextResponse.json({ ok: true }, { headers: { 'X-Content-Cache-Status': cacheStatus } })
 }

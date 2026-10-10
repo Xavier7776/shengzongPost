@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { BookOpen, ArrowRight, Clock, CheckCircle2, Layers, CalendarDays } from 'lucide-react'
 import { getReadingHistory } from '@/components/sections/ReadingHistory'
 import { TOPICS, type Topic } from '@/lib/learn/document'
@@ -22,6 +22,7 @@ interface Props {
   total: number
   page: number
   pageSize: number
+  learningPaths?: ReactNode
 }
 const kinds = (Object.keys(TOPICS) as Topic[])
 const target = (topic: Topic | null, page = 1) => {
@@ -38,7 +39,7 @@ const iconFor: Record<Topic,string> = {
   multimodal: '多模态 · 视觉与音频',
 }
 
-export default function LearnCatalog({ articles, topic, topicCounts, total, page, pageSize }: Props) {
+export default function LearnCatalog({ articles, topic, topicCounts, total, page, pageSize, learningPaths }: Props) {
   const [visited, setVisited] = useState<Set<string>>(new Set())
   const [lastRead, setLastRead] = useState<{slug:string;title:string}|null>(null)
   const { records, available } = useLearningProgress()
@@ -125,6 +126,7 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
       </Link>)}
     </nav>
 
+    {learningPaths}
     {featured && <section aria-label="最新技术精读" className="mb-10 rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-7 sm:p-9">
       <div className="mb-3 inline-flex items-center gap-2 text-xs font-bold text-blue-700">
         <CalendarDays className="h-4 w-4"/> 最新一期 · {featured.date}

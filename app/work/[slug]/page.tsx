@@ -10,6 +10,8 @@ import WorkTocClient from './WorkTocClient'
 import { getProjectBySlug, getAllProjects } from '@/lib/db-works'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import RelatedContent from '@/components/sections/RelatedContent'
 
 // 项目详情内容变更频率低，长缓存
 export const revalidate = 3600
@@ -262,6 +264,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           <AttachmentList attachments={finalAttachments} />
         </div>
       )}
+
+      <div className="mx-auto max-w-3xl px-6"><Suspense fallback={null}><RelatedContent projectSlug={project.slug}/></Suspense></div>
 
       {/* 底部导航 */}
       <div className="border-t border-gray-100 bg-white">

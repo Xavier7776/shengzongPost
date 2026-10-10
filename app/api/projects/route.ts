@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { getEnabledProjects, getAllProjectsAdmin, createProject } from '@/lib/db'
-import { revalidatePath } from 'next/cache'
+import { invalidatePublishedContent } from '@/lib/content-cache'
 
 // GET /api/projects         公开：只返回 enabled 项目
 // GET /api/projects?admin=1 管理端：返回全部项目
@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
       enabled: body.enabled !== false,
       attachments: Array.isArray(body.attachments) ? body.attachments : [],
     })
-    // neon 直连不走 Next fetch cache，revalidateTag 无效；用 revalidatePath 刷新 /work 页
-    revalidatePath('/work')
-    return NextResponse.json({ ok: true, project })
+    // Discovery explicitly caches public metadata; invalidate it after the commit.
+    const cacheStatus = invalidatePublishedContent([])
+    return NextResponse.json({ ok: true, project }, { headers: { 'X-Content-Cache-Status': cacheStatus } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : '创建失败'
     // slug 唯一约束冲突

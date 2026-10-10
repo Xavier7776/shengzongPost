@@ -22,4 +22,20 @@ describe('content invalidation across public entry points',()=>{
       expect(log.mock.calls).toEqual([['[content] cache invalidation incomplete']])
     } finally {log.mockRestore()}
   })
+  it('invalidates project routes and shared discovery after a project change', () => {
+    expect(invalidatePublishedContent([])).toBe('invalidated')
+    expect(tag).toHaveBeenCalledWith('published-content')
+    expect(path).toHaveBeenCalledWith('/work')
+    expect(path).toHaveBeenCalledWith('/work/[slug]', 'page')
+    expect(path).toHaveBeenCalledWith('/blog/[slug]', 'page')
+  })
+  it('continues project invalidation and returns a failure status without throwing after commit', () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    path.mockImplementation(route => { if (route === '/work') throw Error('private cache error') })
+    try {
+      expect(invalidatePublishedContent([])).toBe('failed')
+      expect(path).toHaveBeenCalledWith('/work/[slug]', 'page')
+      expect(JSON.stringify(log.mock.calls)).not.toContain('private cache error')
+    } finally { log.mockRestore() }
+  })
 })

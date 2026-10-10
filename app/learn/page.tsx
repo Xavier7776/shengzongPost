@@ -2,6 +2,8 @@ import { sql } from '@/lib/db/_core'
 import { TOPICS, type Topic } from '@/lib/learn/document'
 import LearnCatalog, { type LearnCatalogArticle } from './LearnCatalog'
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import LearningPaths from '@/components/learn/LearningPaths'
 
 export const revalidate = 60
 export const metadata: Metadata = {
@@ -65,5 +67,6 @@ export default async function LearnIndex({ searchParams }: { searchParams?: Para
   return <LearnCatalog
     articles={articles} topic={topic} topicCounts={topicCounts}
     total={total} page={page} pageSize={PAGE_SIZE}
+    learningPaths={<Suspense fallback={null}><LearningPaths topic={topic}/></Suspense>}
   />
 }
