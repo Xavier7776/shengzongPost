@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/gallery/[id]/like/route.ts
 // 公开接口：图片点赞 +1（同一 IP 每分钟限 10 次；前端另有 localStorage 去重）
 import { NextRequest, NextResponse } from 'next/server'
@@ -6,7 +8,7 @@ import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(
+async function handlePOST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -21,7 +23,9 @@ export async function POST(
     const likes = await likeGalleryImage(id)
     return NextResponse.json({ success: true, likes })
   } catch (err) {
-    console.error('[gallery/like]', err)
+    logFailure('app/api/gallery/[id]/like', err)
     return NextResponse.json({ error: '点赞失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

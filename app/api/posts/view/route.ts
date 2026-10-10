@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/posts/view/route.ts
 // POST /api/posts/view  → 增加文章访问次数（前端静默调用，防止重复计数）
 import { NextRequest, NextResponse } from 'next/server'
@@ -5,7 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { incrementViewCount, hasReadPost, markPostRead, addPoints } from '@/lib/db'
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   try {
     const { slug } = await req.json()
     if (!slug || typeof slug !== 'string') {
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
         const alreadyRead = await hasReadPost(userId, slug)
         if (!alreadyRead) {
           await markPostRead(userId, slug)
-          try { await addPoints(userId, 2, 'read_post', slug) } catch (e) { console.error('[addPoints read]', e) }
+          try { await addPoints(userId, 2, 'read_post', slug) } catch (e) { logFailure('app/api/posts/view', e) }
           pointsAdded = true
         }
       }
@@ -30,7 +32,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, pointsAdded })
   } catch (err) {
-    console.error('[view POST]', err)
+    logFailure('app/api/posts/view', err)
     return NextResponse.json({ error: '记录失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

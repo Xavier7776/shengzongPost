@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/edit-requests/all/route.ts
 // GET /api/edit-requests/all  → 管理员获取所有编辑请求
 
@@ -15,7 +16,7 @@ export async function GET() {
     const requests = await getAllEditRequests()
     return NextResponse.json(requests)
   } catch (err) {
-    console.error('[edit-requests/all GET]', err)
+    logFailure('app/api/edit-requests/all', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }

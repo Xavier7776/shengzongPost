@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/analytics/track/route.ts
 // POST /api/analytics/track  → 上报一次页面访问（前端 AnalyticsTracker 调用，匿名可用）
 // 不需要登录认证；返回 204 无内容
@@ -27,7 +29,7 @@ function hashIp(ip: string | null): string | null {
   return createHash('sha256').update(`${salt}:${ip}`).digest('hex').slice(0, 32)
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
     const { path, referrer, sessionId, visitorId, isLoggedIn } = body as {
@@ -75,7 +77,9 @@ export async function POST(req: NextRequest) {
     return new NextResponse(null, { status: 204 })
   } catch (err) {
     // 追踪失败不应影响用户浏览，静默返回 204
-    console.error('[analytics/track]', err)
+    logFailure('app/api/analytics/track', err)
     return new NextResponse(null, { status: 204 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

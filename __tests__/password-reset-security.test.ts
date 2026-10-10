@@ -58,4 +58,15 @@ describe('password reset control surface', () => {
     expect(res.status).toBe(429)
     expect(userByToken).not.toHaveBeenCalled()
   })
+  it('only reports success after the account-bound token is consumed atomically', async () => {
+    userByToken.mockResolvedValue({ id: 7, password: 'previous-password-hash' })
+    updatePassword.mockResolvedValue(true)
+    const body = { email: 'user@example.com', code: '123456', newPassword: 'a very strong password' }
+    const response = await PATCH(call('PATCH', body))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true })
+    expect(updatePassword).toHaveBeenCalledWith(7, expect.stringMatching(/^\$2[aby]\$/), '123456', 'previous-password-hash')
+    updatePassword.mockResolvedValue(false)
+    expect((await PATCH(call('PATCH', body))).status).toBe(400)
+  })
 })

@@ -1,3 +1,4 @@
+import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chinaDate, validateEdition, type Edition } from '@/lib/learn/document'
@@ -5,7 +6,7 @@ import { publishEdition } from '@/lib/learn/publish'
 import { PublicationError } from '@/lib/learn/publication-contract'
 export const runtime = 'nodejs'
 export const maxDuration = 30
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const secret = process.env.LEARN_PUBLISH_SECRET
   if (!secret || secret.length < 32) return NextResponse.json({error:'unconfigured'}, {status:503})
   const timestamp = req.headers.get('x-learn-timestamp') || ''
@@ -53,3 +54,5 @@ export async function POST(req: NextRequest) {
       {status:category==='conflict'?409:category==='source_unverified'?502:500})
   }
 }
+
+export const POST = withWriteGuard(handlePOST, { maxBytes: 220000, sameOrigin: false })

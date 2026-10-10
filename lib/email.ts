@@ -1,3 +1,4 @@
+import { escapeHtml } from '@/lib/security/text'
 // lib/email.ts
 import { Resend } from 'resend'
 import { getSiteUrl } from '@/lib/site-url'
@@ -8,7 +9,7 @@ const FROM = 'Xavier <Xavier@zshengzong.top>'
 const BASE_URL = getSiteUrl()
 
 export async function sendVerificationEmail(to: string, name: string, token: string) {
-  const link = `${BASE_URL}/api/auth/verify?token=${token}`
+  const link = `${BASE_URL}/api/auth/verify?token=${encodeURIComponent(token)}`
 
   const { error } = await resend.emails.send({
     from: FROM,
@@ -23,7 +24,7 @@ export async function sendVerificationEmail(to: string, name: string, token: str
 
         <div style="background: #f9f9f7; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
           <p style="margin: 0; font-size: 15px; line-height: 1.8; color: #374151;">
-            你好 <strong>${name}</strong>，<br/>
+            你好 <strong>${escapeHtml(name)}</strong>，<br/>
             感谢注册 ARC.，点击下方按钮完成邮箱验证。
           </p>
         </div>
@@ -49,5 +50,5 @@ export async function sendVerificationEmail(to: string, name: string, token: str
     `,
   })
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error('Verification email delivery failed')
 }

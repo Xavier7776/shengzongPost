@@ -12,7 +12,7 @@ Learn 的路线数据与目录查询并行加载，并在输出主体前就绪�
 
 Lighthouse 13.5.0 在同一 Windows、Chrome 154、本机生产服务器和冻结公开内容快照下对首页/Learn/旧刊/合成 Mnemo 正文进行 390/1024/1440 共 12 组前后测量。每次启动新 Chrome，DPR=1、高度 900；simulate 网络 RTT=150ms、吞吐 1638.4Kbps、CPU=4x（所有宽度相同），实际设置保留在 JSON 报告中。测试站点使用 CI 的 `example.invalid` 站点身份，服务器/数据库均为本机隔离环境；LCP/CLS 是单次实验室值，TTFB 不是生产 Neon/Vercel 延迟，TBT 不能冒充 INP，所有值均不是实用户 p75。外部图片经当前网络路径加载，单次 LCP 与 TBT 有波动，不使用最佳值替代完整记录。
 
-前后完整对照见下表；CI/Preview/正式域名读取验收待本阶段 PR。
+前后完整对照见下表；CI/Preview/正式域名读取验收均通过，见下方交付记录。
 
 Google Search Console、Bing Webmaster 的账号状态和提交记录尚未取得，均记为 unknown。本地 JSON 解析与字段检查不等于 Google 富媒体结果工具已验证或索引成功；没有对站长账号进行提交。真实用户 CWV 样本仍不足，需要后续独立验收，不将实验室候选门槛替代真实用户目标。
 
@@ -40,3 +40,5 @@ Google Search Console、Bing Webmaster 的账号状态和提交记录尚未取�
 四个 390px 页面性能/无障碍/SEO 均 ≥90。首页图片传输降低，Learn 桌面 CLS 明显降低。旧刊手机 LCP、1440px 的 LCP/TBT 和项目手机 LCP 有退化，完整值保留；未声称每项指标变快。四个手机 LCP 均高于 2.5 秒目标，桌面旧刊性能分数仍低于 90，真实用户 INP/p75 未取得，作为 M09-B 未关闭项。
 
 手机截图复核发现旧 `.post-content ol li` 的 flex 规则挤压架构图标题，已在精读范围恢复卡片的 block 布局和普通列表语义。新浏览器断言检查卡片标题实际宽度，原始候选样式 `m09-after-*` 测量保留，最终对照以 `m09-final-*` 为准。
+
+交付：PR #23 已合并为 `a5267471f7c7fc231e6e0ca7edf30f5a6460fe34`；CI 38022226322 全绿，Preview `dpl_Bbav23wfNC5aAe8vGxbnsZL1CHTo` 和生产 `dpl_7yGKKPLjTWU5JY3KXNc7qLBmhzyo` READY。正式域名读取验收 m09-production.json/m09-production-smoke.json 全通过，浏览器零应用错误，部署范围 error/fatal 统计为空。M09-B 仍未关闭。

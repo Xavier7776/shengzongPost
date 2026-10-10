@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/user/password/route.ts
 // POST  → 发送验证码到用户邮箱
 // PATCH → 验证码 + 新密码，完成修改
@@ -14,7 +16,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM   = process.env.EMAIL_FROM ?? 'MindStack <noreply@zshengzong.top>'
 
 // ── POST：生成 6 位验证码，写入 verify_token，发送邮件 ─────────────────────────
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
   })
 
   if (sendError) {
-    console.error('[password POST] 发送失败', sendError)
+    logFailure('app/api/user/password', sendError)
     return NextResponse.json({ error: '邮件发送失败，请稍后再试' }, { status: 500 })
   }
 
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
 }
 
 // ── PATCH：校验验证码，哈希新密码并写入 ─────────────────────────────────────────
-export async function PATCH(req: NextRequest) {
+async function handlePATCH(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
@@ -87,7 +89,12 @@ export async function PATCH(req: NextRequest) {
   }
 
   const hashed = await bcrypt.hash(newPassword, 12)
-  await updateUserPassword(userId, hashed)
+  if (!await updateUserPassword(userId, hashed, code, user.password)) {
+    return NextResponse.json({ error: '验证码已使用、过期或密码已更新' }, { status: 400 })
+  }
 
   return NextResponse.json({ ok: true })
 }
+
+export const POST = withWriteGuard(handlePOST)
+export const PATCH = withWriteGuard(handlePATCH)

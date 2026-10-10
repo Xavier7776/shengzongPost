@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/slides/[id]/route.ts
 // PATCH  /api/slides/[id]  → 更新（标题/图片/排序/启用状态）
 // DELETE /api/slides/[id]  → 删除
@@ -6,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { updateHeroSlide, deleteHeroSlide } from '@/lib/db'
 
-export async function PATCH(
+async function handlePATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -21,12 +23,12 @@ export async function PATCH(
     const slide = await updateHeroSlide(id, data)
     return NextResponse.json({ ok: true, slide })
   } catch (err) {
-    console.error('[slides PATCH]', err)
+    logFailure('app/api/slides/[id]', err)
     return NextResponse.json({ error: '更新失败' }, { status: 500 })
   }
 }
 
-export async function DELETE(
+async function handleDELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -40,7 +42,10 @@ export async function DELETE(
     await deleteHeroSlide(id)
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[slides DELETE]', err)
+    logFailure('app/api/slides/[id]', err)
     return NextResponse.json({ error: '删除失败' }, { status: 500 })
   }
 }
+
+export const PATCH = withWriteGuard(handlePATCH)
+export const DELETE = withWriteGuard(handleDELETE)

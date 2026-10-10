@@ -1,3 +1,6 @@
+import { logFailure } from '@/lib/security/log'
+import { allowAuthAttempt } from '@/lib/auth-rate-limit'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/comments/route.ts
 // GET  /api/comments?slug=xxx  → 已通过的评论列表
 // POST /api/comments           → 提交评论（进入人工审核队列）
@@ -15,14 +18,16 @@ export async function GET(req: NextRequest) {
     const userId = session?.user ? Number((session.user as { id?: string }).id) : undefined
     return NextResponse.json(await getApprovedComments(slug, userId))
   } catch (err) {
-    console.error('[comments GET]', err)
+    logFailure('app/api/comments', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
+
+  if (!await allowAuthAttempt(req, 'comment', String((session.user as { id?: string }).id))) return NextResponse.json({ error: '操作太频繁，请稍后重试' }, { status: 429 })
 
   try {
     const { post_slug, content, parent_id } = await req.json()
@@ -50,12 +55,12 @@ export async function POST(req: NextRequest) {
       message: '评论已提交，等待管理员审核，通过后将显示',
     })
   } catch (err) {
-    console.error('[comments POST]', err)
+    logFailure('app/api/comments', err)
     return NextResponse.json({ error: '提交失败，请重试' }, { status: 500 })
   }
 }
 
-export async function PATCH(req: NextRequest) {
+async function handlePATCH(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
@@ -69,7 +74,10 @@ export async function PATCH(req: NextRequest) {
     const result = await toggleCommentLike(Number(commentId), userId)
     return NextResponse.json(result)
   } catch (err) {
-    console.error('[comments PATCH]', err)
+    logFailure('app/api/comments', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)
+export const PATCH = withWriteGuard(handlePATCH)

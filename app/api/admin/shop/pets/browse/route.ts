@@ -1,15 +1,17 @@
+import { logFailure } from '@/lib/security/log'
+import { readPetMetadata } from '@/lib/security/pet-assets'
 // GET /api/admin/shop/pets/browse?page=1&pageSize=20&search=
 // 从 codex-pets.net 浏览可用宠物
 // 代理模式：避免浏览器端 CORS 问题，服务端转发并过滤掉不必要的字段
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminApi } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 const API_BASE = 'https://codex-pets.net'
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin()
+    if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const url = new URL(req.url)
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'))
     const pageSize = Math.min(50, Math.max(5, parseInt(url.searchParams.get('pageSize') || '20')))
@@ -18,9 +20,7 @@ export async function GET(req: NextRequest) {
     let apiUrl = `${API_BASE}/api/pets?page=${page}&pageSize=${pageSize}`
     if (search) apiUrl += `&search=${encodeURIComponent(search)}`
 
-    const res = await fetch(apiUrl, { cache: 'no-store' })
-    if (!res.ok) throw new Error(`codex-pets API ${res.status}`)
-    const json = await res.json()
+    const json = await readPetMetadata(apiUrl)
     const list: any[] = json.pets || json.data || []
 
     // 过滤只返回前端需要的字段
@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
       pageSize,
     })
   } catch (err) {
-    console.error('[admin pets browse]', err)
+    logFailure('app/api/admin/shop/pets/browse', err)
     const msg = err instanceof Error ? err.message : '未知错误'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: '操作失败，请稍后再试' }, { status: 500 })
   }
 }

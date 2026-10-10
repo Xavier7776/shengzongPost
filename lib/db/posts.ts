@@ -78,7 +78,7 @@ export async function createPost(data: {
   const safeContent = sanitizePostContent(data.content)
   const rows = await sql`
     INSERT INTO posts(slug,title,excerpt,content,tags,published,cover_image,attachments,author_id)
-    VALUES(${data.slug},${data.title},${data.excerpt},${safeContent},${data.tags},${data.published},${data.cover_image ?? null},${attachments}::jsonb,${data.author_id ?? null})
+    VALUES(${data.slug},${data.title},${data.excerpt ?? ''},${safeContent},${data.tags},${data.published},${data.cover_image ?? null},${attachments}::jsonb,${data.author_id ?? null})
     RETURNING *`
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }

@@ -1,3 +1,6 @@
+import { logFailure } from '@/lib/security/log'
+import { allowAuthAttempt } from '@/lib/auth-rate-limit'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/edit-requests/route.ts
 // GET  /api/edit-requests              → 当前用户的提交记录
 // POST /api/edit-requests              → 普通用户提交编辑请求
@@ -23,16 +26,18 @@ export async function GET() {
     const requests = await getEditRequestsByUser(userId)
     return NextResponse.json(requests)
   } catch (err) {
-    console.error('[edit-requests GET]', err)
+    logFailure('app/api/edit-requests', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await getSession()
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
   const userId = Number((session.user as { id?: string }).id)
   if (!userId) return NextResponse.json({ error: '用户信息异常' }, { status: 400 })
+
+  if (!await allowAuthAttempt(req, 'submission', String((session.user as { id?: string }).id))) return NextResponse.json({ error: '操作太频繁，请稍后重试' }, { status: 429 })
 
   try {
     const { post_slug, title, excerpt, content, tags, cover_image, from_id } = await req.json()
@@ -55,7 +60,9 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ ok: true, request }, { status: 201 })
   } catch (err) {
-    console.error('[edit-requests POST]', err)
+    logFailure('app/api/edit-requests', err)
     return NextResponse.json({ error: '提交失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

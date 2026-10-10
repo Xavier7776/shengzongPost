@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/work/[slug]/pdf/page.tsx
 // 项目 PDF 预览/下载页面：渲染附件里的真实 MD 文件内容
 // 优先级：附件中的 .md 文件（fetch 原文） → project.content（兜底）
@@ -6,6 +7,8 @@
 import { notFound } from 'next/navigation'
 import { getProjectBySlug, getAllProjects } from '@/lib/db-works'
 import PrintClient from './PrintClient'
+import { renderMarkdown } from '@/shared/markdown/render'
+import { allowedCloudinaryUrl, readRemoteBytes } from '@/lib/security/remote-assets'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,12 +36,11 @@ export default async function PdfPage({
 
   if (mdAttachment) {
     try {
-      const res = await fetch(mdAttachment.url, { cache: 'no-store' })
-      if (res.ok) {
-        pdfContent = await res.text()
+      if (allowedCloudinaryUrl(mdAttachment.url)) {
+        pdfContent = new TextDecoder().decode(await readRemoteBytes(mdAttachment.url, 10 * 1024 * 1024))
       }
     } catch (e) {
-      console.error('[PdfPage] fetch MD attachment failed:', e)
+      logFailure('app/work/[slug]/pdf/page.tsx', e)
     }
   }
 
@@ -68,7 +70,7 @@ export default async function PdfPage({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: PRINT_STYLES }} />
-      <PrintClient content={pdfContent} title={reportTitle} mdFilename={mdFilename} />
+      <PrintClient html={renderMarkdown(pdfContent)} title={reportTitle} mdFilename={mdFilename} />
     </>
   )
 }

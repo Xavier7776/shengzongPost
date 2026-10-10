@@ -58,7 +58,7 @@ describe('项目数据映射 lib/db-works', () => {
       expect(wp.cover).toBe('/cover.png')
       expect(wp.techStack).toEqual(['React', 'Next.js', 'Tailwind', 'Supabase', 'Vitest'])
       expect(wp.highlights).toEqual(['Fast', 'Modern'])
-      expect(wp.demoUrl).toBe('https://demo.example.com')
+      expect(wp.demoUrl).toBe('https://demo.example.com/')
       expect(wp.githubUrl).toBe('https://github.com/foo/bar')
       expect(wp.year).toBe('2024')
       expect(wp.attachments).toEqual([{ url: '/a.md', filename: 'a.md', size: 100 }])

@@ -1,3 +1,4 @@
+vi.mock('@/lib/auth-rate-limit', () => ({ allowAuthAttempt: vi.fn().mockResolvedValue(true) }))
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 const { createComment, getSession, fetchSpy } = vi.hoisted(() => ({

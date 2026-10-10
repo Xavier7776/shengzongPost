@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/comments/all/route.ts
 // 管理员拉取所有评论（含 pending/approved/rejected）
 import { NextResponse } from 'next/server'
@@ -12,7 +13,7 @@ export async function GET() {
     const comments = await getAllCommentsAdmin()
     return NextResponse.json(comments)
   } catch (err) {
-    console.error('[comments/all]', err)
+    logFailure('app/api/comments/all', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }

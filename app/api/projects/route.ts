@@ -1,3 +1,5 @@
+import { safeLink } from '@/shared/markdown/sanitize'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/projects/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
@@ -17,11 +19,12 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/projects 新建项目
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
   const body = await req.json()
+  for (const value of [body.demo_url, body.github_url]) if (value !== undefined && value !== null && (typeof value !== 'string' || (value.trim() && !safeLink(value)))) return NextResponse.json({ error: '项目链接地址无效' }, { status: 400 })
   if (!body.slug?.trim() || !body.name?.trim()) {
     return NextResponse.json({ error: 'slug 和名称不能为空' }, { status: 400 })
   }
@@ -53,6 +56,8 @@ export async function POST(req: NextRequest) {
     if (msg.includes('unique') || msg.includes('duplicate')) {
       return NextResponse.json({ error: 'slug 已存在，请更换' }, { status: 409 })
     }
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: '操作失败，请稍后再试' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

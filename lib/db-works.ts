@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { safeLink, safePostImageUrl } from '@/shared/markdown/sanitize'
 // lib/db-works.ts
 // 个人项目数据源
 // 主源：数据库 projects 表（通过 lib/db.ts 的 getEnabledProjects 读取）
@@ -17,11 +19,11 @@ function mapProject(p: DbProject): WorkProject {
     tagline: p.tagline ?? '',
     description: p.description ?? '',
     content: p.content ?? null,
-    cover: p.cover_image ?? '',
+    cover: safePostImageUrl(p.cover_image) ?? '',
     techStack: p.tech_stack ?? [],
     highlights: p.highlights ?? [],
-    demoUrl: p.demo_url ?? null,
-    githubUrl: p.github_url ?? null,
+    demoUrl: safeLink(p.demo_url),
+    githubUrl: safeLink(p.github_url),
     year: p.year ?? '',
     createdAt: p.created_at,
     updatedAt: p.updated_at,
@@ -34,7 +36,7 @@ export async function getAllProjects(): Promise<WorkProject[]> {
     const projects = await getEnabledProjects()
     return projects.map(mapProject)
   } catch (e) {
-    console.error('[db-works] 读取 projects 表失败:', e)
+    logFailure('lib/db-works.ts', e)
     return []
   }
 }

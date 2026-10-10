@@ -2,6 +2,11 @@
 
 // 安全响应头：防护点击劫持、MIME 嗅探、XSS、信息泄露等
 const securityHeaders = [
+  {
+    key: 'Content-Security-Policy-Report-Only',
+    // Observe removal of eval and mixed-content images before tightening the enforcing policy.
+    value: "script-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; report-uri /api/security/csp-report",
+  },
   // 防止点击劫持：禁止被 iframe 嵌套
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   // 防止 MIME 嗅探：浏览器严格按 Content-Type 解析

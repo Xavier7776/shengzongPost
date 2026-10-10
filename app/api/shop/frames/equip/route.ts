@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/shop/frames/equip/route.ts
 // POST /api/shop/frames/equip  body: { frameId: number | null }
 import { NextRequest, NextResponse } from 'next/server'
@@ -5,7 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { equipFrame } from '@/lib/db'
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
@@ -22,8 +24,10 @@ export async function POST(req: NextRequest) {
     await equipFrame(userId, frameId)
     return NextResponse.json({ ok: true, equippedFrameId: frameId })
   } catch (err) {
-    const message = err instanceof Error ? err.message : '操作失败'
-    console.error('[shop equip]', err)
+    const message = err instanceof Error && ['Frame not found','Cursor effect not found','Insufficient points','Frame not owned','Cursor effect not owned'].includes(err.message) ? err.message : '操作失败'
+    logFailure('app/api/shop/frames/equip', err)
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

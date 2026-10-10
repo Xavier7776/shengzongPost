@@ -142,7 +142,7 @@ export default function AdminCommentsPage() {
                       <RoleBadge role={c.user_role} />
                       <Link
                         href={`/blog/${c.post_slug}`}
-                        target="_blank"
+                        target="_blank" rel="noopener noreferrer"
                         className="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md hover:bg-blue-100 transition-colors"
                       >
                         {c.post_slug}

@@ -1,26 +1,28 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/admin/shop/cursors/route.ts
 // GET  /api/admin/shop/cursors → 全部鼠标效果（含禁用）
 // POST /api/admin/shop/cursors → 新建鼠标效果
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminApi } from '@/lib/auth'
 import { getAllCursorEffectsAdmin, createCursorEffect, type CursorEffectInput } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    await requireAdmin()
+    if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const effects = await getAllCursorEffectsAdmin()
     return NextResponse.json({ effects })
   } catch (err) {
-    console.error('[admin shop cursors GET]', err)
+    logFailure('app/api/admin/shop/cursors', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   try {
-    await requireAdmin()
+    if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const body = (await req.json()) as Partial<CursorEffectInput>
 
     // 基础校验
@@ -65,11 +67,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, effect })
   } catch (err) {
     const message = err instanceof Error ? err.message : '创建失败'
-    console.error('[admin shop cursors POST]', err)
+    logFailure('app/api/admin/shop/cursors', err)
     // 唯一键冲突
     if (message.includes('duplicate') || message.includes('unique')) {
       return NextResponse.json({ error: 'key 已存在，请换一个' }, { status: 400 })
     }
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: '操作失败，请稍后再试' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

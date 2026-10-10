@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // Password reset: account-bound code + durable rate limiting (Neon migration 055).
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByEmail, setVerifyToken, getUserByVerifyTokenAndEmail, updateUserPassword } from '@/lib/db'
@@ -11,7 +13,7 @@ const FROM = process.env.EMAIL_FROM ?? 'MindStack <noreply@zshengzong.top>'
 const masked = (email: string) => email.replace(/(.{2}).+(@.+)/, '$1***$2')
 const codePattern = /^\d{6}$/
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const input = await req.json().catch(() => ({}))
   const email = normalizeEmail(input?.email)
   if (!email) return NextResponse.json({ error: '请输入有效邮箱' }, { status: 400 })
@@ -29,16 +31,16 @@ export async function POST(req: NextRequest) {
         html: '<p>请使用下方验证码重置密码（10 分钟有效）：</p><p style="font-size:28px;font-weight:bold;letter-spacing:0.15em">' +
           code + '</p><p>如果不是你本人操作，请忽略本邮件。</p>',
       })
-      if (error) console.error('[forgot-password] mail delivery failed', error)
+      if (error) logFailure('app/api/user/forgot-password', error)
     }
     return NextResponse.json({ ok: true, email: masked(email) })
   } catch (error) {
-    console.error('[forgot-password POST]', error)
+    logFailure('app/api/user/forgot-password', error)
     return NextResponse.json({ error: '暂不可用，请稍后再试' }, { status: 503 })
   }
 }
 
-export async function PATCH(req: NextRequest) {
+async function handlePATCH(req: NextRequest) {
   const input = await req.json().catch(() => ({}))
   const email = normalizeEmail(input?.email)
   const code = input?.code
@@ -52,10 +54,15 @@ export async function PATCH(req: NextRequest) {
     }
     const user = await getUserByVerifyTokenAndEmail(code, email)
     if (!user) return NextResponse.json({ error: '验证码无效或已过期' }, { status: 400 })
-    await updateUserPassword(user.id, await bcrypt.hash(password, 12))
+    if (!await updateUserPassword(user.id, await bcrypt.hash(password, 12), code, user.password)) {
+      return NextResponse.json({ error: '验证码已使用、过期或密码已更新' }, { status: 400 })
+    }
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('[forgot-password PATCH]', error)
+    logFailure('app/api/user/forgot-password', error)
     return NextResponse.json({ error: '暂不可用，请稍后再试' }, { status: 503 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)
+export const PATCH = withWriteGuard(handlePATCH)

@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/research/points/route.ts
 // 深度研究积分系统：2000 积分 / 次
 import { NextResponse } from 'next/server'
@@ -23,13 +25,13 @@ export async function GET() {
       canUse: points >= RESEARCH_COST,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[research/points GET]', err)
+    logFailure('app/api/research/points', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }
 
 // POST /api/research/points → 扣除 2000 积分启动深度研究
-export async function POST() {
+async function handlePOST() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: '未登录' }, { status: 401 })
@@ -64,7 +66,7 @@ export async function POST() {
     try {
       await sql`INSERT INTO point_transactions(user_id, amount, reason, ref_slug) VALUES(${userId}, ${-RESEARCH_COST}, 'deep_research', ${refSlug})`
     } catch (e) {
-      console.error('[research/points POST] 流水记录失败（不影响扣费）:', e)
+      logFailure('app/api/research/points', e)
     }
 
     return NextResponse.json({
@@ -74,7 +76,9 @@ export async function POST() {
       refSlug,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[research/points POST]', err)
-    return NextResponse.json({ error: '扣费失败: ' + String(err) }, { status: 500 })
+    logFailure('app/api/research/points', err)
+    return NextResponse.json({ error: '扣费失败，请稍后再试' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

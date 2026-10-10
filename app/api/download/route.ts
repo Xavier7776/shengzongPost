@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { allowedCloudinaryUrl } from '@/lib/security/remote-assets'
 // Proxy only this site's uploaded Cloudinary assets.
 // The previous hostname.endsWith('cloudinary.com') accepted lookalike attacker domains,
 // HTTP and redirected responses; this route is intentionally fail-closed.
@@ -11,19 +13,6 @@ function contentType(filename: string) {
   if (/\.md$/i.test(filename)) return 'text/markdown; charset=utf-8'
   if (/\.pdf$/i.test(filename)) return 'application/pdf'
   return 'application/octet-stream'
-}
-
-function allowedCloudinaryUrl(input: string): URL | null {
-  try {
-    const target = new URL(input)
-    const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim()
-    if (!cloud || !/^[a-zA-Z0-9_-]{1,100}$/.test(cloud)) return null
-    if (target.protocol !== 'https:' || target.hostname !== 'res.cloudinary.com' ||
-        target.port || target.username || target.password || target.hash) return null
-    const match = /^\/([a-zA-Z0-9_-]+)\/(raw|image|video)\/upload\/(.+)$/.exec(target.pathname)
-    if (!match || match[1] !== cloud || match[3].length > 1800) return null
-    return target
-  } catch { return null }
 }
 
 /** Limit downloaded bytes even when Cloudinary does not provide a Content-Length header. */
@@ -84,7 +73,7 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[download proxy]', error)
+    logFailure('app/api/download', error)
     return Response.json({ error: '下载失败' }, { status: 502 })
   }
 }

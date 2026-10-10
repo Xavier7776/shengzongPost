@@ -2,7 +2,7 @@
 // 项目详情页：展示完整项目介绍（Markdown 渲染）
 // 布局：单栏沉浸式（Hero 与正文同宽，正文居中可读宽度，目录悬浮右侧）
 import Link from 'next/link'
-import { marked } from 'marked'
+import { renderMarkdown as safeMarkdown, renderInlineMarkdown } from '@/shared/markdown/render'
 import { ArrowLeft, ExternalLink, Github, Calendar, Layers, CheckCircle2 } from 'lucide-react'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import AttachmentList from '@/components/sections/AttachmentList'
@@ -18,16 +18,10 @@ import { breadcrumbs, jsonLdText } from '@/lib/seo'
 // 项目详情内容变更频率低，长缓存
 export const revalidate = 3600
 
-// 配置 marked（与 skills 详情页一致，不使用自定义 renderer，避免 v18 兼容问题）
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-})
-
 function renderMarkdown(md: string): string {
   if (!md) return ''
   try {
-    let html = marked.parse(md) as string
+    let html = safeMarkdown(md)
     // 后处理：给 h2 加 id（用于目录锚点跳转）
     // 匹配 <h2>...</h2>，提取纯文本生成 id
     html = html.replace(/<h2([^>]*)>(.*?)<\/h2>/g, (_match, attrs: string, content: string) => {
@@ -38,11 +32,11 @@ function renderMarkdown(md: string): string {
         .replace(/[（）()，,。.、：:；;！!？?""''《》【】\[\]{}]/g, '')
         .replace(/\s+/g, '-')
         .toLowerCase()
-      return `<h2${attrs} id="${id}">${content}</h2>`
+      return `<h2${attrs} id="${id.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${content}</h2>`
     })
     return html
   } catch {
-    return md
+    return safeMarkdown(md)
   }
 }
 
@@ -69,9 +63,9 @@ function extractToc(md: string): { id: string; text: string }[] {
 function renderInline(md: string): string {
   if (!md) return ''
   try {
-    return marked.parseInline(md) as string
+    return renderInlineMarkdown(md)
   } catch {
-    return md
+    return safeMarkdown(md)
   }
 }
 

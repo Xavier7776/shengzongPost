@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/admin/users/route.ts
 import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
@@ -10,7 +11,7 @@ export async function GET() {
     const users = await getAllUsers()
     return NextResponse.json(users)
   } catch (e) {
-    console.error(e)
+    logFailure('app/api/admin/users')
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })
   }
 }

@@ -2,6 +2,7 @@
 // Extracted from lib/db.ts by domain boundary. Logic unchanged.
 
 import { sql, serializeRow, serializeRows } from './_core'
+import { verificationTokenHash } from '@/lib/security/verification-token'
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 export interface User {
@@ -41,28 +42,35 @@ export async function createUser(data: { email: string; name: string; password: 
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as User
 }
 export async function setVerifyToken(userId: number, token: string, expires: Date): Promise<void> {
-  await sql`UPDATE users SET verify_token=${token},token_expires=${expires.toISOString()} WHERE id=${userId}`
+  await sql`UPDATE users SET verify_token=${verificationTokenHash(token)},token_expires=${expires.toISOString()} WHERE id=${userId}`
 }
 /** Bind numeric reset codes to the requested account, not just a globally matching 6-digit token. */
 export async function getUserByVerifyTokenAndEmail(token: string, email: string): Promise<User | null> {
   const rows = await sql`SELECT * FROM users
-    WHERE LOWER(email)=${email} AND verify_token=${token} AND token_expires>NOW() LIMIT 1`
+    WHERE LOWER(email)=${email} AND verify_token IN (${verificationTokenHash(token)},${token}) AND token_expires>NOW() LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null
 }
 
 export async function getUserByVerifyTokenAndId(token: string, userId: number): Promise<User | null> {
   const rows = await sql`SELECT * FROM users
-    WHERE id=${userId} AND verify_token=${token} AND token_expires>NOW() LIMIT 1`
+    WHERE id=${userId} AND verify_token IN (${verificationTokenHash(token)},${token}) AND token_expires>NOW() LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null
 }
 
 export async function getUserByVerifyToken(token: string): Promise<User | null> {
-  const rows = await sql`SELECT * FROM users WHERE verify_token=${token} AND token_expires>NOW() LIMIT 1`
+  if (!/^[a-f0-9]{64}$/.test(token)) return null
+  const rows = await sql`SELECT * FROM users WHERE verify_token IN (${verificationTokenHash(token)},${token}) AND token_expires>NOW() LIMIT 1`
   return rows[0] ? serializeRow(rows[0] as Record<string, unknown>) as unknown as User : null
 }
-export async function markUserVerified(userId: number): Promise<void> {
-  await sql`UPDATE users SET verified=true,verify_token=NULL,token_expires=NULL WHERE id=${userId}`
+export async function markUserVerified(userId: number, token: string): Promise<boolean> {
+  if (!/^[a-f0-9]{64}$/.test(token)) return false
+  const rows = await sql`UPDATE users SET verified=true,verify_token=NULL,token_expires=NULL
+    WHERE id=${userId} AND verify_token IN (${verificationTokenHash(token)},${token}) AND token_expires>NOW() RETURNING id`
+  return rows.length === 1
 }
-export async function updateUserPassword(userId: number, hashedPassword: string): Promise<void> {
-  await sql`UPDATE users SET password=${hashedPassword},verify_token=NULL,token_expires=NULL WHERE id=${userId}`
+export async function updateUserPassword(userId: number, hashedPassword: string, token: string, previousPassword: string): Promise<boolean> {
+  const rows = await sql`UPDATE users SET password=${hashedPassword},verify_token=NULL,token_expires=NULL
+    WHERE id=${userId} AND password=${previousPassword}
+      AND verify_token IN (${verificationTokenHash(token)},${token}) AND token_expires>NOW() RETURNING id`
+  return rows.length === 1
 }

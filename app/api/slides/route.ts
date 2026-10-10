@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/slides/route.ts
 // GET  /api/slides          → 所有 slides（管理员）或仅 enabled（公开）
 // POST /api/slides          → 创建 slide（管理员）
@@ -21,12 +23,12 @@ export async function GET(req: NextRequest) {
     // 公开：只返回已启用的
     return NextResponse.json(await getEnabledHeroSlides())
   } catch (err) {
-    console.error('[slides GET]', err)
+    logFailure('app/api/slides', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
@@ -38,7 +40,9 @@ export async function POST(req: NextRequest) {
     const slide = await createHeroSlide({ img: img.trim(), title: title.trim(), subtitle: subtitle.trim(), sort_order })
     return NextResponse.json({ ok: true, slide })
   } catch (err) {
-    console.error('[slides POST]', err)
+    logFailure('app/api/slides', err)
     return NextResponse.json({ error: '创建失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

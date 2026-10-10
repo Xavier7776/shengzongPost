@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/upload-md/route.ts
 // POST /api/upload-md → 通用 md 文件上传（博文 + work 项目复用）
 // 流程：multipart/form-data → uploadLarge(resource_type='raw', public_id 带后缀) → 返回 { url, filename, size }
@@ -23,7 +25,7 @@ const ALLOWED_MIME = [
   'application/octet-stream', // 部分系统对 .md 文件返回此类型
 ]
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限，请先登录管理员账号' }, { status: 401 })
 
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 
-    if (!file) return NextResponse.json({ error: '请选择 md 文件' }, { status: 400 })
+    if (!file || typeof file.arrayBuffer !== 'function') return NextResponse.json({ error: '请选择 md 文件' }, { status: 400 })
     if (file.size > MAX_MD_SIZE) return NextResponse.json({ error: '文件不能超过 10MB' }, { status: 400 })
 
     // 放宽 MIME 校验：部分系统对 .md 返回 application/octet-stream
@@ -62,7 +64,9 @@ export async function POST(req: NextRequest) {
       size:     file.size,
     })
   } catch (err) {
-    console.error('[upload-md POST] 异常:', err)
+    logFailure('app/api/upload-md', err)
     return NextResponse.json({ error: '上传失败，请重试' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST, { maxBytes: 11 * 1024 * 1024 })

@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/posts/[slug]/route.ts
 // GET    /api/posts/:slug → 读取单篇文章（已登录用户，供 dashboard 编辑用）
 // PATCH  /api/posts/:slug → 更新文章（管理员）
@@ -33,12 +35,12 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     }
     return NextResponse.json(post, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (e) {
-    console.error('[posts GET]', e)
+    logFailure('app/api/posts/[slug]', e)
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: Ctx) {
+async function handlePATCH(req: NextRequest, { params }: Ctx) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -60,12 +62,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     return NextResponse.json(post,{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
     if(e instanceof EditionEditConflict)return NextResponse.json({error:e.message},{status:409})
-    console.error(e)
+    logFailure('app/api/posts/[slug]')
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Ctx) {
+async function handleDELETE(_req: NextRequest, { params }: Ctx) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -75,7 +77,10 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     const cacheStatus=invalidatePublishedContent([params.slug])
     return NextResponse.json({ ok: true },{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
-    console.error(e)
+    logFailure('app/api/posts/[slug]')
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })
   }
 }
+
+export const PATCH = withWriteGuard(handlePATCH)
+export const DELETE = withWriteGuard(handleDELETE)

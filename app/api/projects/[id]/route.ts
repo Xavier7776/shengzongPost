@@ -1,3 +1,6 @@
+import { safeLink } from '@/shared/markdown/sanitize'
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/projects/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
@@ -6,7 +9,7 @@ import { invalidatePublishedContent } from '@/lib/content-cache'
 import { cloudinary } from '@/lib/cloudinary'
 
 // PATCH /api/projects/[id] 更新项目（支持部分字段更新）
-export async function PATCH(
+async function handlePATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -17,6 +20,7 @@ export async function PATCH(
   if (isNaN(id)) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   const body = await req.json()
+  for (const value of [body.demo_url, body.github_url]) if (value !== undefined && value !== null && (typeof value !== 'string' || (value.trim() && !safeLink(value)))) return NextResponse.json({ error: '项目链接地址无效' }, { status: 400 })
 
   try {
     // 处理数组字段：空值传 null 以触发 COALESCE 保留原值，数组传数组
@@ -45,12 +49,12 @@ export async function PATCH(
     if (msg.includes('unique') || msg.includes('duplicate')) {
       return NextResponse.json({ error: 'slug 已存在，请更换' }, { status: 409 })
     }
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: '操作失败，请稍后再试' }, { status: 500 })
   }
 }
 
 // DELETE /api/projects/[id] 删除项目，同时清理 Cloudinary 封面图
-export async function DELETE(
+async function handleDELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -67,10 +71,13 @@ export async function DELETE(
     try {
       await cloudinary.uploader.destroy(publicId, { resource_type: 'image' })
     } catch (e) {
-      console.error('[projects] 清理 Cloudinary 失败:', e)
+      logFailure('app/api/projects/[id]', e)
     }
   }
 
   const cacheStatus = invalidatePublishedContent([])
   return NextResponse.json({ ok: true }, { headers: { 'X-Content-Cache-Status': cacheStatus } })
 }
+
+export const PATCH = withWriteGuard(handlePATCH)
+export const DELETE = withWriteGuard(handleDELETE)

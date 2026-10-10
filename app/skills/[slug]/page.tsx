@@ -1,3 +1,4 @@
+import { safeLink } from '@/shared/markdown/sanitize'
 // app/skills/[slug]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -5,7 +6,8 @@ import { ArrowLeft, Star, Clock, ExternalLink, Github, Globe, Tag, Layers, BookO
 import { getSkillBySlug } from '@/lib/db-skills'
 import BackToTop from '@/components/ui/BackToTop'
 import type { Metadata } from 'next'
-import { marked } from 'marked'
+import { renderMarkdown } from '@/shared/markdown/render'
+import { jsonLdText } from '@/lib/seo'
 
 export const revalidate = 3600 // Skills 是爬虫数据，更新频率低，1 小时 ISR 缓存
 
@@ -63,22 +65,6 @@ function extractFeatures(content: string): string[] {
   return features
 }
 
-// 配置 marked
-marked.setOptions({
-  gfm: true, // GitHub Flavored Markdown
-  breaks: true, // 换行转换为 <br>
-})
-
-// 将 Markdown 转为 HTML
-function renderMarkdown(md: string): string {
-  if (!md) return ''
-  try {
-    return marked.parse(md) as string
-  } catch {
-    return md
-  }
-}
-
 export default async function SkillDetailPage({ params }: PageProps) {
   const { slug } = await params
   const skill = await getSkillBySlug(slug)
@@ -105,11 +91,6 @@ export default async function SkillDetailPage({ params }: PageProps) {
     url: skill.source_url,
     downloadUrl: skill.source_url,
     dateModified: skill.updated_at,
-    aggregateRating: skill.stars > 0 ? {
-      '@type': 'AggregateRating',
-      ratingValue: Math.min(5, Math.max(1, Math.round(skill.stars / 1000))).toFixed(1),
-      ratingCount: skill.stars,
-    } : undefined,
     keywords: skill.tags?.join(', '),
     offers: {
       '@type': 'Offer',
@@ -122,7 +103,7 @@ export default async function SkillDetailPage({ params }: PageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdText(jsonLd) }}
       />
       <BackToTop />
 
@@ -211,7 +192,7 @@ export default async function SkillDetailPage({ params }: PageProps) {
 
             {/* 来源链接 */}
             <a
-              href={skill.source_url}
+              href={safeLink(skill.source_url) ?? '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 mt-5 px-4 py-2 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
@@ -358,7 +339,7 @@ export default async function SkillDetailPage({ params }: PageProps) {
               <Globe className="w-16 h-16 mx-auto mb-4 text-gray-200" />
               <p className="text-gray-400 mb-4">暂无原文内容</p>
               <a
-                href={skill.source_url}
+                href={safeLink(skill.source_url) ?? '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:underline text-sm"

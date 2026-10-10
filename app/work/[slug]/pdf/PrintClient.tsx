@@ -1,6 +1,6 @@
 'use client'
 // app/work/[slug]/pdf/PrintClient.tsx
-// 客户端组件：渲染 Markdown 为 HTML，提供"打印"按钮
+// 客户端组件：显示服务端消毒的 HTML，提供"打印"按钮
 // 使用浏览器原生打印功能 + CSS 分页控制，确保：
 // 1. 标题不会被切半（page-break-after: avoid）
 // 2. 段落不会被截断（page-break-inside: avoid）
@@ -11,10 +11,8 @@
 // 7. 字号调节：影响屏幕预览和打印
 // 8. 打印页脚：屏幕隐藏，打印时每页底部显示文档标题和打印日期
 import { useState, useEffect, useRef } from 'react'
-import { marked } from 'marked'
 import { FileText, Printer, Minus, Plus } from 'lucide-react'
 
-marked.setOptions({ gfm: true, breaks: true })
 
 interface TocItem {
   id: string
@@ -23,8 +21,8 @@ interface TocItem {
 }
 
 interface Props {
-  /** Markdown 原文 */
-  content: string
+  /** 服务端已消毒的 HTML */
+  html: string
   /** 项目名称（显示在页头） */
   title: string
   /** MD 附件文件名（用于设置打印时的 PDF 文件名，去掉 .md 后缀） */
@@ -47,14 +45,13 @@ function slugify(text: string): string {
   return id || `heading-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export default function PrintClient({ content, title, mdFilename }: Props) {
+export default function PrintClient({ html, title, mdFilename }: Props) {
   const [printing, setPrinting] = useState(false)
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE)
   const [tocItems, setTocItems] = useState<TocItem[]>([])
   const [activeId, setActiveId] = useState<string>('')
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const html = marked.parse(content) as string
 
   // 渲染后处理：
   // 1. 给 h1/h2/h3 标题设置 id（用于目录跳转和高亮）

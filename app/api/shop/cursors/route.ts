@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/shop/cursors/route.ts
 // GET /api/shop/cursors → 鼠标效果目录 + 用户已购/装备状态
 import { NextResponse } from 'next/server'
@@ -30,7 +31,7 @@ export async function GET() {
       points,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[shop cursors GET]', err)
+    logFailure('app/api/shop/cursors', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }

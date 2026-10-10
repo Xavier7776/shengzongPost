@@ -1,7 +1,10 @@
+import { logFailure } from '@/lib/security/log'
+import { isRasterImage } from '@/lib/security/image'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/posts/image/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
-import { createPostImage, getPostImages, deletePostImage } from '@/lib/db'
+import { createPostImage, getPostImages, deletePostImage, getAdminUserId } from '@/lib/db'
 import { uploadLarge } from '@/lib/uploadLarge'
 import { v2 as cloudinary } from 'cloudinary'
 
@@ -19,22 +22,24 @@ export async function GET(req: NextRequest) {
     const images = await getPostImages(slug)
     return NextResponse.json(images)
   } catch (err) {
-    console.error('[posts/image GET]', err)
+    logFailure('app/api/posts/image', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
-  console.log('[posts/image POST] ✅ handler 被调用')
+async function handlePOST(req: NextRequest) {
+
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限，请重新登录后再试' }, { status: 401 })
 
   try {
+    const userId = Number((session.user as { id?: string }).id ?? await getAdminUserId())
+    if (!Number.isSafeInteger(userId) || userId <= 0) return NextResponse.json({ error: '管理员账号不可用' }, { status: 403 })
     const formData = await req.formData()
     const file     = formData.get('file')     as File   | null
     const postSlug = formData.get('postSlug') as string | null
 
-    if (!file) return NextResponse.json({ error: '请选择文件' }, { status: 400 })
+    if (!file || typeof file.arrayBuffer !== 'function') return NextResponse.json({ error: '请选择文件' }, { status: 400 })
     if (file.size > 10 * 1024 * 1024)
       return NextResponse.json({ error: '图片不能超过 10MB' }, { status: 400 })
 
@@ -43,15 +48,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '仅支持 JPG/PNG/WebP/GIF' }, { status: 400 })
 
     const buffer = Buffer.from(await file.arrayBuffer())
+    if (!isRasterImage(buffer)) return NextResponse.json({ error: '文件不是支持的 JPG/PNG/WebP/GIF 图片' }, { status: 400 })
 
-    console.log('[posts/image POST] 开始 upload_large, 文件:', file.name, file.size)
+
     const result = await uploadLarge(buffer, {
       folder:        'arc-portfolio/post-images',
       resource_type: 'image',
     })
-    console.log('[posts/image POST] 上传成功, public_id:', result.public_id)
 
-    const userId = Number((session.user as { id?: string }).id ?? 0)
+
     const image = await createPostImage({
       post_slug:   postSlug || null,
       url:         result.secure_url,
@@ -64,12 +69,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: image.url, id: image.id, public_id: image.public_id })
   } catch (err) {
-    console.error('[posts/image POST] ❌ 异常:', err)
+    logFailure('app/api/posts/image', err)
     return NextResponse.json({ error: '上传失败，请重试' }, { status: 500 })
   }
 }
 
-export async function DELETE(req: NextRequest) {
+async function handleDELETE(req: NextRequest) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
@@ -80,11 +85,14 @@ export async function DELETE(req: NextRequest) {
     const deleted = await deletePostImage(id)
     if (!deleted) return NextResponse.json({ error: '记录不存在' }, { status: 404 })
     await cloudinary.uploader.destroy(deleted.public_id).catch(e =>
-      console.warn('[posts/image DELETE] Cloudinary 删除失败:', e)
+      logFailure('app/api/posts/image', e)
     )
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[posts/image DELETE]', err)
+    logFailure('app/api/posts/image', err)
     return NextResponse.json({ error: '删除失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST, { maxBytes: 11 * 1024 * 1024 })
+export const DELETE = withWriteGuard(handleDELETE, { maxBytes: 11 * 1024 * 1024 })

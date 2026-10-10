@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/research/reports/[id]/route.ts
 // 单条研报：GET 详情 / DELETE 删除
 import { NextResponse } from 'next/server'
@@ -23,13 +25,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({ report }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[research/reports/:id GET]', err)
+    logFailure('app/api/research/reports/[id]', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }
 
 // DELETE /api/research/reports/:id → 删除一条研报
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleDELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: '未登录' }, { status: 401 })
@@ -43,7 +45,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await deleteResearchReport(userId, reportId)
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('[research/reports/:id DELETE]', err)
+    logFailure('app/api/research/reports/[id]', err)
     return NextResponse.json({ error: '删除失败' }, { status: 500 })
   }
 }
+
+export const DELETE = withWriteGuard(handleDELETE)

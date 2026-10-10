@@ -1,9 +1,10 @@
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/auth/dev-bypass/route.ts
 // 仅开发环境使用，生产环境直接返回 403
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-export async function POST() {
+async function handlePOST() {
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -18,3 +19,5 @@ export async function POST() {
 
   return NextResponse.json({ ok: true })
 }
+
+export const POST = withWriteGuard(handlePOST)

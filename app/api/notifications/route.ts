@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/notifications/route.ts
 // GET  /api/notifications?page=1&pageSize=20  → 获取当前用户的通知列表（分页，最新在前）
 // POST /api/notifications                    → 标记单条通知为已读（接收 notification_id）
@@ -22,12 +24,12 @@ export async function GET(req: NextRequest) {
     const notifications = await getNotifications(userId, pageSize, offset)
     return NextResponse.json({ notifications, page, pageSize })
   } catch (err) {
-    console.error('[notifications GET]', err)
+    logFailure('app/api/notifications', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
@@ -42,7 +44,9 @@ export async function POST(req: NextRequest) {
     const updated = await markNotificationAsRead(notification_id, userId)
     return NextResponse.json({ ok: true, updated })
   } catch (err) {
-    console.error('[notifications POST]', err)
+    logFailure('app/api/notifications', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

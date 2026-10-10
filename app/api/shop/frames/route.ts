@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/shop/frames/route.ts
 // GET /api/shop/frames → 头像框目录 + 用户已购/装备状态
 import { NextResponse } from 'next/server'
@@ -30,7 +31,7 @@ export async function GET() {
       points,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[shop frames GET]', err)
+    logFailure('app/api/shop/frames', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }

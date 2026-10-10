@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/skills/route.ts
 // GET /api/skills - 获取技能列表（支持分页、筛选、排序）
 import { NextRequest, NextResponse } from 'next/server'
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (err) {
-    console.error('[skills GET]', err)
+    logFailure('app/api/skills', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
