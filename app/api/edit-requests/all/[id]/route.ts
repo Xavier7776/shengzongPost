@@ -10,6 +10,7 @@ import {
   createPost,
 } from '@/lib/db'
 import { invalidatePublishedContent } from '@/lib/content-cache'
+import { EditionEditConflict } from '@/lib/learn/edit-conflict'
 
 export async function PATCH(
   req: NextRequest,
@@ -61,6 +62,7 @@ export async function PATCH(
     const updated = await reviewEditRequest(id, status, admin_note)
     return NextResponse.json({ ok: true, request: updated })
   } catch (err) {
+    if(err instanceof EditionEditConflict)return NextResponse.json({error:err.message},{status:409})
     console.error('[edit-requests PATCH]', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }

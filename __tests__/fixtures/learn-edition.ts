@@ -1,6 +1,6 @@
-import type { Edition } from '@/lib/learn/document'
+import type { EditionV1 } from '@/lib/learn/document'
 
-export function makeEdition(date = '2026-10-08'): Edition {
+export function makeEdition(date = '2026-10-08'): EditionV1 {
   const paragraph = '这是一段用于验证结构的中文技术说明，讨论证据、方法、局限和工程取舍。'.repeat(10)
   return {
     version: 1, date, topic: 'agent', title: '面向智能体系统的工程实践与方法解析',

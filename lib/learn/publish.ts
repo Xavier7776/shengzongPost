@@ -1,6 +1,6 @@
 import { sql } from '@/lib/db/_core'
 import { invalidatePublishedContent } from '@/lib/content-cache'
-import type { Edition } from './document'
+import type { Edition, EditionV2 } from './document'
 import { TOPICS, trustedUrl, validateEdition } from './document'
 import { getSiteUrl } from '@/lib/site-url'
 import { canonicalEdition, editionFingerprint, PublicationError, slugFor, textVersion } from './publication-contract'
@@ -22,16 +22,56 @@ function matches(rows: Record<string, unknown>[], e: Edition): boolean {
 }
 async function verifySources(e: Edition) {
   // No redirects: even a trusted source must not redirect a server fetch to an internal host.
-  const verified = await Promise.all(e.sources.map(async source => {
-    if (!trustedUrl(source.url, source.kind)) return 'sources.' + source.id + ': untrusted URL'
+  const artifacts = e.version===2 ? [e.evidence,...e.otherUpdates,...e.blocks.filter(b=>b.type!=='heading'&&b.type!=='code'&&'evidenceType' in b)].flatMap(b=>
+    'reproduction' in b && b.reproduction ? [b.reproduction.artifactUrl] : []) : []
+  const checks = [...e.sources.map(s=>({id:'sources.'+s.id,url:s.url,allowed:trustedUrl(s.url,s.kind)})),
+    ...Array.from(new Set(artifacts)).map((url,i)=>({id:'reproduction.'+i,url,allowed:/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/blob\/[a-f0-9]{40}\/[\w./-]+$/.test(url)}))]
+  const verified = await Promise.all(checks.map(async source => {
+    if (!source.allowed) return source.id + ': untrusted URL'
     try {
       const response = await fetch(source.url, {redirect:'error', signal:AbortSignal.timeout(4000), cache:'no-store'})
       await response.body?.cancel()
-      return response.ok ? null : 'sources.' + source.id + ': HTTP ' + response.status
-    } catch { return 'sources.' + source.id + ': unreachable or timed out' }
+      return response.ok ? null : source.id + ': HTTP ' + response.status
+    } catch { return source.id + ': unreachable or timed out' }
   }))
   const reasons = verified.filter((reason): reason is string => reason !== null)
   if (reasons.length) throw new PublicationError('source_unverified', slugFor(e), false, reasons)
+}
+
+/** Human-reviewed correction: compare-and-swap both representations in one statement. */
+export async function reviseEdition(e: EditionV2, previousFingerprint: string) {
+  const verdict=validateEdition(e)
+  if(!verdict.ok || e.version!==2 || !/^[a-f0-9]{64}$/.test(previousFingerprint)) throw new Error('invalid correction contract')
+  e=JSON.parse(canonicalEdition(e)) as EditionV2
+  const slug=slugFor(e),rows=await readPublication(e),old=rows[0]?.document as Edition
+  if(!old || !validateEdition(old).ok || !matches(rows,old)) throw new PublicationError('conflict',slug)
+  if(editionFingerprint(old)===editionFingerprint(e))return {updated:false,alreadyExists:true,slug,fingerprint:editionFingerprint(e),dbStatus:'db_ready',cacheStatus:'unchanged',publicStatus:await publicVisibility(e)}
+  const history=old.version===2?old.revisions:[],last=e.revisions[e.revisions.length-1]
+  if(editionFingerprint(old)!==previousFingerprint || old.date!==e.date || old.topic!==e.topic ||
+    e.revisions.length!==history.length+1 || canonicalEdition({...e,revisions:e.revisions.slice(0,-1)})!==canonicalEdition({...e,revisions:history}) ||
+    last?.previousFingerprint!==previousFingerprint)throw new PublicationError('conflict',slug)
+  await verifySources(e)
+  const written=await sql`WITH current AS (
+    SELECT p.id FROM posts p JOIN learn_editions l ON l.post_id=p.id
+    WHERE p.slug=${slug} AND p.published=true AND l.status='published'
+      AND l.edition_date=${old.date}::date AND l.topic=${old.topic} AND p.tags=${[TOPICS[old.topic],'AI技术精读','自动发布']}
+      AND l.document=${JSON.stringify(old)}::jsonb AND p.content=${textVersion(old)}
+      AND p.title=${old.title} AND p.excerpt=${old.excerpt}
+    FOR UPDATE OF p,l
+  ), updated_post AS (
+    UPDATE posts p SET title=${e.title},excerpt=${e.excerpt},content=${textVersion(e)},updated_at=NOW()
+    FROM current WHERE p.id=current.id RETURNING p.id
+  ), updated_edition AS (
+    UPDATE learn_editions l SET document=${JSON.stringify(e)}::jsonb
+    FROM updated_post WHERE l.post_id=updated_post.id RETURNING l.post_id
+  ) SELECT COUNT(*)::int AS updated FROM updated_edition`
+  const updated=Number(written[0]?.updated)===1
+  let readback
+  try {readback=await readPublication(e)} catch {throw new PublicationError('readback_failed',slug,false,[],updated?true:null)}
+  if(!matches(readback,e))throw new PublicationError(updated?'readback_failed':'conflict',slug,false,[],updated)
+  // A transport retry can return zero after the first statement already committed.
+  return {updated,alreadyExists:!updated,slug,fingerprint:editionFingerprint(e),dbStatus:'db_ready',
+    cacheStatus:invalidatePublishedContent([slug]),publicStatus:await publicVisibility(e)}
 }
 export async function publicVisibility(e: Edition) {
   const fingerprint = editionFingerprint(e)
