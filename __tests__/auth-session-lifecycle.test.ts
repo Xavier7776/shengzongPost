@@ -32,4 +32,10 @@ describe('JWT account and password lifecycle', () => {
     expect(token.passwordStamp).toBeUndefined(); expect(token.picture).toBeUndefined(); expect(token.name).toBe('Updated')
     expect((await authOptions.callbacks!.session!({ session: { user: { email: user.email }, expires: '' }, token: {} } as Parameters<NonNullable<typeof authOptions.callbacks>['session'] & Function>[0])).user).toBeUndefined()
   })
+  it('filters unsafe pictures already present in signed legacy sessions', async () => {
+    const session = authOptions.callbacks!.session!
+    const runSession = (picture: string) => session({ session: { user: { email: user.email }, expires: '' }, token: { dbId: '7', picture } } as unknown as Parameters<typeof session>[0])
+    expect((await runSession('javascript:alert(1)')).user?.image).toBeNull()
+    expect((await runSession('https://avatars.githubusercontent.com/u/7')).user?.image).toBe('https://avatars.githubusercontent.com/u/7')
+  })
 })

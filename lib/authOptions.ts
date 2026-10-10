@@ -65,7 +65,7 @@ export const authOptions: NextAuthOptions = {
         const realId = (token.dbId as string | undefined) ?? token.sub
         if (realId)         (session.user as { id?: string }).id = realId
         if (token?.role)    (session.user as { role?: string }).role = token.role as string
-        if (token?.picture) session.user.image = token.picture as string
+        session.user.image = safePostImageUrl(typeof token.picture === 'string' ? token.picture : null)
       }
       return session
     },
