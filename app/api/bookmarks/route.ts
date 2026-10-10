@@ -4,7 +4,7 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { isBookmarked, toggleBookmark, getUserBookmarks, addPoints, hasPointTransaction } from '@/lib/db'
+import { isBookmarked, toggleBookmark, getUserBookmarks } from '@/lib/db'
 
 // GET /api/bookmarks?slug=xxx  → { bookmarked: bool }
 // GET /api/bookmarks            → [ ...posts ]  用户收藏列表
@@ -36,19 +36,11 @@ async function handlePOST(req: NextRequest) {
 
   try {
     const { slug } = await req.json()
-    if (!slug) return NextResponse.json({ error: '缺少 slug' }, { status: 400 })
+    if (typeof slug !== 'string' || !slug) return NextResponse.json({ error: '缺少 slug' }, { status: 400 })
     const bookmarked = await toggleBookmark(slug, userId)
-    if (bookmarked) {
-      // 检查是否已有收藏流水，防止并发重复加分
-      const alreadyBookmarked = await hasPointTransaction(userId, 'bookmark_post', slug)
-      if (!alreadyBookmarked) await addPoints(userId, 1, 'bookmark_post', slug)
-    } else {
-      // 只有之前确实加过积分才扣回（幂等）
-      const hasTx = await hasPointTransaction(userId, 'bookmark_post', slug)
-      if (hasTx) await addPoints(userId, -1, 'unbookmark_post', slug)
-    }
     return NextResponse.json({ bookmarked })
   } catch (err) {
+    if (err instanceof Error && err.message === 'Post not found') return NextResponse.json({ error: '文章不存在' }, { status: 404 })
     logFailure('app/api/bookmarks', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }

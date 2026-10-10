@@ -68,7 +68,20 @@ export async function deleteAiBotCommentForPost(postSlug: string): Promise<void>
   `
 }
 export async function updateCommentStatus(id: number, status: 'approved'|'rejected'): Promise<Comment> {
-  const rows = await sql`UPDATE comments SET status=${status} WHERE id=${id} RETURNING *`
+  const [, rows] = await sql.transaction(tx => [
+    tx`SELECT id FROM users WHERE id=(SELECT user_id FROM comments WHERE id=${id}) FOR UPDATE`,
+    tx`WITH previous AS (SELECT status FROM comments WHERE id=${id}),
+      changed AS (UPDATE comments SET status=${status} WHERE id=${id} RETURNING *),
+      reward AS (UPDATE users SET points=points+5 WHERE id IN (
+        SELECT changed.user_id FROM changed,previous WHERE changed.status='approved' AND previous.status<>'approved'
+          AND EXISTS(SELECT 1 FROM posts WHERE slug=changed.post_slug AND published=true)
+          AND NOT EXISTS(SELECT 1 FROM point_transactions WHERE user_id=changed.user_id AND reason='comment_approved' AND ref_slug=changed.post_slug)
+      ) RETURNING id),
+      audit AS (INSERT INTO point_transactions(user_id,amount,reason,ref_slug)
+        SELECT reward.id,5,'comment_approved',changed.post_slug FROM reward,changed RETURNING id)
+      SELECT changed.* FROM changed`,
+  ])
+  if (!rows[0]) throw new Error('Comment not found')
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Comment
 }
 export async function deleteComment(id: number): Promise<void> {
@@ -109,4 +122,30 @@ export async function upsertReaction(slug: string, userId: number, type: 'like'|
 }
 export async function deleteReaction(slug: string, userId: number): Promise<void> {
   await sql`DELETE FROM post_reactions WHERE post_slug=${slug} AND user_id=${userId}`
+}
+
+export async function toggleReaction(slug: string, userId: number, type: 'like'|'dislike'): Promise<void> {
+  const [, rows] = await sql.transaction(tx => [
+    tx`SELECT id FROM users WHERE id=${userId} FOR UPDATE`,
+    tx`WITH target AS (SELECT slug FROM posts WHERE slug=${slug} AND published=true),
+      removed AS (DELETE FROM post_reactions WHERE post_slug IN (SELECT slug FROM target) AND user_id=${userId} AND type=${type} RETURNING id),
+      added AS (INSERT INTO post_reactions(post_slug,user_id,type)
+        SELECT slug,${userId},${type} FROM target WHERE NOT EXISTS(SELECT 1 FROM removed)
+        ON CONFLICT(post_slug,user_id) DO UPDATE SET type=EXCLUDED.type RETURNING id)
+      SELECT slug FROM target`,
+    tx`WITH reward AS (
+        SELECT CASE WHEN EXISTS(SELECT 1 FROM post_reactions WHERE post_slug=${slug} AND user_id=${userId} AND type='like') THEN 1 ELSE -1 END AS amount
+        WHERE EXISTS(SELECT 1 FROM posts WHERE slug=${slug} AND published=true)
+      ), eligible AS (
+        SELECT amount FROM reward WHERE
+          (amount=1 AND NOT EXISTS(SELECT 1 FROM point_transactions WHERE user_id=${userId} AND reason='like_post' AND ref_slug=${slug})) OR
+          (amount=-1 AND EXISTS(SELECT 1 FROM point_transactions WHERE user_id=${userId} AND reason='like_post' AND ref_slug=${slug})
+            AND NOT EXISTS(SELECT 1 FROM point_transactions WHERE user_id=${userId} AND reason='unlike_post' AND ref_slug=${slug}))
+      ), previous AS (SELECT points FROM users WHERE id=${userId}),
+      changed AS (UPDATE users SET points=GREATEST(points+eligible.amount,0) FROM eligible WHERE id=${userId} RETURNING points)
+      INSERT INTO point_transactions(user_id,amount,reason,ref_slug)
+        SELECT ${userId},changed.points-previous.points,CASE WHEN eligible.amount=1 THEN 'like_post' ELSE 'unlike_post' END,${slug}
+        FROM changed,previous,eligible RETURNING id`,
+  ])
+  if (!rows[0]) throw new Error('Post not found')
 }

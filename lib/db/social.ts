@@ -10,12 +10,32 @@ export async function isBookmarked(slug: string, userId: number): Promise<boolea
   return rows.length > 0
 }
 export async function toggleBookmark(slug: string, userId: number): Promise<boolean> {
-  const exists = await isBookmarked(slug, userId)
-  if (exists) { await sql`DELETE FROM bookmarks WHERE post_slug=${slug} AND user_id=${userId}`; return false }
-  else { await sql`INSERT INTO bookmarks(post_slug,user_id) VALUES(${slug},${userId})`; return true }
+  const [, rows] = await sql.transaction(tx => [
+    tx`SELECT id FROM users WHERE id=${userId} FOR UPDATE`,
+    tx`WITH target AS (SELECT slug FROM posts WHERE slug=${slug} AND published=true),
+      removed AS (DELETE FROM bookmarks WHERE post_slug IN (SELECT slug FROM target) AND user_id=${userId} RETURNING id),
+      added AS (INSERT INTO bookmarks(post_slug,user_id) SELECT slug,${userId} FROM target
+        WHERE NOT EXISTS(SELECT 1 FROM removed) RETURNING id)
+      SELECT EXISTS(SELECT 1 FROM added) AS bookmarked FROM target`,
+    tx`WITH reward AS (
+        SELECT CASE WHEN EXISTS(SELECT 1 FROM bookmarks WHERE post_slug=${slug} AND user_id=${userId}) THEN 1 ELSE -1 END AS amount
+        WHERE EXISTS(SELECT 1 FROM posts WHERE slug=${slug} AND published=true)
+      ), eligible AS (
+        SELECT amount FROM reward WHERE
+          (amount=1 AND NOT EXISTS(SELECT 1 FROM point_transactions WHERE user_id=${userId} AND reason='bookmark_post' AND ref_slug=${slug})) OR
+          (amount=-1 AND EXISTS(SELECT 1 FROM point_transactions WHERE user_id=${userId} AND reason='bookmark_post' AND ref_slug=${slug})
+            AND NOT EXISTS(SELECT 1 FROM point_transactions WHERE user_id=${userId} AND reason='unbookmark_post' AND ref_slug=${slug}))
+      ), previous AS (SELECT points FROM users WHERE id=${userId}),
+      changed AS (UPDATE users SET points=GREATEST(points+eligible.amount,0) FROM eligible WHERE id=${userId} RETURNING points)
+      INSERT INTO point_transactions(user_id,amount,reason,ref_slug)
+        SELECT ${userId},changed.points-previous.points,CASE WHEN eligible.amount=1 THEN 'bookmark_post' ELSE 'unbookmark_post' END,${slug}
+        FROM changed,previous,eligible RETURNING id`,
+  ])
+  if (!rows[0]) throw new Error('Post not found')
+  return rows[0].bookmarked as boolean
 }
 export async function getUserBookmarks(userId: number): Promise<PostMeta[]> {
-  const rows = await sql`SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at FROM bookmarks b JOIN posts p ON p.slug=b.post_slug WHERE b.user_id=${userId} ORDER BY b.created_at DESC`
+  const rows = await sql`SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at FROM bookmarks b JOIN posts p ON p.slug=b.post_slug WHERE b.user_id=${userId} AND p.published=true ORDER BY b.created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
 }
 export async function getUserLikedPosts(userId: number): Promise<PostMeta[]> {

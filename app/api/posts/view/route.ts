@@ -5,7 +5,7 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { incrementViewCount, hasReadPost, markPostRead, addPoints } from '@/lib/db'
+import { incrementViewCount, rewardPostRead } from '@/lib/db'
 
 async function handlePOST(req: NextRequest) {
   try {
@@ -21,12 +21,7 @@ async function handlePOST(req: NextRequest) {
     if (session?.user) {
       const userId = Number((session.user as { id?: string }).id)
       if (userId) {
-        const alreadyRead = await hasReadPost(userId, slug)
-        if (!alreadyRead) {
-          await markPostRead(userId, slug)
-          try { await addPoints(userId, 2, 'read_post', slug) } catch (e) { logFailure('app/api/posts/view', e) }
-          pointsAdded = true
-        }
+        pointsAdded = await rewardPostRead(userId, slug)
       }
     }
 

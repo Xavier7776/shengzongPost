@@ -2,11 +2,11 @@ import { logFailure } from '@/lib/security/log'
 import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/research/points/route.ts
 // 深度研究积分系统：2000 积分 / 次
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 export const dynamic = 'force-dynamic'
 import { authOptions } from '@/lib/authOptions'
-import { getPoints, addPoints, sql } from '@/lib/db'
+import { getPoints, chargeResearch } from '@/lib/db'
 
 const RESEARCH_COST = 2000
 
@@ -31,42 +31,32 @@ export async function GET() {
 }
 
 // POST /api/research/points → 扣除 2000 积分启动深度研究
-async function handlePOST() {
+async function handlePOST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: '未登录' }, { status: 401 })
     const userId = Number((session.user as { id?: string }).id)
     if (!userId) return NextResponse.json({ error: '用户信息异常' }, { status: 400 })
 
-    // 原子性扣费：单条 SQL 同时检查余额+扣费，避免并发问题
-    // WHERE points >= 2000 确保余额充足才扣，RETURNING 返回新余额
-    const refSlug = `research_${Date.now()}_${userId}`
-    const rows = await sql`
-      UPDATE users
-      SET points = points - ${RESEARCH_COST}
-      WHERE id = ${userId} AND points >= ${RESEARCH_COST}
-      RETURNING points
-    `
-
-    if (!rows[0]) {
-      // 余额不足或用户不存在
-      const currentRow = await sql`SELECT points FROM users WHERE id = ${userId} LIMIT 1`
-      const current = (currentRow[0] as { points: number })?.points ?? 0
+    // Cached old clients sent no body; only clients retaining a requestId can replay safely.
+    const body = await req.text()
+    let requestId: unknown = crypto.randomUUID()
+    if (body) {
+      try { requestId = JSON.parse(body)?.requestId }
+      catch { return NextResponse.json({ error: '请求格式无效' }, { status: 400 }) }
+    }
+    if (typeof requestId !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)) {
+      return NextResponse.json({ error: '请求编号无效' }, { status: 400 })
+    }
+    const { paid, remaining, refSlug } = await chargeResearch(userId, requestId.toLowerCase(), RESEARCH_COST)
+    if (!paid) {
+      const current = remaining
       return NextResponse.json({
         error: '积分不足',
         needed: RESEARCH_COST,
         current,
         shortage: RESEARCH_COST - current,
       }, { status: 402 })
-    }
-
-    const remaining = (rows[0] as { points: number }).points
-
-    // 记录流水（失败不影响扣费结果）
-    try {
-      await sql`INSERT INTO point_transactions(user_id, amount, reason, ref_slug) VALUES(${userId}, ${-RESEARCH_COST}, 'deep_research', ${refSlug})`
-    } catch (e) {
-      logFailure('app/api/research/points', e)
     }
 
     return NextResponse.json({

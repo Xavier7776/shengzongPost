@@ -2,7 +2,6 @@
 // Extracted from lib/db.ts by domain boundary. Logic unchanged.
 
 import { sql, serializeRow, serializeRows } from './_core'
-import { hasPointTransaction, getPoints, addPoints } from './points'
 
 // ─── Avatar Frames ──────────────────────────────────────────────────────────
 
@@ -32,26 +31,25 @@ export async function getUserEquippedFrame(userId: number): Promise<AvatarFrame 
 }
 
 export async function purchaseFrame(userId: number, frameId: number): Promise<{ remainingPoints: number; frame: AvatarFrame }> {
-  const frameRows = await sql`SELECT * FROM avatar_frames WHERE id = ${frameId} AND enabled = true LIMIT 1`
-  if (!frameRows[0]) throw new Error('Frame not found')
-  const frame = frameRows[0] as unknown as AvatarFrame
-
-  // 幂等检查：如果已有该 frame 的购买流水，说明已购买过（防止并发双重购买）
-  const alreadyPurchased = await hasPointTransaction(userId, 'frame_purchase', `frame_${frame.key}`)
-  if (alreadyPurchased) {
-    const currentPoints = await getPoints(userId)
-    return { remainingPoints: currentPoints, frame: serializeRow(frame as unknown as Record<string, unknown>) as unknown as AvatarFrame }
-  }
-
-  const userPoints = await getPoints(userId)
-  if (userPoints < frame.price) throw new Error('Insufficient points')
-
-  // 先扣积分（addPoints 内部用 GREATEST 保底不为负）
-  const remaining = await addPoints(userId, -frame.price, 'frame_purchase', `frame_${frame.key}`)
-  // 用 ON CONFLICT 防止并发重复插入
-  await sql`INSERT INTO user_frames(user_id, frame_id) VALUES(${userId}, ${frameId}) ON CONFLICT DO NOTHING`
-
-  return { remainingPoints: remaining, frame: serializeRow(frame as unknown as Record<string, unknown>) as unknown as AvatarFrame }
+  const [, rows] = await sql.transaction(tx => [
+    tx`SELECT id FROM users WHERE id=${userId} FOR UPDATE`,
+    tx`WITH item AS (SELECT * FROM avatar_frames WHERE id=${frameId} AND enabled=true AND price>=0),
+      owned AS (SELECT 1 FROM user_frames WHERE user_id=${userId} AND frame_id=${frameId}),
+      prior AS (SELECT 1 FROM point_transactions,item WHERE user_id=${userId} AND reason='frame_purchase' AND ref_slug='frame_'||item.key),
+      debit AS (UPDATE users SET points=users.points-item.price FROM item WHERE users.id=${userId} AND points>=item.price
+        AND NOT EXISTS(SELECT 1 FROM owned) AND NOT EXISTS(SELECT 1 FROM prior) RETURNING points),
+      acquired AS (INSERT INTO user_frames(user_id,frame_id) SELECT ${userId},item.id FROM item
+        WHERE EXISTS(SELECT 1 FROM debit) OR EXISTS(SELECT 1 FROM prior) ON CONFLICT DO NOTHING RETURNING frame_id),
+      audit AS (INSERT INTO point_transactions(user_id,amount,reason,ref_slug)
+        SELECT ${userId},-item.price,'frame_purchase','frame_'||item.key FROM item,debit
+        WHERE EXISTS(SELECT 1 FROM acquired) RETURNING id)
+      SELECT item.*,COALESCE((SELECT points FROM debit),(SELECT points FROM users WHERE id=${userId})) AS remaining_points,
+        EXISTS(SELECT 1 FROM owned) OR EXISTS(SELECT 1 FROM acquired) AS purchased FROM item`,
+  ])
+  if (!rows[0]) throw new Error('Frame not found')
+  const { remaining_points, purchased, ...frame } = rows[0]
+  if (!purchased) throw new Error('Insufficient points')
+  return { remainingPoints: remaining_points as number, frame: serializeRow(frame) as unknown as AvatarFrame }
 }
 
 export async function equipFrame(userId: number, frameId: number | null): Promise<void> {
@@ -98,26 +96,25 @@ export async function getUserEquippedCursorEffect(userId: number): Promise<Curso
 }
 
 export async function purchaseCursorEffect(userId: number, effectId: number): Promise<{ remainingPoints: number; effect: CursorEffect }> {
-  const effectRows = await sql`SELECT * FROM cursor_effects WHERE id = ${effectId} AND enabled = true LIMIT 1`
-  if (!effectRows[0]) throw new Error('Cursor effect not found')
-  const effect = effectRows[0] as unknown as CursorEffect
-
-  // 幂等检查：如果已有该 cursor 的购买流水，说明已购买过（防止并发双重购买）
-  const alreadyPurchased = await hasPointTransaction(userId, 'cursor_purchase', `cursor_${effect.key}`)
-  if (alreadyPurchased) {
-    const currentPoints = await getPoints(userId)
-    return { remainingPoints: currentPoints, effect: serializeRow(effect as unknown as Record<string, unknown>) as unknown as CursorEffect }
-  }
-
-  const userPoints = await getPoints(userId)
-  if (userPoints < effect.price) throw new Error('Insufficient points')
-
-  // 先扣积分（addPoints 内部用 GREATEST 保底不为负）
-  const remaining = await addPoints(userId, -effect.price, 'cursor_purchase', `cursor_${effect.key}`)
-  // 用 ON CONFLICT 防止并发重复插入
-  await sql`INSERT INTO user_cursor_effects(user_id, effect_id) VALUES(${userId}, ${effectId}) ON CONFLICT DO NOTHING`
-
-  return { remainingPoints: remaining, effect: serializeRow(effect as unknown as Record<string, unknown>) as unknown as CursorEffect }
+  const [, rows] = await sql.transaction(tx => [
+    tx`SELECT id FROM users WHERE id=${userId} FOR UPDATE`,
+    tx`WITH item AS (SELECT * FROM cursor_effects WHERE id=${effectId} AND enabled=true AND price>=0),
+      owned AS (SELECT 1 FROM user_cursor_effects WHERE user_id=${userId} AND effect_id=${effectId}),
+      prior AS (SELECT 1 FROM point_transactions,item WHERE user_id=${userId} AND reason='cursor_purchase' AND ref_slug='cursor_'||item.key),
+      debit AS (UPDATE users SET points=users.points-item.price FROM item WHERE users.id=${userId} AND points>=item.price
+        AND NOT EXISTS(SELECT 1 FROM owned) AND NOT EXISTS(SELECT 1 FROM prior) RETURNING points),
+      acquired AS (INSERT INTO user_cursor_effects(user_id,effect_id) SELECT ${userId},item.id FROM item
+        WHERE EXISTS(SELECT 1 FROM debit) OR EXISTS(SELECT 1 FROM prior) ON CONFLICT DO NOTHING RETURNING effect_id),
+      audit AS (INSERT INTO point_transactions(user_id,amount,reason,ref_slug)
+        SELECT ${userId},-item.price,'cursor_purchase','cursor_'||item.key FROM item,debit
+        WHERE EXISTS(SELECT 1 FROM acquired) RETURNING id)
+      SELECT item.*,COALESCE((SELECT points FROM debit),(SELECT points FROM users WHERE id=${userId})) AS remaining_points,
+        EXISTS(SELECT 1 FROM owned) OR EXISTS(SELECT 1 FROM acquired) AS purchased FROM item`,
+  ])
+  if (!rows[0]) throw new Error('Cursor effect not found')
+  const { remaining_points, purchased, ...effect } = rows[0]
+  if (!purchased) throw new Error('Insufficient points')
+  return { remainingPoints: remaining_points as number, effect: serializeRow(effect) as unknown as CursorEffect }
 }
 
 export async function equipCursorEffect(userId: number, effectId: number | null): Promise<void> {

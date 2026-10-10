@@ -100,7 +100,7 @@ export async function updatePost(slug: string, data: Partial<{ title: string; ex
 }
 export async function deletePost(slug: string): Promise<void> { await sql`DELETE FROM posts WHERE slug=${slug}` }
 export async function incrementViewCount(slug: string): Promise<void> {
-  await sql`UPDATE posts SET view_count = COALESCE(view_count, 0) + 1 WHERE slug=${slug}`
+  await sql`UPDATE posts SET view_count = COALESCE(view_count, 0) + 1 WHERE slug=${slug} AND published=true`
 }
 export async function getOrCreateAiBot(): Promise<User> {
   const existing = await sql`SELECT * FROM users WHERE email='ai-bot@system.internal' LIMIT 1`
