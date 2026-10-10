@@ -42,3 +42,4 @@ describe('learn migration and legacy article compatibility', () => {
     expect(screen.queryByText('教学示例数据，非论文实验结果')).not.toBeInTheDocument()
   })
 })
+vi.mock('@/components/learn/LearningPaths', () => ({ default: () => null }))

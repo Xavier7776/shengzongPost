@@ -115,29 +115,23 @@ export async function getOrCreateAiBot(): Promise<User> {
 
 
 export async function getAdjacentPosts(slug: string): Promise<{ prev: PostMeta | null; next: PostMeta | null }> {
-  const current = await sql`SELECT id FROM posts WHERE slug=${slug} AND published=true LIMIT 1`
-  if (!current[0]) return { prev: null, next: null }
-  const currentId = current[0].id as number
-
-  // 上一篇：更早的文章（id 更小）
-  const prevRows = await sql`
+  const rows = await sql`
+    WITH current AS (SELECT id,created_at FROM posts WHERE slug=${slug} AND published=TRUE LIMIT 1)
     SELECT p.slug,p.title,p.excerpt,p.tags,p.created_at,p.cover_image,
-           p.author_id,u.name as author_name,u.avatar as author_avatar
-    FROM posts p LEFT JOIN users u ON u.id=p.author_id
-    WHERE p.published=true AND p.id < ${currentId}
-    ORDER BY p.id DESC LIMIT 1`
-
-  // 下一篇：更新的文章（id 更大）
-  const nextRows = await sql`
-    SELECT p.slug,p.title,p.excerpt,p.tags,p.created_at,p.cover_image,
-           p.author_id,u.name as author_name,u.avatar as author_avatar
-    FROM posts p LEFT JOIN users u ON u.id=p.author_id
-    WHERE p.published=true AND p.id > ${currentId}
-    ORDER BY p.id ASC LIMIT 1`
-
+           p.author_id,u.name as author_name,u.avatar as author_avatar,neighbor.direction
+    FROM current c CROSS JOIN LATERAL (
+      (SELECT id,'prev'::text AS direction FROM posts
+       WHERE published=TRUE AND (created_at,id)<(c.created_at,c.id)
+       ORDER BY created_at DESC,id DESC LIMIT 1)
+      UNION ALL
+      (SELECT id,'next'::text AS direction FROM posts
+       WHERE published=TRUE AND (created_at,id)>(c.created_at,c.id)
+       ORDER BY created_at ASC,id ASC LIMIT 1)
+    ) neighbor JOIN posts p ON p.id=neighbor.id LEFT JOIN users u ON u.id=p.author_id`
+  const neighbors = rows.map(({ direction, ...row }) => ({ direction, post: serializeRow(row) as unknown as PostMeta }))
   return {
-    prev: prevRows[0] ? serializeRow(prevRows[0] as Record<string, unknown>) as unknown as PostMeta : null,
-    next: nextRows[0] ? serializeRow(nextRows[0] as Record<string, unknown>) as unknown as PostMeta : null,
+    prev: neighbors.find(row => row.direction === 'prev')?.post ?? null,
+    next: neighbors.find(row => row.direction === 'next')?.post ?? null,
   }
 }
 

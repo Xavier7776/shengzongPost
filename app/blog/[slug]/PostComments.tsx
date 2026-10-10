@@ -5,6 +5,8 @@ import PostActions from '@/components/sections/PostActions'
 import ViewTracker from '@/components/sections/ViewTracker'
 import ShareButtons from '@/components/sections/ShareButtons'
 import PostNavigation from '@/components/sections/PostNavigation'
+import RelatedContent from '@/components/sections/RelatedContent'
+import { Suspense } from 'react'
 
 interface PostCommentsProps {
   slug: string
@@ -26,6 +28,7 @@ export default async function PostComments({ slug }: PostCommentsProps) {
       </div>
 
       <PostNavigation prev={prev} next={next} />
+      <Suspense fallback={null}><RelatedContent slug={slug}/></Suspense>
 
       <div className="mt-16">
         <CommentSection slug={slug} />
