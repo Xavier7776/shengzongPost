@@ -1,6 +1,6 @@
 # M12-C editor dependency patches
 
-2026-10-10. Stacked candidate on M12-B `2e93ad4`; not approved for production.
+2026-10-10. Stacked candidate refreshed by ordinary merge of M12-B `e40377d`; not approved for production.
 
 All ten direct Tiptap packages are pinned to3.31.4. Core/PM/extensions resolve consistently without force or legacy peer flags. ProseMirror view1.41.8→1.42.6 and model1.25.7→1.25.12; no other non-Tiptap package version changes. The minimum patched core3.30.5 candidate exposed incompatible optional menu caret resolution, so the complete current family is used instead of overriding peer constraints.
 
@@ -11,3 +11,7 @@ Three real-package tests cover own JSON `__proto__` attributes through DOMSerial
 Clean npm ci, valid npm ls, 71files/474tests, typecheck and lint(0errors/100warnings) pass. Complete fixture-only production build generates85pages. Actual production-mode browser checks exercise both editors with native ClipboardEvent/DataTransfer: bold/code/table/image paste is preserved, event attributes are removed and the attack sentinel remains false. Administrator preview/draft save/reload/publish/withdraw and user pending/private submission pass with no browser errors. Evidence: m12c-editor-local.json. Current npm audit reports14findings(2moderate/12high/0critical), with no Tiptap/ProseMirror entries; this is not a claim that all project or host runtime vulnerabilities are resolved.
 
 No production data, schema, provider credentials, publishing schedule, authentication flow or editor UI design changes. M12-B's navigation hydration fix passes its full CI38037984006 and same-head Preview dpl_FzfUoJHkbX9xJfFksCCzLHAqBAy2 including multi-page smoke. Its final mobile article performance remains87 against92 baseline; user explicitly selected keeping it Draft and continuing optimization. This patch also stays Draft and cannot be merged ahead of its base. CI/Preview must verify its exact final head. npm Undici7.29.0 is jsdom-only; host Node24.9.0 embeds Undici7.16.0, a separate runtime maintenance boundary.
+
+The original a796b2c editor patch passed CI38038465979/job114173766531 and exact Preview dpl_JCjkNbSdzAWJ2CyiSfssoRrPrci4 READY. Three-width public/security, old-edition fingerprint/quiz/chart/sources/RSS/sitemap/404 and Shop/Research read checks pass with no unexplained browser errors; scoped15-minute error/fatal logs are empty. This does not cover remote authenticated mutations.
+
+B's later performance patch reaches mobile old-edition91/90/90 and home94/94/94 in three comparable sequential runs; article LCP3325ms and gzipJS187412 still exceed the old baseline. It keeps Draft per the user's instruction. Those source changes were merged normally into this branch without rebasing or overwriting editor patches. Refreshed local/CI/Preview gates remain pending; the previous-head successes are not substituted. Full npm ls --all has optional WASM/extraneous diagnostics documented in M12-D, already reproduced on the unchanged original C installation; declared editor peers remain consistent.
