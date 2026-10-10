@@ -14,7 +14,7 @@ import { PostMetaForm } from '@/features/editor/PostMetaForm'
 
 interface Props {
   mode: EditorMode
-  /** 从既有文章派生时的来源文章 id */
+  /** 重提被拒绝申请时的申请 id */
   fromId?: number | null
   initialData?: {
     slug: string; title: string; excerpt: string; content: string

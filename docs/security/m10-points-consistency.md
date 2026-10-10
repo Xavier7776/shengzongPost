@@ -31,3 +31,5 @@
 回滚代码到上述基线，无 schema 迁移，无历史数据还原。回滚后旧实现的竞态会恢复，不自动删除新流水。临时分支保留可审查，不自动删除。
 
 下一轮独立处理投稿审批 CAS、serverless 上传持久性及公开持久限流。历史 JWT 失效策略、实际 app role/密钥清理、生产审计迁移和独立备份落地须准备具体变更再分别批准。
+
+M10-B1 已交付：PR [#25](https://github.com/Xavier7776/shengzongPost/pull/25) head `007eec455d830484d89ca0518629cff3c2904a4a` 的 CI 38026647831 / job 114138790812 全步骤成功，Preview `dpl_6VaGuyRbN51qtB7rCo2KobHmcjdU` 同 head READY/浏览器通过。正常 squash 合并 `12a739dcbbb668627a79f3bd1977ed004ea40aaa`，Production `dpl_61rbicDVuhCDVz95thpWNPsT45J8` 同 merge SHA READY/正式 Alias 核对。正式域名只读 Shop/Research、旧刊/公开/安全/分发、三尺寸通过，旧指纹/自测/图表/RSS/sitemap/实际404 保持，浏览器错误和 scoped error/fatal 聚合为空。证据 `m10b-production{,-smoke,-ui}.json`。未在生产测试真实账号扣款、审核或存储上传。

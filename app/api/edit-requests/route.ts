@@ -8,7 +8,8 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-import { createEditRequest, deleteEditRequest, getEditRequestsByUser } from '@/lib/db'
+import { createEditRequest, getEditRequestsByUser } from '@/lib/db'
+import { safePostImageUrl } from '@/lib/html/sanitize-post'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,13 +42,13 @@ async function handlePOST(req: NextRequest) {
 
   try {
     const { post_slug, title, excerpt, content, tags, cover_image, from_id } = await req.json()
-    if (!post_slug || !title?.trim() || !content?.trim())
+    if (typeof post_slug !== 'string' || !post_slug || typeof title !== 'string' || !title.trim() || typeof content !== 'string' || !content.trim())
       return NextResponse.json({ error: 'slug、标题和正文不能为空' }, { status: 400 })
-
-    // 如果是重新提交被拒绝的申请，先删除原记录
-    if (from_id) {
-      await deleteEditRequest(Number(from_id), userId)
-    }
+    if ((excerpt != null && typeof excerpt !== 'string') ||
+      (tags != null && (!Array.isArray(tags) || tags.some((tag:unknown)=>typeof tag !== 'string'))) ||
+      (cover_image != null && (typeof cover_image !== 'string' || (cover_image && !safePostImageUrl(cover_image)))) ||
+      (from_id != null && (!Number.isSafeInteger(from_id) || from_id<=0)))
+      return NextResponse.json({error:'提交字段格式无效'},{status:400})
 
     const request = await createEditRequest({
       post_slug,
@@ -57,9 +58,11 @@ async function handlePOST(req: NextRequest) {
       content: content.trim(),
       tags: Array.isArray(tags) ? tags : [],
       cover_image: cover_image ?? null,
+      from_id,
     })
     return NextResponse.json({ ok: true, request }, { status: 201 })
   } catch (err) {
+    if(err instanceof Error && err.message==='Cannot resubmit')return NextResponse.json({error:'文章不属于本人，或原申请不存在/尚未拒绝，请刷新后重试'},{status:409})
     logFailure('app/api/edit-requests', err)
     return NextResponse.json({ error: '提交失败' }, { status: 500 })
   }
