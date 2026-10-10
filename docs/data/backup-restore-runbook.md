@@ -8,7 +8,9 @@
 - 可跨电脑密钥：`C:/Users/Administrator/Desktop/shengzongPost-Recovery-Key/recovery-private.pem`，同目录有验证脚本和使用说明。密钥新生成后仍需同步；不能用旧DPAPI文件替代。目录ACL只允许当前用户/SYSTEM，密钥内容未进Git、日志或聊天。此PEM按用户要求可直接使用，没有口令，取得它即可解密整个库。
 - 本机DPAPI加密副本保留于`%LOCALAPPDATA%/shengzongPostBackupKeys`，不删除旧副本。私钥另用PKCS#8 AES256-CBC/PBKDF2-SHA256 600000轮、48字节随机口令加密；口令由CurrentUser DPAPI保护。该副本用于本机恢复，不具备跨电脑可移植性。
 - 用桌面PEM和独立验证脚本解开真实CMS成功：`authenticated=true`、`PGDMP`、721811字节、`requiresDPAPI=false`，不访问本机受保护目录或写明文dump。尚未在用户另一台电脑实机执行。
-- 目标RPO24小时、RTO60分钟已随方案批准。每天北京时间03:00的本地备份日程在代码交付后启用；当前尚未创建。单次本机导出/恢复结果不能当作异地故障恢复SLA，电脑离线或任务失败会超过目标。
+- 目标RPO24小时、RTO60分钟已随方案批准。代码交付后已通过Codex应用启用当前聊天的每日北京时间03:00备份任务，ID `shengzongpost` / ACTIVE，本机China Standard Time。尚未发生首个定时触发，不能称无人值守运行已通过。单次本机导出/恢复结果不能当作异地故障恢复SLA，电脑离线或任务失败会超过目标。
+
+- 交付后按定时命令手动执行一次新的生产只读导出，07:01:33.414Z–07:01:45.440Z：CMS735775字节、SHA256 `87496a0a3b8fcad5d94466d187d6ad79063af282ad1972e86f75ee238bf621e7`。清单含pg_dump17.11/OpenSSL3.5.7，大小/哈希核对通过；桌面独立脚本验证authenticated/PGDMP735162字节/requiresDPAPI=false。未覆盖先前恢复演练归档，也未对这个新归档重复执行数据库恢复。
 
 ## 真实独立文件恢复演练
 

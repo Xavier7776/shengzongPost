@@ -22,6 +22,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - name: Check OnlyUs lint boundaries
+        run: node scripts/lint-boundary-check.mjs
       - run: npm test
       - name: Check backup connection and restore boundaries
         run: node --test scripts/database-backup-check.mjs
