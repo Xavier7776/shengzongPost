@@ -90,4 +90,3 @@ npx tsx scripts/search-replay.ts D:/download/search-v2-validation/m06-snapshot.j
 ```
 
 脚本只向自建内存 PGlite 种子写入，运行查询强制 READ ONLY；fetch 校验 api.invalid 后在内存执行，拒绝真实网络。输出路径不得覆盖输入/SQL 源文件。四个指标测试用手算反例验证折扣、晚于第 10 名、空标注、重复候选和 nearest-rank 百分位。外部浏览器采样脚本 m06-preview-perf.cjs 与原始报告/执行计划在 D:/download/search-v2-validation；授权 URL/凭据不进入报告。
-
