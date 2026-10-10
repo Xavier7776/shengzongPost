@@ -97,10 +97,7 @@ export default function AnalyticsTracker() {
 
   useEffect(() => {
     if (!pathname) return
-    // 忽略 API 路由（不应作为页面被追踪）
-    if (pathname.startsWith('/api/')) return
-    // 忽略 admin 后台路由（避免污染统计数据）
-    if (pathname.startsWith('/admin')) return
+    if (/^\/(api|admin|dashboard|profile|onlyus|login|register|forgot-password|reset-password)(\/|$)/i.test(pathname)) return
     const visitorId = getOrCreateVisitorId()
     const sessionId = getOrCreateSessionId()
     track(pathname, visitorId, sessionId)

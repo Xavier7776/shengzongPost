@@ -1,6 +1,9 @@
 import { logFailure } from '@/lib/security/log'
 import { allowedPetAsset, readPetMetadata } from '@/lib/security/pet-assets'
 import { readRemoteBytes } from '@/lib/security/remote-assets'
+import { isRasterImage } from '@/lib/security/image'
+import { uploadLarge } from '@/lib/uploadLarge'
+import { randomUUID } from 'node:crypto'
 import { withWriteGuard } from '@/lib/security/write-guard'
 // POST /api/admin/shop/pets/import — 从 codex-pets URL 解析并导入一只宠物
 //
@@ -15,13 +18,11 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 // 流程：
 // 1. 从 URL 解析 key 或直接用 body.key
 // 2. 调 codex-pets.net/api/pets?search=<key> 拉取元数据
-// 3. 下载 sprite sheet → public/cursor-effects/<key>.webp
-// 4. 下载 poster → public/cursor-effects/<key>-poster.webp
+// 3. 下载并校验 sprite sheet/poster
+// 4. 保存到 Cloudinary 持久存储，不变换图像几何
 // 5. 写入 cursor_effects 表（key 已存在则更新 sprite_url/poster_url）
 // 6. 返回 { pet: {...}, spriteUrl, posterUrl, dbId, mode: 'insert'|'update' }
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'node:fs/promises'
-import path from 'node:path'
 import { requireAdminApi } from '@/lib/auth'
 import {
   getAllCursorEffectsAdmin, createCursorEffect, updateCursorEffect,
@@ -31,7 +32,6 @@ import {
 export const dynamic = 'force-dynamic'
 
 const API_BASE = 'https://codex-pets.net'
-const PUBLIC_DIR = path.join(process.cwd(), 'public', 'cursor-effects')
 
 // 从 URL 或任意文本中提取宠物 key
 // 支持: https://codex-pets.net/pets/KEY, https://codex-pets.net/#/pets/KEY, /pets/KEY, 或纯文本 KEY
@@ -112,19 +112,19 @@ async function fetchPetInfo(key: string): Promise<CodexPet> {
   return match
 }
 
-async function downloadToFile(url: string, destPath: string): Promise<number> {
+async function downloadImage(url: string): Promise<Buffer> {
   if (!allowedPetAsset(url)) throw new Error('Pet asset origin or path rejected')
   const buf = Buffer.from(await readRemoteBytes(url, 16 * 1024 * 1024))
-  // 确保目录存在
-  await fs.mkdir(path.dirname(destPath), { recursive: true })
-  await fs.writeFile(destPath, buf)
-  return buf.length
+  if (!isRasterImage(buf)) throw new Error('Pet asset is not a raster image')
+  return buf
 }
 
 function parseCellSize(cs?: string): { fw: number; fh: number } {
   if (cs && /^(\d+)x(\d+)$/.test(cs)) {
     const m = cs.match(/^(\d+)x(\d+)$/)
-    return { fw: parseInt(m![1]), fh: parseInt(m![2]) }
+    const fw=Number(m![1]),fh=Number(m![2])
+    if (!Number.isSafeInteger(fw) || !Number.isSafeInteger(fh) || fw<1 || fh<1 || fw>2048 || fh>2048) throw new Error('Pet cell size invalid')
+    return { fw, fh }
   }
   return { fw: 192, fh: 208 }
 }
@@ -136,6 +136,7 @@ async function handlePOST(req: NextRequest) {
       url?: string; key?: string; price?: number; rarity?: string
     }
 
+    if ((body.url!=null && typeof body.url!=='string') || (body.price!=null && (!Number.isSafeInteger(body.price) || body.price<0 || body.price>2147483647))) return NextResponse.json({error:'输入或价格格式无效'},{status:400})
     const rawKey = body.key || (body.url ? extractKey(body.url) : null)
     if (!rawKey) {
       return NextResponse.json(
@@ -148,29 +149,31 @@ async function handlePOST(req: NextRequest) {
     }
     const key = rawKey
 
-    const price = typeof body.price === 'number' && body.price >= 0 ? body.price : 300
+    const price = body.price ?? 300
     const rarity = ['common', 'rare', 'epic', 'legendary'].includes(body.rarity ?? '')
       ? body.rarity!
       : 'common'
 
     // 1) 拉元数据
     const pet = await fetchPetInfo(key)
+    if ((pet.description != null && typeof pet.description !== 'string') ||
+        (pet.tags != null && (!Array.isArray(pet.tags) || pet.tags.some(tag => typeof tag !== 'string'))) ||
+        (pet.validationReport?.cellSize != null && typeof pet.validationReport.cellSize !== 'string')) throw new Error('Pet metadata invalid')
     if (!pet.spritesheetUrl || !allowedPetAsset(pet.spritesheetUrl) || (pet.posterUrl && !allowedPetAsset(pet.posterUrl))) throw new Error('Pet asset origin or path rejected')
 
     // 2) 检查是否已存在
     const existing = await getAllCursorEffectsAdmin()
     const match = existing.find(e => e.key === key)
 
-    // 3) 下载文件
-    const spritePath = path.join(PUBLIC_DIR, `${key}.webp`)
-    const posterPath = path.join(PUBLIC_DIR, `${key}-poster.webp`)
-    const spriteSize = await downloadToFile(pet.spritesheetUrl, spritePath)
-    const posterSize = pet.posterUrl ? await downloadToFile(pet.posterUrl, posterPath) : 0
-
-    const localSpriteUrl = `/cursor-effects/${key}.webp`
-    const localPosterUrl = posterSize > 0 ? `/cursor-effects/${key}-poster.webp` : null
-
     const { fw, fh } = parseCellSize(pet.validationReport?.cellSize)
+    // Validate both downloads before storing; new IDs never overwrite an existing pet on failure.
+    const spriteBytes = await downloadImage(pet.spritesheetUrl)
+    const posterBytes = pet.posterUrl ? await downloadImage(pet.posterUrl) : null
+    const version=randomUUID()
+    const sprite=await uploadLarge(spriteBytes,{folder:'arc-portfolio/cursor-effects',public_id:`${key}_${version}`,overwrite:false,resource_type:'image'})
+    if (sprite.width!==fw*8 || sprite.height!==fh*9) throw new Error('Pet atlas does not match cell size')
+    const poster=posterBytes ? await uploadLarge(posterBytes,{folder:'arc-portfolio/cursor-effects',public_id:`${key}_${version}_poster`,overwrite:false,resource_type:'image'}) : null
+
     const name = (pet.displayName || pet.id || key).toString().slice(0, 50)
     const desc = (pet.description || '').toString().slice(0, 200) || null
     const emoji = pet.tags?.[0]?.[0]?.toUpperCase() === '🐱' ? '🐱' : '👻'
@@ -181,7 +184,7 @@ async function handlePOST(req: NextRequest) {
       description: desc,
       price,
       rarity,
-      sprite_url: localSpriteUrl,
+      sprite_url: sprite.secure_url,
       cols: 8,
       rows: 9,
       fps: 10,
@@ -192,7 +195,7 @@ async function handlePOST(req: NextRequest) {
       state_map: '{"idle":0,"runRight":1,"runLeft":2,"waving":3,"jumping":4,"failed":5,"waiting":6,"running":7,"review":8}',
       emoji,
       render_type: 'sprite_sheet',
-      poster_url: localPosterUrl,
+      poster_url: poster?.secure_url ?? match?.poster_url ?? null,
       enabled: true,
     }
 
@@ -213,10 +216,10 @@ async function handlePOST(req: NextRequest) {
       dbId,
       key,
       name,
-      spriteUrl: localSpriteUrl,
-      posterUrl: localPosterUrl,
-      spriteBytes: spriteSize,
-      posterBytes: posterSize,
+      spriteUrl: sprite.secure_url,
+      posterUrl: input.poster_url,
+      spriteBytes: spriteBytes.length,
+      posterBytes: posterBytes?.length ?? 0,
       frameWidth: fw,
       frameHeight: fh,
       pet: {

@@ -24,6 +24,11 @@ export interface RatePolicy {
   windowSeconds: number
 }
 export const AUTH_RATE_POLICIES = {
+  newsletter: { identityMax: 5, ipMax: 5, windowSeconds: 60 },
+  'gallery-like': { identityMax: 10, ipMax: 10, windowSeconds: 60 },
+  analytics: { identityMax: 60, ipMax: 120, windowSeconds: 60 },
+  'post-view': { identityMax: 60, ipMax: 120, windowSeconds: 60 },
+  interaction: { identityMax: 60, ipMax: 120, windowSeconds: 60 },
   contact: { identityMax: 3, ipMax: 8, windowSeconds: 3600 },
   upload: { identityMax: 30, ipMax: 60, windowSeconds: 3600 },
   comment: { identityMax: 10, ipMax: 30, windowSeconds: 600 },

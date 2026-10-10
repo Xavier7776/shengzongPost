@@ -129,6 +129,7 @@ const SpriteCSS = forwardRef<SpriteCSSHandle, Props>(function SpriteCSS(
   useEffect(() => {
     let cancelled = false
     const img = new Image()
+    if (sprite.url.startsWith('https://res.cloudinary.com/')) img.crossOrigin = 'anonymous'
     img.onload = () => {
       if (cancelled) return
       rowFramesRef.current = detectRowFrames(

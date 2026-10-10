@@ -4,54 +4,39 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 // POST /api/analytics/track  → 上报一次页面访问（前端 AnalyticsTracker 调用，匿名可用）
 // 不需要登录认证；返回 204 无内容
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash } from 'crypto'
+import { createHmac } from 'crypto'
+import { allowAuthAttempt } from '@/lib/auth-rate-limit'
+import { clientIp } from '@/lib/rate-limit'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { trackVisitor } from '@/lib/db'
 
-// 从请求头中提取真实 IP（兼容常见反代）
-function getClientIp(req: NextRequest): string | null {
-  const headers = req.headers
-  // 常见反代头：x-forwarded-for / x-real-ip / cf-connecting-ip
-  const xff = headers.get('x-forwarded-for')
-  if (xff) {
-    // x-forwarded-for 可能为 "client, proxy1, proxy2"，取第一个
-    return xff.split(',')[0].trim()
-  }
-  return headers.get('x-real-ip') || headers.get('cf-connecting-ip') || null
-}
-
-// IP 哈希（SHA-256，加盐，避免反查原始 IP；只存哈希用于去重统计）
-function hashIp(ip: string | null): string | null {
-  if (!ip) return null
-  // 加盐，降低彩虹表攻击风险；盐值不敏感，仅为避免与公开哈希库匹配
-  const salt = process.env.ANALYTICS_IP_SALT || 'mindstack-analytics-salt'
-  return createHash('sha256').update(`${salt}:${ip}`).digest('hex').slice(0, 32)
-}
-
 async function handlePOST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
-    const { path, referrer, sessionId, visitorId, isLoggedIn } = body as {
+    const { path, referrer, sessionId, visitorId } = body as {
       path?: unknown
       referrer?: unknown
       sessionId?: unknown
       visitorId?: unknown
-      isLoggedIn?: unknown
     }
 
     // 参数校验：path 和 sessionId/visitorId 为必填
-    if (typeof path !== 'string' || !path || typeof sessionId !== 'string' || !sessionId || typeof visitorId !== 'string' || !visitorId) {
+    const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//') || typeof sessionId !== 'string' || !uuid.test(sessionId) || typeof visitorId !== 'string' || !uuid.test(visitorId)) {
       return new NextResponse(null, { status: 204 })
     }
 
-    // 截断超长字段，避免 DB 列长度溢出
-    const safePath = path.slice(0, 500)
-    const safeReferrer = typeof referrer === 'string' ? referrer.slice(0, 500) : null
-    const safeVisitorId = visitorId.slice(0, 64)
-    const safeSessionId = sessionId.slice(0, 64)
-    const userAgent = (req.headers.get('user-agent') || '').slice(0, 500) || null
-    const ipHash = hashIp(getClientIp(req))
+    const safePath = new URL(path,'https://analytics.invalid').pathname.slice(0,500)
+    if (/^\/(api|admin|dashboard|profile|onlyus|login|register|forgot-password|reset-password)(\/|$)/i.test(safePath)) return new NextResponse(null,{status:204})
+    if (!await allowAuthAttempt(req,'analytics',visitorId)) return new NextResponse(null,{status:204})
+    let safeReferrer: string | null = null
+    if (typeof referrer==='string' && referrer) {
+      try {const source=new URL(referrer);if(['https:','http:'].includes(source.protocol)&&!source.username&&!source.password)safeReferrer=source.origin.slice(0,500)} catch {}
+    }
+    const secret=process.env.ANALYTICS_IP_SALT || process.env.NEXTAUTH_SECRET
+    const ip=clientIp(req)
+    const ipHash=secret && ip!=='unknown' ? createHmac('sha256',secret).update(new Date().toISOString().slice(0,10)+'\0'+ip).digest('hex').slice(0,32) : null
 
     // 服务端再校验一次登录状态（前端可能未传或失真）
     let isLoggedInServer = false
@@ -61,17 +46,16 @@ async function handlePOST(req: NextRequest) {
     } catch {
       // 静默：未登录也正常追踪
     }
-    const isLoggedInBool = isLoggedInServer || isLoggedIn === true
 
     await trackVisitor({
-      visitor_id: safeVisitorId,
-      session_id: safeSessionId,
+      visitor_id: visitorId,
+      session_id: sessionId,
       path: safePath,
       referrer: safeReferrer,
-      user_agent: userAgent,
+      user_agent: null,
       ip_hash: ipHash,
       country: null, // 初期不解析国家，预留字段
-      is_logged_in: isLoggedInBool,
+      is_logged_in: isLoggedInServer,
     })
 
     return new NextResponse(null, { status: 204 })
@@ -82,4 +66,4 @@ async function handlePOST(req: NextRequest) {
   }
 }
 
-export const POST = withWriteGuard(handlePOST)
+export const POST = withWriteGuard(handlePOST, { maxBytes: 16 * 1024 })

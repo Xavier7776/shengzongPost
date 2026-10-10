@@ -28,3 +28,9 @@ Chrome 154 于 `2026-10-10T05:30:37.900Z` 使用隔离 PGlite、正式构建、�
 代码回滚到基线即可，无 schema/data rollback；旧非原子审核竞态也会随之恢复。已提交状态不自动改回 pending，新草稿不自动删除。
 
 M10-B2B 继续处理上传持久性与公开防刷。旧无版本 JWT 切断、实际 app role/密钥清理和生产审计迁移仍须具体方案及单独批准。M10 尚未整阶段完成。
+
+
+### 2026-10-10 M10-B2A 正式交付 / B2B 验证中
+
+- B2A PR #26 head b2fe9808da1088c5c52ec46fd1fd73127bc1270b，CI 38027822355/job114142318550 全成功，Preview dpl_AgWtzrEAR8zuXJkk6VQAY13Rfh5k READY/只读通过；正常 expected-head squash 合并2d2684ec873fad50ecbafdf146ee75281affa150。
+- 自动 Production 未出现后，经用户明确批准重试该提交，生产 dpl_E3QEARrQp2SLUvVEQQLyz4m53gRY 同 SHA READY，正式域名指向该部署。Chrome 正式公开/Markdown/PDF/登录、编辑申请 JSON401/空审核界面/投稿登录跳转、旧刊指纹/自测/图表/RSS/sitemap/404 与390/1024/1440通过；预期401单独记录，无未解释错误，部署范围error/fatal统计为空。未执行生产审批/上传/数据库写入，08:30任务、生产DB/密钥未改变。证据 m10c-production{,-smoke,-review}.json。

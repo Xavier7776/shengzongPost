@@ -43,7 +43,8 @@ export async function deleteGalleryImage(id: number): Promise<string> {
   return (rows[0] as { public_id: string }).public_id
 }
 export async function likeGalleryImage(id: number): Promise<number> {
-  const rows = await sql`UPDATE gallery_images SET likes = likes + 1 WHERE id=${id} RETURNING likes`
+  const rows = await sql`UPDATE gallery_images SET likes = COALESCE(likes,0) + 1 WHERE id=${id} RETURNING likes`
+  if (!rows[0]) throw new Error('Gallery image not found')
   return (rows[0] as { likes: number }).likes
 }
 export async function getGalleryTagStats(): Promise<{ tag: string; count: number }[]> {
