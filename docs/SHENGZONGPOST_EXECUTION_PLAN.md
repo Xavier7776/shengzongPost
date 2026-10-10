@@ -688,7 +688,7 @@ git diff --check
 | M07 学习中心 V3 | [x] | [#21](https://github.com/Xavier7776/shengzongPost/pull/21) 已合并 | 317 tests、三尺寸学习通过 | 412affb 全绿 | 同 head READY | 6af12cc READY/复核通过 | M07-A 完成；可选 B 未选择 |
 | M08 内容推荐/作品集 | [x] | PR #22 / 8f74cdc | 330 测试/类型/lint/构建通过 | Chrome 3 宽度/路线/推荐/项目返回通过 | 跨 Blog/Learn/Work 停用/撤回缓存通过 | CI 38020243985 全通过；Preview/正式 READY 同 SHA | 无生产写入 |
 | M09 SEO/性能 | [-] A 完成/B 待验收 | [#23](https://github.com/Xavier7776/shengzongPost/pull/23) 已合并 | 335 测试/类型/lint/构建通过 | 完整 Lighthouse 对照/手机三项 ≥90 | Preview/正式域名读取通过 | CI 全绿/生产 READY | LCP/INP/站长验证保留 |
-| M10 安全二轮 | [-] A 验证中 / B 待实施 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) Draft | 56 文件 / 406 测试；构建、类型、lint、本地浏览器通过 | Preview 待验 | — | docs/security/m10-threat-model.md | 2026-10-10 |
+| M10 安全二轮 | [-] A 验证中 / B 待实施 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) Draft | 57 文件 / 407 测试；构建、类型、lint、本地浏览器通过 | Preview 待验 | — | docs/security/m10-threat-model.md | 2026-10-10 |
 | M11 数据与恢复 | [ ] | — | — | — | — | — | — |
 | M12 Next LTS | [ ] | — | — | — | — | — | — |
 | M13 可选增强 | [ ] | — | — | — | — | — | — |
@@ -981,6 +981,6 @@ Production：未发布 / BUILDING / READY / ERROR
 ### 2026-10-10 M10-A 本地门禁
 
 - 50 个 custom 写路由 / 61 个方法及 NextAuth 独立协议已形成权限表；50 个受保护写方法匿名拒绝不读流/不调用副作用。补齐普通用户、管理员、服务端 Key 上传归属与对象所有权案例。
-- 请求来源/流式体积、API 鉴权、Markdown/PDF 消毒、受控附件/宠物来源、图片签名、HMAC 验证码原子消费、新登录密码版本和脱敏日志已实现；不新增运行时依赖或生产 DDL。56 文件 / 406 用例、类型、lint、完整 fixture 生产构建通过。
+- 请求来源/流式体积、API 鉴权、Markdown/PDF 消毒、受控附件/宠物来源、图片签名、HMAC 验证码原子消费、新登录密码版本和脱敏日志已实现；不新增运行时依赖或生产 DDL。57 文件 / 407 用例、类型、lint、完整 fixture 生产构建通过。
 - Chrome 隔离数据上的真实 credentials/CSRF、角色撤销、改密会话拒绝/重登录、三个 Markdown 输出攻击、同源资料保存/跨站403/超大413、三个宽度通过；零页面/控制台错误。Preview 和正式生产尚未登记。
 - 威胁报告 docs/security/m10-threat-model.md 保留 M10-B：积分/奖励/审批原子一致性、历史无版本会话策略、serverless public 写文件持久性、公开防刷与实际权限最小化。旧密钥/账号权限只核查元数据，未清理或轮换；08:30 Neon 发布链路保留。

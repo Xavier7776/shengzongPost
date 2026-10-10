@@ -3,6 +3,7 @@
 // 布局：单栏沉浸式（Hero 与正文同宽，正文居中可读宽度，目录悬浮右侧）
 import Link from 'next/link'
 import { renderMarkdown as safeMarkdown, renderInlineMarkdown } from '@/shared/markdown/render'
+import { parseFragment } from 'parse5'
 import { ArrowLeft, ExternalLink, Github, Calendar, Layers, CheckCircle2 } from 'lucide-react'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import AttachmentList from '@/components/sections/AttachmentList'
@@ -26,7 +27,9 @@ function renderMarkdown(md: string): string {
     // 匹配 <h2>...</h2>，提取纯文本生成 id
     html = html.replace(/<h2([^>]*)>(.*?)<\/h2>/g, (_match, attrs: string, content: string) => {
       // 提取纯文本（去除标签和 markdown 标记）
-      const plain = content.replace(/<[^>]+>/g, '').replace(/[`*_~]/g, '').trim()
+      const fragment = parseFragment(content)
+      const text = (node: typeof fragment.childNodes[number]): string => 'value' in node ? node.value : 'childNodes' in node ? node.childNodes.map(text).join('') : ''
+      const plain = fragment.childNodes.map(text).join('').replace(/[`*_~]/g, '').trim()
       // 生成锚点 id：移除中英文标点，空格转短横线
       const id = plain
         .replace(/[（）()，,。.、：:；;！!？?""''《》【】\[\]{}]/g, '')
