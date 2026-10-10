@@ -43,6 +43,7 @@ export default function Navbar() {
   const [swinging,   setSwinging]   = useState(false)
   const [hidden,     setHidden]     = useState(false)   // 下滚隐藏、上滚出现
   const [progress,   setProgress]   = useState(0)       // 页面阅读进度
+  const [hydrated,   setHydrated]   = useState(false)
   const pathname  = usePathname()
   const router    = useRouter()
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -50,6 +51,7 @@ export default function Navbar() {
 
   // 注入摇摆动画 CSS
   useEffect(() => {
+    setHydrated(true)
     if (document.getElementById('logo-swing-style')) return
     const style = document.createElement('style')
     style.id = 'logo-swing-style'
@@ -187,7 +189,7 @@ export default function Navbar() {
           {/* 桌面端导航 */}
           <div className={`hidden items-center space-x-10 md:flex ${pathname === '/gallery' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : ''}`}>
             {NAV_ITEMS.map(({ label, href }) => {
-              const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+              const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
               return (
                 <Link
                   key={href}
@@ -286,7 +288,7 @@ export default function Navbar() {
             <div className="flex-1 overflow-y-auto py-4 px-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-3 mb-2">导航</p>
               {NAV_ITEMS.map(({ label, href }) => {
-                const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+                const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
                 return (
                   <Link
                     key={href}

@@ -4,11 +4,13 @@ Date: 2026-10-10. Base: `4badb72bbaf76fb8bdbaca2a9ba5517a60d7bc4a` (M12-A, Next1
 
 ## Scope and checks
 
-Windows Node24.9.0/npm11.6.0; isolated worktree, clean npm ci with valid peer dependencies; webpack production build, fixture-only database transport, no production writes. 69 Vitest files / 470 tests, typecheck, five real OnlyUs lint boundary probes and complete build pass. Lint has 0 errors / 99 warnings; the Compiler diagnostics remain visible and React Compiler is not enabled. All 136 existing app manifest entries remain; Next16 adds only its global error page. Static-generation counters (89 vs85) are framework output, not removed routes.
+Windows Node24.9.0/npm11.6.0; isolated worktree, clean npm ci with valid peer dependencies; webpack production build, fixture-only database transport, no production writes. 70 Vitest files / 471 tests, typecheck, five real OnlyUs lint boundary probes and complete build pass. Lint has 0 errors / 100 warnings; the Compiler diagnostics remain visible and React Compiler is not enabled. All 136 existing app manifest entries remain; Next16 adds only its global error page. Static-generation counters (89 vs85) are framework output, not removed routes.
 
 Actual production browser sessions across 390/1024/1440 pass public reading, login-page layout and hydration checks. Synthetic accounts exercise real NextAuth CSRF/credentials and both Tiptap editors: admin draft save/reload/preview/publish/withdraw, user submission stays pending/private. Local review approval/replacement/collision checks, atomic points and ledger checks, persistent uploads/provider failures/sprite access and public throttling all pass. Real logout, role revocation, changed-password rejection and relogin pass. Remote Preview remains pending. Existing native Neon concurrency evidence from M10 is not re-run or relabeled as M12 evidence.
 
 Two hydration defects were fixed at their source: toolbar preferences now apply to the hydrated article shell without modifying streamed reader nodes; comments wait for their own hydration before rendering session-dependent controls. The delayed-reader preferences test and real renderToString/hydrateRoot session-race test preserve those invariants. No hydration warning is suppressed.
+
+The first exact-head Preview (`af3f2ce`, CI38036975899/job114169328581, deployment dpl_AjHLvwWXskTZx3srvCJE1g3tf4so READY) passes the public-read/security checks, but its multi-page smoke test fails with React418. Instrumented diagnostic playback identifies the Navbar active-link span, not the reader. Active links now wait for Navbar hydration; a real SSR/hydrate route-change test passes. Complete local gates are rerun for this follow-up. Final Preview and performance validation remain pending; the earlier deployment is not called a full pass. The scoped15-minute error/fatal log query is empty, which does not negate the browser failure.
 
 ## Comparable laboratory observations
 
