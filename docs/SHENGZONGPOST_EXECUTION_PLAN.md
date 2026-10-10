@@ -680,8 +680,8 @@ git diff --check
 | M01 CI 门禁 | [x] | PR #14 / `7d61f58` | 196 tests、Actions、Preview/生产 smoke；单目录探针验证 | `dpl_BvrFsBnvpCaJiLJT6L8mCXeqTQKc` | 无 | 严格 validate/Vercel 保护已实测阻断 | 2026-10-09 |
 | M02 发布完整性 | [-] A 已验收；B 待独立审计 | PR #16 / `3c4a90c` | 222 tests、隔离 Neon SQL、Preview/生产旧刊交互 | `dpl_4zBAGvYhXHribBrF8KpJb6Spj34X` | 无生产迁移/历史重发 | 最近三次成功率不可判定 | 2026-10-09 |
 | M03 发布监控 | [-] A 已验收；B 未启用 | PR #17 / `3c6aa67` | 245 tests、本地签名管理员、Preview/生产 smoke | `dpl_B8GS4CCU4cosSXW6XKL2RNkQ9F7e` | 056 仅临时分支验证 | 无生产迁移；任务通道待实测 | 2026-10-09 |
-| M04 缓存一致性 | [-] | 本地实现，待 PR | 257 tests / typecheck / lint / build | 隔离状态流转、邻接导航、直接 SQL TTL 与 TTFB 对照通过 | 未合并 | 未验收 | 无生产数据变更 |
-| M05 来源与图表 | [ ] | — | — | — | — | — | — |
+| M04 缓存一致性 | [x] | #18 / 7698a55 | CI 38013202785 全通过 | Preview 同 SHA READY / 三尺寸通过 | e953c59 | Production READY / 只读通过 | 无生产数据变更 |
+| M05 来源与图表 | [-] | 本地实施中 | 校验/SQL/渲染回归进行中 | — | — | — | 无生产数据变更 |
 | M06 搜索评测 | [ ] | — | — | — | — | — | — |
 | M07 学习中心 V3 | [ ] | — | — | — | — | — | — |
 | M08 内容推荐/作品集 | [ ] | — | — | — | — | — | — |
@@ -739,7 +739,7 @@ Production：未发布 / BUILDING / READY / ERROR
 ### 第 2 批：让发布可观察、页面保持一致（2–3 个 PR）
 
 - [ ] M03-A 出版 7/30 天日历与缺刊/漂移告警（不建新表）。
-- [ ] M04 文章缓存、RSS 与 sitemap 同步。
+- [x] M04 文章缓存、RSS 与 sitemap 同步。
 - [ ] 如确有需要，单独设计 M03-B 的审计表迁移并**明确申请生产 DDL 批准**。
 
 **第二批完成标志**：漏刊可识别、错误能排查、撤稿不会继续出现在公开入口，缓存延迟有清晰 SLA。
@@ -900,3 +900,19 @@ Production：未发布 / BUILDING / READY / ERROR
 - M04 补充验收：独立直接 SQL 的 Learn 可见时间 61973ms；相邻文章的创建/改名/撤回/删除实际 SSR 数据更新通过。首次邻接检查使用新 Slug 包含旧 Slug 的子串而误报，改用不同名称完整回放通过；未修改产品代码来满足错误断言。
 - 同机 Windows 生产产物、同一合成种子、每路由 2 warmup + 10 次顺序请求 TTFB 对照（毫秒，p50 / p95）：Blog 45.61/61.25 → 61.68/75.06；Learn 45/72.29 → 54.85/75.90；公开精读详情 37.77/53.77 → 28.50/46.38；Search 1.60/2.37 → 6.20/11.25。Search 现在每次真正运行 SQL，不能以旧缓存的低耗时替代新鲜结果；其余短样本有波动，不推断线上提升或达成 M06 100 请求门槛。基线 fixture 起初拒绝 WITH，保留 READ ONLY 事务并允许查询 CTE 后完整重新测量。
 - 最终本地门禁：Windows npm ci（版本未升级，现存 59 audit 问题保留 M10/M12）、257 tests、typecheck/lint、完整 fixture build/diff 全通过。Edge headless 启动失败后使用隔离 Chrome 154，正式生产产物的 Learn/Blog/Search/匿名 admin 拒绝、旧刊指纹/自测/图表/原始来源、1440/1024/390、RSS/Sitemap 纳入及缺失文章 HTTP 404/noindex 通过，零未解释控制台错误。首次 Chrome 报评论/反应 500，源于 fixture 缺少列；补齐隔离测试表后完整重跑通过，未放宽错误断言、未改产品评论策略。证据 m04-local.json 与同前缀截图。
+### 2026-10-10 M04 验收完成与 M05 开始
+
+- PR #18 head 7698a558d79992aea1e340c2364cf093cf52162e，Actions 38013202785 所有步骤成功；Preview dpl_EWKDtcWa68rCbELTMwM3twJWgbiG 同 SHA READY。保护保持开启，Chrome 在线只读 Learn/Blog/Search、旧刊指纹/自测/图表/来源、1440/1024/390、RSS/Sitemap 纳入及查询 URL 排除、缺失文章实际 404/noindex 均通过；错误/fatal 聚合查询为空。
+- Squash merge e953c597cb05918f4850fd4b8923284076591620；Production dpl_3HnVm4jT9MgKZWAu9FML49qA4oGv 同 merge SHA READY，正式域名上述只读 smoke/三尺寸完整重跑通过，零未解释应用错误，当前 deployment 错误/fatal 查询为空。证据 m04-production.json。生产文章状态与数据库未修改；真实管理员生产写入仍未实测。
+- M05 最新基线 e953c59，独立 Windows 工作树 D:\download\worktrees\shengzongPost-m05 / codex/learn-provenance-quality-v2，开放 PR 无冲突。已重新读 root AGENTS，未发现嵌套指令；准备兼容 v1 的证据声明、精确出处、图表数据来源与勘误说明，先用旧刊和失败边界建立测试。
+- 最新 AGENTS 将生成能力归于外部 GitHub Actions；实际 main daily-learn.yml 仍是手动 fallback，既有 08:30 任务归因尚无完整记录。本阶段不擅自配置第二调度、切换发布通道、密钥或生产审计表。
+
+### 2026-10-10 M04 首页补测与 M05 实施
+
+- M04 首页首轮补测未提供摘要，造成旧卡片读取 null.length、重新生成失败；保留该失败，不作为缓存通过证据。完整摘要/标签后重跑正常发布、撤回、删除：首页 52–85ms 更新；直接 SQL 59500ms 可见，有请求/数据库健康条件。报告 m04-home.json。缺失摘要的普通文章输入健壮性列入 M10，不混入精读治理。
+- M05 增加显式 v2：人工来源核对状态/版本/作者与方法边界、证据类型/具体位置、逐点图表来源及坐标/样本/条件/CI/种子状态；v1 保持原字段、正文和指纹，不能因额外字段隐式升级。未改 metadata-only 手动生成器/密钥/08:30 通道，不自动升级历史数据。
+- 勘误入口准备邮件，不代读者发信；管理员完整 JSON 修订以原指纹 CAS，单 SQL 更新两种正文与更正说明，独立回读后失效/公网检查。普通编辑和投稿批准的精读字段变更以 SQL 内条件阻止，409 留待正式修订；封面/附件/撤回仍可用。隔离 PostgreSQL 并发、事务回滚、旧指纹/修订历史与原文漂移测试通过。
+- 首轮 v2 SQL 回读测试揭示 JSON 键顺序会改变文本输出，已改为稳定显式序列化并重跑。全套 41 文件 / 283 tests、typecheck/lint/diff 通过（随后新增 v1 额外字段回归，待最终整套重跑）。历史生产只读盘点为 1 期，原始主文指纹仍 e061e72ad216a0dadf7c2f584bfbb38294b7ad03d71d069a20d6f2a743a70e2d；完整真实历史回归/生产 build/CI/Preview 尚待完成。首轮历史脚本因测试目录未创建未运行，不计通过。
+- 10 条原文抽检均与 arXiv 2610.10170v1 的具体节/表匹配；两个其他进展仅核对官方摘要，不声称复现、临床适用或完整科学审计。细节 docs/content/learn-evidence-audit-20261010.md；契约 docs/content/learn-provenance-v2.md。
+- 最终本地 41 文件 / 284 tests、typecheck/lint/diff 通过；历史真实 v1 全量（1/1）结构、正文、来源、32 内容块 SSR 回归与原指纹通过。生产 build 通过。本地 Chrome 1440/1024/390 旧刊、合成 v2 两种图表、逐点出处、未报告状态、自测、勘误 link、Feed/Sitemap、匿名拒绝与实际 404/noindex 全通过，无未解释应用错误。截图定位器首轮把祖先根路径用作相对子节点而超时，修正测试定位器后完整重跑通过，未为错误断言修改产品。最后补充 GET 可用性/非对象输入与 CAS 关系条件通过，需对这些源码的最终产物复跑。
+- 最终修订确认丢失测试先复现 conflict，修复后独立回读识别已提交候选，避免第二次修改；回读未知显示 committed=null。41 文件 / 286 tests 与 lint/typecheck、最终完整隔离生产 build/diff 通过。本地最终产物再次通过旧刊/真实 Table 2 样式与虚构示意的三尺寸/OG/测验/原始来源回放；原始数据只用于临时测试，未写生产。实际 HTTP 的匿名拒绝、私密回读、非对象 400、旧版本冲突 409、普通改稿防漂移 409、live DB 角色撤销拒绝及普通文章 create/rename/delete 通过。m05-api-qa.json / m05-local.json / m05-history-validation.json 为证据。

@@ -8,6 +8,7 @@ import { updatePost, deletePost, getPostBySlugAdmin, getPostBySlug, getUserRoleB
 import { requireAdminApi } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
+import { EditionEditConflict } from '@/lib/learn/edit-conflict'
 
 interface Ctx { params: { slug: string } }
 
@@ -58,6 +59,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const cacheStatus=invalidatePublishedContent([params.slug,post.slug])
     return NextResponse.json(post,{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
+    if(e instanceof EditionEditConflict)return NextResponse.json({error:e.message},{status:409})
     console.error(e)
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })
   }

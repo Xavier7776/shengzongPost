@@ -203,6 +203,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </>
       )}
+      <p className="mx-auto mt-10 max-w-[900px] px-6 text-sm text-gray-500"><a className="text-blue-700 underline" href={'mailto:1808571411@qq.com?subject='+encodeURIComponent('文章勘误：'+params.slug)+'&body='+encodeURIComponent('文章：/blog/'+params.slug+'\n具体段落或数值：\n问题与原始来源：\n建议更正：')}>发现错误 / 提交勘误</a> · 请注明段落、问题和原始依据。</p>
     </div>
     </>
   )

@@ -4,6 +4,7 @@
 import { sql, serializeRow, serializeRows } from './_core'
 import type { User } from './users'
 import { sanitizePostContent } from '@/lib/html/sanitize-post'
+import { EditionEditConflict } from '@/lib/learn/edit-conflict'
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
 export interface Post {
@@ -82,12 +83,18 @@ export async function createPost(data: {
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
 export async function updatePost(slug: string, data: Partial<{ title: string; excerpt: string; content: string; tags: string[]; published: boolean; slug: string; cover_image: string; attachments: { url: string; filename: string; size: number }[]; author_id: number | null }>): Promise<Post> {
-  let rows
-  if (data.attachments !== undefined) {
-    const attachments = JSON.stringify(data.attachments)
-    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content !== undefined ? sanitizePostContent(data.content) : null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),attachments=${attachments}::jsonb,author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
-  } else {
-    rows = await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${data.content !== undefined ? sanitizePostContent(data.content) : null},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW() WHERE slug=${slug} RETURNING *`
+  const content=data.content !== undefined ? sanitizePostContent(data.content) : null
+  const protectedValues=JSON.stringify({title:data.title,excerpt:data.excerpt,content:data.content===undefined?undefined:content,tags:data.tags,slug:data.slug})
+  // Guard inside the write, so concurrent callers cannot split an edition's two representations.
+  const rows=await sql`UPDATE posts SET title=COALESCE(${data.title??null},title),excerpt=COALESCE(${data.excerpt??null},excerpt),content=COALESCE(${content},content),tags=COALESCE(${data.tags??null},tags),published=COALESCE(${data.published??null},published),slug=COALESCE(${data.slug??null},slug),cover_image=COALESCE(${data.cover_image??null},cover_image),attachments=CASE WHEN ${data.attachments!==undefined} THEN ${JSON.stringify(data.attachments??[])}::jsonb ELSE attachments END,author_id=COALESCE(${data.author_id??null},author_id),updated_at=NOW()
+    WHERE slug=${slug} AND NOT EXISTS (
+      SELECT 1 FROM learn_editions l,jsonb_each(${protectedValues}::jsonb) requested
+      WHERE l.post_id=posts.id AND jsonb_build_object('title',posts.title,'excerpt',posts.excerpt,'content',posts.content,'tags',posts.tags,'slug',posts.slug)->requested.key IS DISTINCT FROM requested.value
+    ) RETURNING *`
+  if(!rows[0]) {
+    const edition=await sql`SELECT 1 FROM learn_editions l JOIN posts p ON p.id=l.post_id WHERE p.slug=${slug}`
+    if(edition.length)throw new EditionEditConflict()
+    throw new Error('post not found')
   }
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Post
 }
