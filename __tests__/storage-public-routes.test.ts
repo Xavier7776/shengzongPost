@@ -27,11 +27,13 @@ const petSource = 'https://codex-pets.net/assets/pets/test.png'
 function json(path: string, body: unknown, headers = {}) {
   return new NextRequest('https://blog.test' + path, { method: 'POST', headers: { Origin: 'https://blog.test', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) })
 }
-function multipart(path: string, bytes: Uint8Array, type = 'image/png', name = 'file.png') {
+async function multipart(path: string, bytes: Uint8Array, type = 'image/png', name = 'file.png') {
   const data = new FormData()
   data.set('file', new Blob([bytes as BlobPart], { type }), name)
   data.set('key', 'test')
-  return new NextRequest('https://blog.test' + path, { method: 'POST', headers: { Origin: 'https://blog.test' }, body: data })
+  // Model wire bytes; cancelling Node's lazy FormData encoder races its own enqueue on early 401.
+  const encoded = new Request('https://blog.test' + path, { method: 'POST', body: data })
+  return new NextRequest(encoded.url, { method: 'POST', headers: { Origin: 'https://blog.test', 'Content-Type': encoded.headers.get('content-type')! }, body: await encoded.arrayBuffer() })
 }
 beforeEach(() => {
   Object.values(mocks).forEach(mock => mock.mockReset())
@@ -49,24 +51,24 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllEnvs())
 it('stores an immutable avatar and fails without a local fallback or DB write when provider fails', async () => {
-  expect((await avatar(multipart('/api/user/avatar', png))).status).toBe(200)
+  expect((await avatar(await multipart('/api/user/avatar', png))).status).toBe(200)
   expect(mocks.upload).toHaveBeenCalledWith(expect.any(Buffer), expect.objectContaining({ overwrite: false, public_id: expect.stringMatching(/^user_7_/), transformation: [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }] }))
   expect(mocks.sql.mock.calls[0].slice(1)).toEqual([url, 7])
   mocks.sql.mockClear(); mocks.upload.mockRejectedValue(new Error('provider failure'))
-  const failure = await avatar(multipart('/api/user/avatar', png))
+  const failure = await avatar(await multipart('/api/user/avatar', png))
   expect(failure.status).toBe(500)
   expect(JSON.stringify(await failure.json())).not.toContain('/avatars/')
   expect(mocks.sql).not.toHaveBeenCalled()
 })
 it('rejects disguised images, GIF avatars, unauthorized cursor uploads, and invalid keys before storage', async () => {
-  expect((await avatar(multipart('/api/user/avatar', gif, 'image/png'))).status).toBe(400)
-  expect((await cursor(multipart('/api/admin/shop/cursors/upload', png, 'image/gif', 'fake.gif'))).status).toBe(400)
+  expect((await avatar(await multipart('/api/user/avatar', gif, 'image/png'))).status).toBe(400)
+  expect((await cursor(await multipart('/api/admin/shop/cursors/upload', png, 'image/gif', 'fake.gif'))).status).toBe(400)
   mocks.admin.mockResolvedValue(null)
-  expect((await cursor(multipart('/api/admin/shop/cursors/upload', gif, 'image/gif', 'test.gif'))).status).toBe(401)
+  expect((await cursor(await multipart('/api/admin/shop/cursors/upload', gif, 'image/gif', 'test.gif'))).status).toBe(401)
   expect(mocks.upload).not.toHaveBeenCalled()
 })
 it('stores original cursor GIF bytes with a unique ID and no transformation', async () => {
-  expect((await cursor(multipart('/api/admin/shop/cursors/upload', gif, 'image/gif', 'test.gif'))).status).toBe(200)
+  expect((await cursor(await multipart('/api/admin/shop/cursors/upload', gif, 'image/gif', 'test.gif'))).status).toBe(200)
   expect(mocks.upload).toHaveBeenCalledWith(gif, expect.objectContaining({ overwrite: false, public_id: expect.stringMatching(/^test_/), resource_type: 'image' }))
   expect(mocks.upload.mock.calls[0][1]).not.toHaveProperty('transformation')
 })
