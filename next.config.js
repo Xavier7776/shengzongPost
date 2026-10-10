@@ -82,6 +82,10 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/:section(admin|dashboard|profile|onlyus|notifications|login|register|verify)/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      },
+      {
         // 对所有路由应用安全头
         source: '/:path*',
         headers: securityHeaders,

@@ -641,3 +641,17 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .learn-toc-list li button { transition: none; }
 }
+
+/* Reading accessibility: keep motion and overflow local to each content region. */
+.reader-content .learn-article ul, .reader-content .learn-article ol { padding-left: 1.25rem; }
+.reader-content .learn-article li { display: list-item; }
+.reader-content .learn-article li::before { content: none; }
+.reader-content .learn-article ol.grid { padding-left: 0; list-style: none; }
+.reader-content .learn-article ol.grid > li { display: block; }
+.reader-content .learn-article ol.grid > li strong { display: block; margin-top: 0.4rem; }
+.reader-content pre, .reader-content table, .prose pre { max-width: 100%; overflow-x: auto; }
+:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

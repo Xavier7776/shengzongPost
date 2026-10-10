@@ -117,12 +117,12 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
       <Link href={target(null)} aria-current={!topic?'page':undefined}
         className={'rounded-xl border p-4 transition '+(!topic?'border-blue-500 bg-blue-50 text-blue-800':'border-gray-200 bg-white text-gray-700 hover:border-blue-200')}>
         <span className="flex items-center gap-2 text-sm font-bold"><Layers className="h-4 w-4"/> 全部主题</span>
-        <span className="mt-2 block text-xs opacity-70">{Object.values(topicCounts).reduce((a,b)=>a+(b||0),0)} 期专刊</span>
+        <span className="mt-2 block text-xs">{Object.values(topicCounts).reduce((a,b)=>a+(b||0),0)} 期专刊</span>
       </Link>
       {kinds.map(t=><Link href={target(t)} key={t} aria-current={topic===t?'page':undefined}
         className={'rounded-xl border p-4 transition '+(topic===t?'border-blue-500 bg-blue-50 text-blue-800':'border-gray-200 bg-white text-gray-700 hover:border-blue-200')}>
         <span className="block text-sm font-bold">{TOPICS[t]}</span>
-        <span className="mt-2 block text-xs opacity-70">{iconFor[t]} · {topicCounts[t]??0} 期</span>
+        <span className="mt-2 block text-xs">{iconFor[t]} · {topicCounts[t]??0} 期</span>
       </Link>)}
     </nav>
 

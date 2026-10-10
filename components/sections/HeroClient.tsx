@@ -4,6 +4,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import cloudinaryLoader from '@/lib/cloudinary-loader'
+
+function imageVariant(src: string, width: number) {
+  if (src.startsWith('https://images.unsplash.com/')) {
+    const url = new URL(src)
+    url.searchParams.set('w',String(width))
+    url.searchParams.set('auto','format')
+    return url.href
+  }
+  return cloudinaryLoader({src,width})
+}
 
 interface Slide {
   img: string
@@ -13,7 +24,7 @@ interface Slide {
 
 export default function HeroClient({ slides }: { slides: Slide[] }) {
   const [current, setCurrent] = useState(0)
-  const [mounted, setMounted] = useState(false)
+  const [paused, setPaused] = useState(false)
 
   const list = slides.length > 0 ? slides : [{
     img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2000',
@@ -25,21 +36,16 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
   const next = useCallback(() => setCurrent(c => (c + 1) % list.length), [list.length])
 
   useEffect(() => {
-    setMounted(true)
-    if (list.length <= 1) return
+    if (list.length <= 1 || paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const timer = setInterval(next, 5000)
     return () => clearInterval(timer)
-  }, [list.length, next])
+  }, [list.length, next, paused])
 
   return (
     <section className="relative bg-[#FAFAF8] pt-24 pb-16">
       {/* ── 顶部文字区 ── */}
       <div className="max-w-6xl mx-auto px-6 mb-8">
-        <div
-          className={`transition-all duration-700 ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-          }`}
-        >
+        <div>
           <h1 className="text-[clamp(2rem,5vw,4rem)] font-black tracking-tighter leading-[1.05] text-gray-900 mb-4 max-w-3xl">
             {list[current].title}
           </h1>
@@ -75,6 +81,11 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
             <img
               key={idx}
               src={slide.img}
+              srcSet={/^https:\/\/(?:images\.unsplash\.com|res\.cloudinary\.com)\//.test(slide.img) && imageVariant(slide.img,480)!==imageVariant(slide.img,1600) ? [480,768,1152,1600].map(width=>imageVariant(slide.img,width)+' '+width+'w').join(', ') : undefined}
+              sizes="(max-width: 1200px) calc(100vw - 48px), 1104px"
+              loading={idx===0 ? 'eager' : 'lazy'}
+              fetchPriority={idx===0 ? 'high' : 'low'}
+              decoding="async"
               alt={slide.title}
               className={`absolute inset-0 w-full h-full object-cover transition-all duration-[1000ms] ease-in-out ${
                 idx === current ? 'opacity-100 scale-100' : 'opacity-0 scale-[1.03]'
@@ -107,12 +118,15 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
                 {list.map((_, idx) => (
                   <button
                     key={idx}
+                    aria-label={'查看第 '+(idx+1)+' 张：'+list[idx].title}
+                    aria-pressed={idx===current}
                     onClick={() => setCurrent(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                    className="flex h-8 w-8 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                  ><span aria-hidden className={`h-1.5 rounded-full transition-all duration-500 ${
                       idx === current ? 'bg-white w-8' : 'bg-white/50 w-3 hover:bg-white/70'
-                    }`}
-                  />
+                    }`}/></button>
                 ))}
+                <button aria-label={paused ? '继续自动播放' : '暂停自动播放'} onClick={()=>setPaused(value=>!value)} className="min-h-8 rounded-lg bg-gray-900/90 px-3 text-xs font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">{paused ? '播放' : '暂停'}</button>
               </div>
             </>
           )}

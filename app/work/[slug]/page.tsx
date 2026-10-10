@@ -12,6 +12,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import RelatedContent from '@/components/sections/RelatedContent'
+import { getSiteUrl } from '@/lib/site-url'
+import { breadcrumbs, jsonLdText } from '@/lib/seo'
 
 // 项目详情内容变更频率低，长缓存
 export const revalidate = 3600
@@ -89,6 +91,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${project.name} - MindStack`,
     description: project.description.slice(0, 160),
+    alternates: { canonical: '/work/'+encodeURIComponent(slug) },
+    openGraph: { title: project.name, description: project.description.slice(0,160), url: '/work/'+encodeURIComponent(slug), type: 'website', ...(project.cover ? { images: [project.cover] } : {}) },
+    twitter: { card: 'summary_large_image', title: project.name, description: project.description.slice(0,160) },
   }
 }
 
@@ -128,9 +133,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       '@type': 'Person',
       name: 'ARC',
     },
-    dateCreated: project.year || undefined,
+    dateCreated: project.createdAt,
+    dateModified: project.updatedAt,
     keywords: project.techStack.length > 0 ? project.techStack.join(', ') : undefined,
-    url: project.demoUrl ?? project.githubUrl ?? `/work/${slug}`,
+    url: getSiteUrl()+'/work/'+encodeURIComponent(slug),
     ...(project.cover ? { thumbnailUrl: project.cover } : {}),
   }
 
@@ -139,7 +145,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       {/* JSON-LD 结构化数据注入 */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdText([jsonLd,breadcrumbs([{name:'首页',path:'/'},{name:'作品集',path:'/work'},{name:project.name,path:'/work/'+encodeURIComponent(slug)}])]) }}
       />
       {/* 阅读进度条（复用博客阅读组件） */}
       <ReadingProgressBar />

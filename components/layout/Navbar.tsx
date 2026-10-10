@@ -111,6 +111,23 @@ export default function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
+  useEffect(() => {
+    if (!menuOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    const drawer = drawerRef.current
+    if (!drawer) return
+    const controls = () => Array.from(drawer.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input,select,[tabindex="0"]'))
+    controls()[0]?.focus()
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      const items = controls(), first = items[0], last = items[items.length-1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    drawer.addEventListener('keydown', trap)
+    return () => { drawer.removeEventListener('keydown', trap); if (previous?.isConnected) previous.focus() }
+  }, [menuOpen])
+
   function handleOpen() {
     setMenuOpen(true)
     requestAnimationFrame(() => setVisible(true))
@@ -178,7 +195,7 @@ export default function Navbar() {
                   className={`capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
                     isGalleryHero
                       ? isActive ? 'text-white' : 'text-white/65 hover:text-white'
-                      : isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900'
+                      : isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   {label}
@@ -191,12 +208,12 @@ export default function Navbar() {
             {/* 搜索入口：跳转 /search（原 ⌘K 命令面板已移除） */}
             <Link
               href="/search"
-              className={`flex items-center gap-2 text-xs font-black tracking-widest transition-colors py-2 ${isGalleryHero ? 'text-white/65 hover:text-white' : 'text-gray-400 hover:text-gray-900'}`}
+              className={`flex items-center gap-2 text-xs font-black tracking-widest transition-colors py-2 ${isGalleryHero ? 'text-white/65 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
               title="搜索 (Cmd/Ctrl + K)"
             >
               <Search className="w-4 h-4" />
               <span className="hidden lg:inline">搜索</span>
-              <kbd className={`hidden lg:inline-block text-[10px] font-mono rounded px-1.5 py-0.5 ${isGalleryHero ? 'border border-white/10 bg-white/10 text-white/50' : 'border border-gray-200 bg-gray-100 text-gray-400'}`}>
+              <kbd className={`hidden lg:inline-block text-[10px] font-mono rounded px-1.5 py-0.5 ${isGalleryHero ? 'border border-white/10 bg-white/10 text-white/50' : 'border border-gray-200 bg-gray-100 text-gray-600'}`}>
                 ⌘K
               </kbd>
             </Link>
@@ -245,6 +262,7 @@ export default function Navbar() {
           {/* 抽屉 */}
           <div
             ref={drawerRef}
+            role="dialog" aria-modal="true" aria-label="站点导航"
             className={`fixed top-0 right-0 bottom-0 z-[70] w-[280px] bg-white shadow-2xl flex flex-col transition-transform duration-[250ms] ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
           >
             {/* 抽屉顶部 */}
@@ -257,6 +275,7 @@ export default function Navbar() {
               </Link>
               <button
                 onClick={handleClose}
+                aria-label="关闭导航"
                 className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
               >
                 <X className="w-4 h-4 text-gray-500" />
@@ -265,7 +284,7 @@ export default function Navbar() {
 
             {/* 导航 + 账号 */}
             <div className="flex-1 overflow-y-auto py-4 px-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-300 px-3 mb-2">导航</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-3 mb-2">导航</p>
               {NAV_ITEMS.map(({ label, href }) => {
                 const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
                 return (
@@ -280,7 +299,7 @@ export default function Navbar() {
                     <span className="capitalize">{label}</span>
                     {isActive
                       ? <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                      : <ChevronRight className="w-4 h-4 text-gray-300" />
+                      : <ChevronRight className="w-4 h-4 text-gray-600" />
                     }
                   </Link>
                 )
@@ -293,10 +312,10 @@ export default function Navbar() {
                 className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <span className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-gray-400" />
+                  <Search className="w-4 h-4 text-gray-600" />
                   搜索
                 </span>
-                <kbd className="text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
+                <kbd className="text-[10px] font-mono text-gray-600 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
                   ⌘K
                 </kbd>
               </Link>
@@ -309,7 +328,7 @@ export default function Navbar() {
                   className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <span className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-gray-400" />
+                    <Bell className="w-4 h-4 text-gray-600" />
                     通知中心
                   </span>
                 </Link>
@@ -318,7 +337,7 @@ export default function Navbar() {
               {session && (
                 <>
                   <div className="my-3 border-t border-gray-50" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-300 px-3 mb-2">账号</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-3 mb-2">账号</p>
 
                   {/* 用户信息 */}
                   <div className="flex items-center gap-3 px-3 py-3 mb-1">
@@ -335,21 +354,21 @@ export default function Navbar() {
                         <span className="text-sm font-black text-gray-900 truncate">{name}</span>
                         <RoleBadge role={role} size="sm" />
                       </div>
-                      <span className="text-xs text-gray-400 truncate block">{session.user?.email}</span>
+                      <span className="text-xs text-gray-600 truncate block">{session.user?.email}</span>
                     </div>
                   </div>
 
                   <Link href={userId ? `/profile/${userId}` : '/profile'} onClick={handleClose}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    <User className="w-4 h-4 text-gray-400" />个人主页
+                    <User className="w-4 h-4 text-gray-600" />个人主页
                   </Link>
                   <Link href="/profile" onClick={handleClose}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    <PenLine className="w-4 h-4 text-gray-400" />编辑资料
+                    <PenLine className="w-4 h-4 text-gray-600" />编辑资料
                   </Link>
                   <Link href="/dashboard" onClick={handleClose}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    <PenLine className="w-4 h-4 text-gray-400" />编辑中心
+                    <PenLine className="w-4 h-4 text-gray-600" />编辑中心
                   </Link>
                   {/* 管理后台：仅管理员可见（此前 /admin 无任何全局入口） */}
                   {role === 'admin' && (

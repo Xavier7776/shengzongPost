@@ -19,7 +19,6 @@ export default unstable_cache(async function sitemap(): Promise<MetadataRoute.Si
     { url: `${BASE_URL}/work`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE_URL}/projects`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/shop`, changeFrequency: 'weekly', priority: 0.6 },
-    { url: `${BASE_URL}/search`, changeFrequency: 'monthly', priority: 0.5 },
   ]
 
   try {
@@ -30,21 +29,21 @@ export default unstable_cache(async function sitemap(): Promise<MetadataRoute.Si
     ])
 
     const postPages: MetadataRoute.Sitemap = posts.map(post => ({
-      url: `${BASE_URL}/blog/${post.slug}`,
+      url: `${BASE_URL}/blog/${encodeURIComponent(post.slug)}`,
       lastModified: new Date(post.updated_at || post.created_at),
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     }))
 
     const skillPages: MetadataRoute.Sitemap = skills.map(skill => ({
-      url: `${BASE_URL}/skills/${skill.slug}`,
+      url: `${BASE_URL}/skills/${encodeURIComponent(skill.slug)}`,
       lastModified: new Date(skill.updated_at),
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     }))
 
     const projectPages: MetadataRoute.Sitemap = projects.map(p => ({
-      url: `${BASE_URL}/work/${p.slug}`,
+      url: `${BASE_URL}/work/${encodeURIComponent(p.slug)}`,
       lastModified: new Date(p.updated_at || p.created_at),
       changeFrequency: 'monthly' as const,
       priority: 0.7,

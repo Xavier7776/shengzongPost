@@ -16,6 +16,8 @@ import BlogReaderToolbar from './BlogReaderToolbar'
 import BlogToc from './BlogToc'
 import LearnToc from './LearnToc'
 import type { Metadata } from 'next'
+import { getSiteUrl } from '@/lib/site-url'
+import { breadcrumbs, jsonLdText } from '@/lib/seo'
 
 export const revalidate = 60 // ISR plus explicit publication-path invalidation.
 
@@ -29,6 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${post.title} — ARC.`,
     description: post.excerpt,
+    alternates: { canonical: '/blog/'+encodeURIComponent(post.slug) },
     openGraph: {
       type: 'article',
       title: post.title,
@@ -37,6 +40,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       modifiedTime: post.updated_at,
       authors: post.author_name ? [post.author_name] : [],
       tags: post.tags ?? [],
+      url: '/blog/'+encodeURIComponent(post.slug),
     },
     twitter: {
       card: 'summary_large_image',
@@ -135,11 +139,11 @@ export default async function BlogPostPage({ params }: PageProps) {
     publisher: {
       '@type': 'Organization',
       name: 'MindStack',
-      logo: { '@type': 'ImageObject', url: '/logo.png' },
+      logo: { '@type': 'ImageObject', url: getSiteUrl()+'/logo.png' },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `/blog/${params.slug}`,
+      '@id': getSiteUrl()+'/blog/'+encodeURIComponent(params.slug),
     },
     keywords: post.tags?.join(', '),
   }
@@ -148,7 +152,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     <>
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdText([jsonLd,breadcrumbs([{name:'首页',path:'/'},{name:'博客',path:'/blog'},{name:post.title,path:'/blog/'+encodeURIComponent(params.slug)}])]) }}
     />
     <ReadingProgressBar />
     <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
@@ -158,7 +162,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     <div className={isLearnPost ? 'learn-post-page min-h-screen pb-20 pt-24' : 'min-h-screen pt-24 pb-16'}>
       {isLearnPost ? (
         <div className="learn-page-container">
-          <Link href="/blog" className="mb-8 inline-flex items-center text-xs font-bold text-gray-400 transition-colors hover:text-blue-600">
+          <Link href="/blog" className="mb-8 inline-flex items-center text-xs font-bold text-gray-600 transition-colors hover:text-blue-600">
             <ArrowLeft className="mr-2 h-4 w-4" />
             返回博客列表
           </Link>
@@ -184,7 +188,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         <>
           <BlogToc />
           <div className="mx-auto max-w-[900px] px-6 lg:px-8" id="blog-reader-root">
-            <Link href="/blog" className="group mb-12 inline-flex items-center text-xs font-bold uppercase tracking-widest text-gray-400 transition-colors hover:text-blue-600">
+            <Link href="/blog" className="group mb-12 inline-flex items-center text-xs font-bold uppercase tracking-widest text-gray-600 transition-colors hover:text-blue-600">
               <ArrowLeft className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:-translate-x-2" />
               返回博客列表
             </Link>

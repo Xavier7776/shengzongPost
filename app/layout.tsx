@@ -6,6 +6,8 @@ import CursorFollower from '@/components/ui/CursorFollower'
 import SiteShell from '@/components/layout/SiteShell'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
 import Providers from './providers'
+import { getSiteUrl } from '@/lib/site-url'
+import { jsonLdText } from '@/lib/seo'
 
 // 字体自托管：替代 globals.css 里的 Google Fonts @import（渲染阻塞串行请求）
 // 变量名保持 --font-switzer / --font-mono，tailwind 与 body 的引用无需改动
@@ -24,8 +26,9 @@ const dmMono = DM_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: 'MindStack',
-  description: 'MindStack — 以严谨的美学标准构建数字化体验',
+  description: 'MindStack：个人技术博客、AI 工程学习中心与作品集，记录架构理解、代码实践和可核对的实验思路。',
   manifest: '/manifest.json',
   // 全站默认 OG 分享卡（gallery/work 等页面各自覆盖）
   openGraph: {
@@ -54,8 +57,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // WebSite schema：站点级结构化数据
-  // url 优先取 NEXT_PUBLIC_SITE_URL，未配置时回退为相对路径（schema.org 接受相对 URL）
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  // Share the same absolute site identity as canonical, RSS and sitemap.
+  const baseUrl = getSiteUrl()
   const websiteJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
@@ -77,7 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* WebSite 结构化数据注入 */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdText(websiteJsonLd) }}
         />
         <Providers>
           <CursorGlow />

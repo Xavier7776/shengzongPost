@@ -21,6 +21,8 @@ export interface WorkProject {
   demoUrl?: string | null
   githubUrl?: string | null
   year: string
+  createdAt?: string
+  updatedAt?: string
   /** md 文件附件 + 外链列表（详情页显示下载按钮） */
   attachments?: { url: string; filename: string; size: number }[]
 }
