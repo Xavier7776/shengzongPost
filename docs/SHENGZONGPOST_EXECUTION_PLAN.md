@@ -1041,3 +1041,16 @@ Production：未发布 / BUILDING / READY / ERROR
 - 390/1024/1440公开/安全/Shop/Research读取、v1/v2旧刊指纹/图表/自测/标签/原始资料/RSS/sitemap/真实404全部通过。真实隔离credentials/CSRF/退出、角色撤销/改密拒绝、两种编辑器、审批防重放/冲突/缓存、购买与积分流水、上传/GIF/宠物/失败保留/公开限流全部通过；浏览器零未解释错误，72次sprite读/0taint，1987余额与9条流水-2113一致。未执行真实生产写入或真实provider上传。
 - 工具栏跨Suspense DOM修改及评论Session提前返回的两处hydration缺陷已修；未抑制错误。Next15+默认缓存变化仅在公开Learn/Blog恢复60秒缓存，不对共享Neon/私有API加缓存，Work强制缓存试验因非build slug404撤回。失败构建、暂时外图连接错误、未播种skill及流式定位冲突按失败保留，不与最终成功证据混用。
 - 最终相同工具串行实验：手机首页性能95→93/LCP2886→3164ms，旧刊92→88/LCP3238→3411/TBT0→185ms；桌面首页69→67/LCP3258→3701，旧刊59→62/LCP3328→3744。CLS旧刊显著降低，但不掩盖JS约39KB gzip增加与LCP退化，旧刊移动90分门槛仍未满足。Next15维护按政策仅到2026-10-21，不采用作长期替代。候选保留Draft且不合并，完整报告docs/quality/m12-runtime-regression.md；CI/Preview继续，完成后提交具体性能与发布取舍。
+
+### 2026-10-10 M12-B 保留 Draft，M12-C 编辑器补丁
+
+- PR #30 head2e93ad47a43c281155d34efbb79272e2ca9afe3b：70文件471tests、typecheck/lint（0error100warnings）、完整85页构建，CI38037984006/job114172330743全成功；Preview dpl_FzfUoJHkbX9xJfFksCCzLHAqBAy2 READY，公开/安全/旧刊交互/分发/404/Shop/Research三个宽度检查全部通过，浏览器无未解释错误。初次af3f2ce Preview的导航活动标记水合错误按失败保留，根因修复及真实SSR/hydrate测试通过。
+- 导航修复后的同工具串行18组metrics/4组Lighthouse：手机首页95→92、LCP2886→3315ms；旧刊92→87、LCP3238→3396ms/TBT0→222.5ms；桌面首页69→67/LCP3258→3768ms，旧刊59→65/LCP3328→3689ms。旧刊移动90分门槛未满足，JS gzip约增加39KB；不以CLS改善掩盖退化。用户明确选择“保持 Draft，继续优化性能”，因此不合并、不上线，后续优化继续。
+- M12-C独立堆叠分支codex/editor-security-upgrade/PR #31 head a796b2cf201d487ec15f08ad1f9014a64a2624e9：Tiptap统一3.31.4、ProseMirror view1.42.6/model1.25.12，无强制peer绕过；干净安装/71文件474tests/typecheck/lint（0error100warnings）/完整85页构建通过。真实两种编辑器ClipboardEvent/DataTransfer保留粗体、代码、表格、图片，事件属性移除且攻击标记false；管理员预览/草稿/回读/发布/撤回及用户pending/private投稿通过，浏览器无错误。Audit14项（2moderate/12high），无Tiptap/ProseMirror条目；其他构建依赖和Node内置Undici风险未称消除。PR31也保持Draft，不能先于PR30合并，CI/Preview继续。
+
+### 2026-10-10 M12-B 性能优化本地验收 / M12-D 兼容依赖补丁
+
+- B保留用户指定Draft。二维码原生成器改为点击微信才加载；公开导航与共用匿名登录入口按点击加载，认证菜单/文章预取保留；页顶目录直接标记首章，不读全部标题位置，有恢复位置和滚动则保留帧内测量。71文件474tests/typecheck/lint（0error101warnings）/完整85页build通过。三尺寸快速滚动/回到页顶/深链接刷新、导航/返回/快捷搜索/手机Esc焦点、真实二维码/复制/关闭及旧刊指纹/自测/图表/来源/RSS/sitemap/404全通过，浏览器错误为空。
+- 同条件、无其他构建/测试/浏览器重叠的三轮完整Lighthouse：手机首页94/94/94（基线95）、旧刊91/90/90（基线92）；LCP中位数3012/3325ms、旧刊TBT155ms、CLS.000434。桌面视口继承移动限速，首页69/69/69（基线69）、旧刊65/68/69（基线59），LCP中位数3263/3671ms。前基线只测一次，不称真实用户p75/INP。旧刊gzipJS201360→187412字节，仍比Next14的162149多25263；移动90分门槛已稳定达到，M09的LCP/桌面/实测门槛仍未完成。QR+导航90/90/89、仅移帧88/88/88的实验完整保留，不挑最好结果。新的同提交CI/Preview待验收，尚未解除Draft或上线。
+- C head a796b2c的CI38038465979/job114173766531全成功、Preview dpl_JCjkNbSdzAWJ2CyiSfssoRrPrci4同SHA READY；公开/安全/旧刊交互/分发/404/Shop/Research三宽度只读验收通过，错误为空。待B新优化提交后普通合入基线并复验，不能先于B交付。
+- D独立堆叠codex/dependency-security-patches/PR #32 head aeee801802ff6e001adea24699d44e7aaf11fd00，锁文件兼容补丁Undici7.30.0/Baseline2.11.28/Browserslist4.29.3/brace-expansion1.1.21/nanoid3.3.20/source-map-js1.2.2/selector-parser6.1.4及配套浏览器数据。实际依赖攻击输入在限时子进程验证，72文件475tests/typecheck/lint（0error100warnings）/完整85页build通过；634个已安装锁项逐一版本一致。全量audit9项（2moderate7high），生产依赖audit0；braces和flat-selector构建风险、Node内置Undici/ESLint支持限制保留，不强制跨大版本。完整npm ls --all的可选WASM诊断与未改C相同，未称全干净；误用不读锁文件的清理安装已排除，重新npm ci并完整复验，Git锁文件未被该清理改变。PR32保持Draft，CI/Preview进行中，无生产数据、迁移、凭据、调度或Alias改变。
