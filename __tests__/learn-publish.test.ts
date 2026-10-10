@@ -30,7 +30,8 @@ describe('learn publication integrity', () => {
     sql.mockResolvedValueOnce([]).mockResolvedValueOnce([{inserted:1}]).mockResolvedValueOnce([stored()])
     await expect(publishEdition(edition)).resolves.toMatchObject({created:true,alreadyExists:false,verified:true,dbStatus:'db_ready',publicStatus:'public_ready'})
     expect(sql).toHaveBeenCalledTimes(3)
-    expect(revalidate.mock.calls).toEqual([['/blog'], ['/learn'], ['/blog/' + slugFor(edition)]])
+    for(const path of ['/','/blog','/learn','/feed.xml','/sitemap.xml','/blog/'+slugFor(edition)])expect(revalidate).toHaveBeenCalledWith(path)
+    expect(revalidate).toHaveBeenCalledWith('/blog/[slug]','page')
   })
   it('accepts a content-identical retry with no new write or source request', async () => {
     sql.mockResolvedValueOnce([stored()])
@@ -81,9 +82,12 @@ describe('learn publication integrity', () => {
     expect(network).toHaveBeenCalledTimes(3); expect(sql).toHaveBeenCalledOnce()
   })
   it('reports cache invalidation failure without losing a verified write', async () => {
+    const log=vi.spyOn(console,'error').mockImplementation(()=>{})
+    try {
     sql.mockResolvedValueOnce([]).mockResolvedValueOnce([{inserted:1}]).mockResolvedValueOnce([stored()])
     revalidate.mockImplementation(() => {throw Error('cache unavailable')})
     await expect(publishEdition(edition)).resolves.toMatchObject({verified:true,cacheStatus:'failed'})
+    } finally {log.mockRestore()}
   })
   it.each(['timeout', 'wrong fingerprint', 'wrong slug'])('does not claim public readiness after %s', async failure => {
     sql.mockResolvedValueOnce([stored()])

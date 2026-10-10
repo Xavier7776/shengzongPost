@@ -9,7 +9,7 @@ import {
   updatePost,
   createPost,
 } from '@/lib/db'
-import { revalidateTag } from 'next/cache'
+import { invalidatePublishedContent } from '@/lib/content-cache'
 
 export async function PATCH(
   req: NextRequest,
@@ -46,17 +46,15 @@ export async function PATCH(
           published:   false,   // 管理员审核通过后创建草稿，再决定是否发布
           cover_image: editReq.cover_image,
         })
-        revalidateTag('posts')
       } else {
-        await updatePost(editReq.post_slug, {
+        const post=await updatePost(editReq.post_slug, {
           title:       editReq.title,
           excerpt:     editReq.excerpt,
           content:     editReq.content,
           tags:        editReq.tags,
           cover_image: editReq.cover_image ?? undefined,
         })
-        revalidateTag('posts')
-        revalidateTag(`post-${editReq.post_slug}`)
+        if(post.published)invalidatePublishedContent([editReq.post_slug,post.slug])
       }
     }
 

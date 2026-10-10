@@ -1,5 +1,5 @@
 import { sql } from '@/lib/db/_core'
-import { revalidatePath } from 'next/cache'
+import { invalidatePublishedContent } from '@/lib/content-cache'
 import type { Edition } from './document'
 import { TOPICS, trustedUrl, validateEdition } from './document'
 import { getSiteUrl } from '@/lib/site-url'
@@ -80,8 +80,7 @@ export async function publishEdition(e: Edition) {
   }
   let cacheStatus: 'invalidated' | 'unchanged' | 'failed' = 'unchanged'
   if (created) {
-    try { revalidatePath('/blog'); revalidatePath('/learn'); revalidatePath('/blog/' + slug); cacheStatus = 'invalidated' }
-    catch { cacheStatus = 'failed' }
+    cacheStatus=invalidatePublishedContent([slug])
   }
   return { created, alreadyExists: !created, slug, verified:true, fingerprint:editionFingerprint(e),
     dbStatus:'db_ready' as const, cacheStatus, publicStatus:await publicVisibility(e) }

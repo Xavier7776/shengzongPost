@@ -1,7 +1,7 @@
 // app/api/posts/batch/route.ts
 // Privileged bulk mutation only: a logged-in non-admin must not publish or delete articles.
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { invalidatePublishedContent } from '@/lib/content-cache'
 import { requireAdminApi } from '@/lib/auth'
 import { sql } from '@/lib/db'
 
@@ -38,13 +38,9 @@ export async function POST(req: NextRequest) {
     } else {
       rows = await sql`DELETE FROM posts WHERE slug = ANY(${uniqueSlugs}) RETURNING slug`
     }
-    if (rows.length) {
-      revalidatePath('/blog')
-      revalidatePath('/learn')
-      for (const row of rows) revalidatePath('/blog/' + String(row.slug))
-    }
+    const cacheStatus=rows.length?invalidatePublishedContent(rows.map(row=>String(row.slug))):'unchanged'
     // Report actual affected rows, not the number of user-supplied slugs.
-    return NextResponse.json({ ok: true, count: rows.length })
+    return NextResponse.json({ ok: true, count: rows.length },{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
     console.error('[posts batch]', e)
     return NextResponse.json({ error: '批量操作失败' }, { status: 500 })

@@ -4,6 +4,7 @@ import { searchAll } from '@/lib/db-search'
 import { parseSearchParams } from '@/lib/search'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 export async function GET(req: NextRequest) {
   let query

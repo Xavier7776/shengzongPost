@@ -9,7 +9,7 @@ import { SkeletonCard } from '@/components/ui/Skeleton'
 import { getAllPosts } from '@/lib/db'
 import { getSkills } from '@/lib/db-skills'
 
-export const revalidate = 60 // 启用 ISR：60s 失效，命中缓存时零数据库往返；写文章时 revalidateTag('posts') 立即刷新
+export const revalidate = 60 // ISR plus explicit publication-path invalidation.
 
 // 博客区域骨架屏：样式与 loading.tsx 一致
 function BlogSkeleton() {

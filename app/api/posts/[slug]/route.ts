@@ -3,7 +3,7 @@
 // PATCH  /api/posts/:slug → 更新文章（管理员）
 // DELETE /api/posts/:slug → 删除文章（管理员）
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
+import { invalidatePublishedContent } from '@/lib/content-cache'
 import { updatePost, deletePost, getPostBySlugAdmin, getPostBySlug, getUserRoleById } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
@@ -55,14 +55,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       author_id:    body.author_id ?? undefined,
     })
 
-    revalidateTag('posts')
-    revalidateTag(`post-${params.slug}`)
-    // 如果 slug 本身被修改，也刷新新 slug 的缓存
-    if (body.slug && body.slug !== params.slug) {
-      revalidateTag(`post-${body.slug}`)
-    }
-
-    return NextResponse.json(post)
+    const cacheStatus=invalidatePublishedContent([params.slug,post.slug])
+    return NextResponse.json(post,{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })
@@ -76,9 +70,8 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   try {
     await deletePost(params.slug)
 
-    revalidateTag('posts')
-    revalidateTag(`post-${params.slug}`)
-    return NextResponse.json({ ok: true })
+    const cacheStatus=invalidatePublishedContent([params.slug])
+    return NextResponse.json({ ok: true },{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })

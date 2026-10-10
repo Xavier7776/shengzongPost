@@ -2,9 +2,11 @@
 // RSS 2.0 订阅源，供 RSS 阅读器抓取博客文章
 import { getAllPosts } from '@/lib/db'
 import { getSiteUrl } from '@/lib/site-url'
+import { unstable_cache } from 'next/cache'
 
-// 1 小时缓存：RSS 阅读器轮询频率低，没必要每次请求都查库
-export const revalidate = 3600
+// Direct database publishers cannot invalidate this process; retain a bounded TTL.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 function escapeXml(s: string): string {
   return s.replace(/[<>&'"]/g, c => ({
@@ -12,15 +14,16 @@ function escapeXml(s: string): string {
   }[c] as string))
 }
 
-export async function GET() {
+const feedXml = unstable_cache(async () => {
   const base = getSiteUrl()
   const posts = await getAllPosts()
+  const lastBuildDate=posts.length?new Date(Math.max(...posts.map(p=>Date.parse(p.updated_at||p.created_at)))).toUTCString():null
 
   const items = posts.map(p => `
     <item>
       <title>${escapeXml(p.title)}</title>
-      <link>${base}/blog/${p.slug}</link>
-      <guid isPermaLink="true">${base}/blog/${p.slug}</guid>
+      <link>${escapeXml(base+'/blog/'+encodeURIComponent(p.slug))}</link>
+      <guid isPermaLink="true">${escapeXml(base+'/blog/'+encodeURIComponent(p.slug))}</guid>
       <description>${escapeXml(p.excerpt || '')}</description>
       <pubDate>${new Date(p.created_at).toUTCString()}</pubDate>
     </item>`).join('\n')
@@ -32,13 +35,17 @@ export async function GET() {
     <link>${base}</link>
     <description>以严谨的美学标准构建数字化体验 — 思考、技术与创作</description>
     <language>zh-CN</language>
-    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    ${lastBuildDate?'<lastBuildDate>'+lastBuildDate+'</lastBuildDate>':''}
     <atom:link href="${base}/feed.xml" rel="self" type="application/rss+xml" />
 ${items}
   </channel>
 </rss>`
 
-  return new Response(xml, {
+  return xml
+}, ['published-rss-v2'], {revalidate:300,tags:['published-content']})
+
+export async function GET() {
+  return new Response(await feedXml(), {
     headers: { 'Content-Type': 'application/rss+xml; charset=utf-8' },
   })
 }

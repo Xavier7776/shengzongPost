@@ -244,12 +244,12 @@ flowchart TD
 
 ### M03-A：不迁移、先完成状态看板与巡检
 
-- [ ] 增加最近 7/30 天的实际出版日历，以北京时间解释日期，区分“未到调度窗口 / 尚未见刊 / 已存在且合规 / 不合规 / 公网待刷新”。
-- [ ] 只把**设定了应发布期望**的日期纳入缺刊告警；例如当天 08:30 之后给予合理宽限到 09:30，不因时区或计划停刊误报警。
-- [ ] 看板统计最近一次实际成功日期、连续出版天数、异常刊物列表、结构检查耗时、最近一次已知数据库观察时间。
-- [ ] 为数据库检查、结构验证和公网 GET 分别返回状态；无法取得任务历史时标为 `unknown`，不能说“任务运行失败”。
-- [ ] 对异常发通知前先做去重与冷却期，避免一天几十封重复邮件；机密日志不得入邮件。
-- [ ] 保留管理员权限检查先于任何私有记录读取；看板为只读，故障巡检本身不写文章。
+- [x] 增加最近 7/30 天的实际出版日历，以北京时间解释日期，区分“未到调度窗口 / 尚未见刊 / 已存在且合规 / 不合规 / 公网待刷新”。
+- [x] 只把**设定了应发布期望**的日期纳入缺刊告警；例如当天 08:30 之后给予合理宽限到 09:30，不因时区或计划停刊误报警。
+- [x] 看板统计最近一次实际成功日期、连续出版天数、异常刊物列表、结构检查耗时、最近一次已知数据库观察时间。
+- [x] 为数据库检查、结构验证和公网 GET 分别返回状态；无法取得任务历史时标为 `unknown`，不能说“任务运行失败”。
+- [x] 对异常发通知前先做去重与冷却期，避免一天几十封重复邮件；机密日志不得入邮件。
+- [x] 保留管理员权限检查先于任何私有记录读取；看板为只读，故障巡检本身不写文章。
 
 ### M03-B：可选持久化审计（**需要新的 DDL 授权**）
 
@@ -272,7 +272,7 @@ error_category TEXT NULL
 error_detail_sanitized TEXT NULL
 ```
 
-- [ ] 在 Neon 临时分支执行 DDL，验证唯一约束、索引、操作回滚，不包含任何已有文章删除或覆盖。
+- [x] 在 Neon 临时分支执行 DDL，验证唯一约束、索引、操作回滚，不包含任何已有文章删除或覆盖。
 - [ ] 提交给用户单独批准生产迁移，批准后**先 DDL、后代码部署**。
 - [ ] 审计写入要能区分未开始和没有发回状态，且幂等；日志对失败消息做脱敏，不存模型密钥或原文敏感内容。
 - [ ] 监控任务产生状态需要确定**任务进程能调用的真实通道**，不能创建仅在服务器端可用、计划任务却连不上的“伪审计”。
@@ -295,14 +295,14 @@ error_detail_sanitized TEXT NULL
 
 ### 实施清单
 
-- [ ] 编写 `docs/architecture/cache-contract.md`：列出 `/blog`、`/blog/[slug]`、`/learn`、`/feed.xml`、`/sitemap.xml`、`/search`、管理员页面的真实缓存层、失效方式及最长可见延迟。不要把 ISR 与应用内 `fetch` 缓存混淆。
-- [ ] 给文章后台 `create/update/unpublish/delete/batch` 建立**统一的 `invalidatePublishedContent` 服务函数**；按旧 Slug/新 Slug、发布状态、目录、首页、博客分类、精读列表、RSS 与 Sitemap 正确失效。
-- [ ] 判断 `revalidateTag` 是否有真正的标签依赖；若没有，优先采用 Next 14 兼容的 `revalidatePath`/明确 TTL，移除无效调用及误导注释；只有确实配置了被标记的缓存后才继续使用 tag。
-- [ ] `getPostBySlug`、`getAllPosts`、公开列表必须统一 `published = true`；撤回/删除后 RSS、sitemap 与相邻上一篇/下一篇导航不得残留。
-- [ ] 技术精读直接 Neon 写入的场景：定义**最终一致性 SLA**（如详情/列表 ≤ 2 分钟，RSS ≤ 5 分钟作为候选目标）；依赖 ISR TTL 时明确说明不能承诺“立刻刷新”。
-- [ ] RSS 需要检查 `pubDate/lastBuildDate` 和只展示公开文章；缩短 3600 秒 TTL 是否划算，以实际订阅和 Neon 成本评估。
-- [ ] Sitemap 不应把查询参数 URL 如 `/skills?view=trending` 视为独立内容页面；要结合 canonical/robots 规则审查，别让搜索筛选 URL 制造重复收录。
-- [ ] SEO 中 `lastModified` 应来自真实内容更新时间，不要每次生成都把所有静态页面伪装成“刚更新”。
+- [x] 编写 `docs/architecture/cache-contract.md`：列出 `/blog`、`/blog/[slug]`、`/learn`、`/feed.xml`、`/sitemap.xml`、`/search`、管理员页面的真实缓存层、失效方式及最长可见延迟。不要把 ISR 与应用内 `fetch` 缓存混淆。
+- [x] 给文章后台 `create/update/unpublish/delete/batch` 建立**统一的 `invalidatePublishedContent` 服务函数**；按旧 Slug/新 Slug、发布状态、目录、首页、博客分类、精读列表、RSS 与 Sitemap 正确失效。
+- [x] 判断 `revalidateTag` 是否有真正的标签依赖；若没有，优先采用 Next 14 兼容的 `revalidatePath`/明确 TTL，移除无效调用及误导注释；只有确实配置了被标记的缓存后才继续使用 tag。
+- [x] `getPostBySlug`、`getAllPosts`、公开列表必须统一 `published = true`；撤回/删除后 RSS、sitemap 与相邻上一篇/下一篇导航不得残留。
+- [x] 技术精读直接 Neon 写入的场景：定义**最终一致性 SLA**（如详情/列表 ≤ 2 分钟，RSS ≤ 5 分钟作为候选目标）；依赖 ISR TTL 时明确说明不能承诺“立刻刷新”。
+- [x] RSS 需要检查 `pubDate/lastBuildDate` 和只展示公开文章；缩短 3600 秒 TTL 是否划算，以实际订阅和 Neon 成本评估。
+- [x] Sitemap 不应把查询参数 URL 如 `/skills?view=trending` 视为独立内容页面；要结合 canonical/robots 规则审查，别让搜索筛选 URL 制造重复收录。
+- [x] SEO 中 `lastModified` 应来自真实内容更新时间，不要每次生成都把所有静态页面伪装成“刚更新”。
 
 ### 集成测试矩阵
 
@@ -679,8 +679,8 @@ git diff --check
 | M00 搜索 V2 | [x] 已合并，正式域名验收通过 | [#13](https://github.com/Xavier7776/shengzongPost/pull/13) / `e4b894b` | 最终 head run 37904129515 通过 | dpl_7A4r3Dt2HzUB3cv66QfqridBTgok READY | dpl_8czf41qX1VyuLzqvE9orrLLz8LVS READY | 正式域名 Edge 三尺寸及完整搜索流程通过；真机未测 | 2026-10-09 |
 | M01 CI 门禁 | [x] | PR #14 / `7d61f58` | 196 tests、Actions、Preview/生产 smoke；单目录探针验证 | `dpl_BvrFsBnvpCaJiLJT6L8mCXeqTQKc` | 无 | 严格 validate/Vercel 保护已实测阻断 | 2026-10-09 |
 | M02 发布完整性 | [-] A 已验收；B 待独立审计 | PR #16 / `3c4a90c` | 222 tests、隔离 Neon SQL、Preview/生产旧刊交互 | `dpl_4zBAGvYhXHribBrF8KpJb6Spj34X` | 无生产迁移/历史重发 | 最近三次成功率不可判定 | 2026-10-09 |
-| M03 发布监控 | [-] A 本地验证；B 候选 | `codex/learn-publish-ops-v2` | 245 tests、真实只读核对、隔离审计 DDL | 待远程验收 | 无生产迁移 | 任务通道/持久化审计未启用 | 2026-10-09 |
-| M04 缓存一致性 | [ ] | — | — | — | — | — | — |
+| M03 发布监控 | [-] A 已验收；B 未启用 | PR #17 / `3c6aa67` | 245 tests、本地签名管理员、Preview/生产 smoke | `dpl_B8GS4CCU4cosSXW6XKL2RNkQ9F7e` | 056 仅临时分支验证 | 无生产迁移；任务通道待实测 | 2026-10-09 |
+| M04 缓存一致性 | [-] | 本地实现，待 PR | 257 tests / typecheck / lint / build | 隔离状态流转、邻接导航、直接 SQL TTL 与 TTFB 对照通过 | 未合并 | 未验收 | 无生产数据变更 |
 | M05 来源与图表 | [ ] | — | — | — | — | — | — |
 | M06 搜索评测 | [ ] | — | — | — | — | — | — |
 | M07 学习中心 V3 | [ ] | — | — | — | — | — | — |
@@ -875,3 +875,28 @@ Production：未发布 / BUILDING / READY / ERROR
 - 33 文件 / 245 tests、typecheck/lint 通过。候选 056 仅在隔离 Neon 执行，重复 attempt 幂等、证据约束、事务失败回滚和索引验证；生产 audit_table 为 NULL。当前代码不依赖候选表，不执行新生产迁移，不集成未验证的任务通道。
 - 持久化运行审计仍待真实任务通道验证与单独生产授权；浏览器冷却不是该审计的替代。保留现有 Neon/08:30 任务与手动 fallback。
 - 细节见 `docs/operations/learn-operations.md`；最终构建与 CI/Preview/生产验收待登记，M03 保持 `[-]`。
+
+### 2026-10-09 M03-A 验收完成（持久化审计仍未启用）
+
+- PR #17 head `50bb7c96fe10129d59e9f2962fecc93b3d2e765a`，Actions `37912303221` 所有步骤成功，Preview `dpl_DsMiDzic72rPtnkKKccSFb1N12pH` 同 SHA READY；在线只读公开页/旧刊指纹、自测、图表与三尺寸及匿名拒绝通过。
+- 独立 Windows 生产构建接本机只读 PGlite、placeholder 签名 JWT 和合成数据库 admin 角色，管理员 7/30 日历、最近日期、连续 1 天、unknown、30 天展开与三尺寸通过。未使用生产 Secret/账号。开发冷编译及不完整 JWT/profile fixture 的失败已记录，最终生产产物完整回放通过；生产真实管理员登录仍未实测。
+- Merge `3c6aa676ff845a73fe6fdafc2e5357b223e5cf01`；Production `dpl_B8GS4CCU4cosSXW6XKL2RNkQ9F7e` READY。正式域名公开 Learn/Blog/Search、当前旧刊指纹和交互、1440/1024/390、匿名 admin 拒绝通过；当前 deployment 错误/fatal 查询为空。证据 `D:\download\search-v2-validation\m03-production.json`。
+- 生产再次只读确认 audit_table=NULL、临时测试文章=0。候选 056 不自动运行，代码不读取它；M03-B 真实任务通道与生产授权未完成。整个 M03 保持 `[-]`，允许推进不依赖该表的 M04。
+
+### 2026-10-09 M04 开工预检
+
+- 基线 `3c6aa67`，独立 Windows 工作区 `D:\download\worktrees\shengzongPost-m04` / `codex/content-cache-consistency-v2`，实时开放 PR 无冲突。
+- 构建 manifest 实测：首页 60 秒 ISR、RSS 3600 秒、sitemap 无定时再生成；Blog/Learn 因 searchParams 不在 Full Route prerender 清单。已读 Next 14.2.35 fetch/revalidate 实现，不沿用旧“普通 SQL 完全不走 fetch cache”或“路径页面必定 ISR”假设。
+- 将统一检查 API 发布/改稿/撤回/删除/批量/投稿批准/M02 发布的失效路径、RSS/sitemap 时效与安全公开过滤。只在隔离数据演练，无生产文章状态修改。
+
+### 2026-10-10 M04 隔离回放与缓存修复
+
+- 统一发布/修改/撤回/删除/批量/批准公开改稿/M02 发布失效，旧新 Slug、Home/Blog/Learn/RSS/Sitemap 和相邻导航 page pattern 均覆盖；同内容重试只读。失效部分失败仍尝试其余路径并记录固定类别，不把已提交写入改报失败。
+- 首轮真实生产产物回放揭示 Next 14 的两个缺口：streaming notFound 返回 200；文件缓存对 ROUTE 不检查路径 tag，而动态 Search SQL 仍复用默认长缓存。仅修改 metadata 不解决 200，已移除 Blog 两处路由 loading 边界并保留文章内部骨架；不存在文章实际 HTTP 404/noindex 通过。
+- RSS/Sitemap 改为动态响应 + 300 秒真正 tagged unstable_cache，配合 published-content 失效；Search 单独 force-no-store。未 blanket 修改 Neon _core，不引入模型、cron、索引或迁移。RSS 日期来自真实内容更新时间，静态 Sitemap 不编造 lastModified，移除参数 URL。
+- 37 文件 / 257 tests、typecheck/lint 与隔离生产 build 通过；原型多处失败如实保留，最终 HTTP 回放的创建、改名、撤回、批量再发布、删除及 Learn 撤回/再发布/删除通过。直接 SQL：Search 189ms、Blog 63496ms、详情 63559ms、RSS 304741ms、Sitemap 304743ms 可见（有请求/数据库健康条件，不能把 TTL 当硬实时保证）。
+- Headless Edge 本次启动退出，缓存矩阵改用实际 HTTP GET/POST/PATCH/DELETE + 占位 JWT + ephemeral PGlite，仅本机合成数据；浏览器交互/TTFB/同 SHA CI Preview/生产验收仍待完成。Learn 独立直接 SQL 正在复跑；首次补测未生成结果，不计通过。
+- 缓存契约 docs/architecture/cache-contract.md；原始回放 m04-cache-qa.json 与 m04-http-cache-qa.cjs 位于 D:\download\search-v2-validation。生产数据库、密钥和调度保持不变，M04 不提前勾整阶段完成。
+- M04 补充验收：独立直接 SQL 的 Learn 可见时间 61973ms；相邻文章的创建/改名/撤回/删除实际 SSR 数据更新通过。首次邻接检查使用新 Slug 包含旧 Slug 的子串而误报，改用不同名称完整回放通过；未修改产品代码来满足错误断言。
+- 同机 Windows 生产产物、同一合成种子、每路由 2 warmup + 10 次顺序请求 TTFB 对照（毫秒，p50 / p95）：Blog 45.61/61.25 → 61.68/75.06；Learn 45/72.29 → 54.85/75.90；公开精读详情 37.77/53.77 → 28.50/46.38；Search 1.60/2.37 → 6.20/11.25。Search 现在每次真正运行 SQL，不能以旧缓存的低耗时替代新鲜结果；其余短样本有波动，不推断线上提升或达成 M06 100 请求门槛。基线 fixture 起初拒绝 WITH，保留 READ ONLY 事务并允许查询 CTE 后完整重新测量。
+- 最终本地门禁：Windows npm ci（版本未升级，现存 59 audit 问题保留 M10/M12）、257 tests、typecheck/lint、完整 fixture build/diff 全通过。Edge headless 启动失败后使用隔离 Chrome 154，正式生产产物的 Learn/Blog/Search/匿名 admin 拒绝、旧刊指纹/自测/图表/原始来源、1440/1024/390、RSS/Sitemap 纳入及缺失文章 HTTP 404/noindex 通过，零未解释控制台错误。首次 Chrome 报评论/反应 500，源于 fixture 缺少列；补齐隔离测试表后完整重跑通过，未放宽错误断言、未改产品评论策略。证据 m04-local.json 与同前缀截图。
