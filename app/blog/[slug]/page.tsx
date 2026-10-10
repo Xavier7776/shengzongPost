@@ -17,13 +17,13 @@ import BlogToc from './BlogToc'
 import LearnToc from './LearnToc'
 import type { Metadata } from 'next'
 
-export const revalidate = 60 // 启用 ISR：60s 失效；文章更新时 revalidateTag('post-${slug}') 立即刷新
+export const revalidate = 60 // ISR plus explicit publication-path invalidation.
 
 interface PageProps { params: { slug: string } }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const post = await getPostBySlug(params.slug)
-  if (!post) return { title: '文章不存在 — ARC.' }
+  if (!post) notFound()
   // opengraph-image.tsx 会被 Next.js 自动识别为 OG 图片，无需在此设置 openGraph.images
   // 这里仅补充 openGraph.type / twitter card，让社交分享元数据更完整
   return {

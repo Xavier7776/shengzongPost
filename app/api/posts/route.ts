@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
+import { invalidatePublishedContent } from '@/lib/content-cache'
 import { createPost, getAdminUserId } from '@/lib/db'
 import { requireAdminApi } from '@/lib/auth'
 
@@ -25,11 +25,8 @@ export async function POST(req: NextRequest) {
       author_id: resolvedAuthorId,
     })
 
-    // 发布后立刻刷新相关缓存
-    revalidateTag('posts')
-    revalidateTag(`post-${slug}`)
-
-    return NextResponse.json(post, { status: 201 })
+    const cacheStatus=post.published?invalidatePublishedContent([post.slug]):'unchanged'
+    return NextResponse.json(post, { status: 201,headers:{'X-Content-Cache-Status':cacheStatus} })
   } catch (e: any) {
     // slug 唯一约束冲突
     if (e?.message?.includes('unique')) {

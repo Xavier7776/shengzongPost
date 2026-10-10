@@ -3,21 +3,23 @@ import { getAllPosts } from '@/lib/db'
 import { getSkills } from '@/lib/db-skills'
 import { getEnabledProjects } from '@/lib/db'
 import { getSiteUrl } from '@/lib/site-url'
+import { unstable_cache } from 'next/cache'
 
 const BASE_URL = getSiteUrl()
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export default unstable_cache(async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
-    { url: BASE_URL, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
-    { url: `${BASE_URL}/blog`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${BASE_URL}/learn`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
-    { url: `${BASE_URL}/skills`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
-    { url: `${BASE_URL}/skills?view=trending`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
-    { url: `${BASE_URL}/gallery`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${BASE_URL}/work`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE_URL}/projects`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${BASE_URL}/shop`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.6 },
-    { url: `${BASE_URL}/search`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
+    { url: BASE_URL, changeFrequency: 'weekly', priority: 1 },
+    { url: `${BASE_URL}/blog`, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${BASE_URL}/learn`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE_URL}/skills`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE_URL}/gallery`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/work`, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${BASE_URL}/projects`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/shop`, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${BASE_URL}/search`, changeFrequency: 'monthly', priority: 0.5 },
   ]
 
   try {
@@ -52,4 +54,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch {
     return staticPages
   }
-}
+}, ['published-sitemap-v2'], {revalidate:300,tags:['published-content']})
