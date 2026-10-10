@@ -57,6 +57,8 @@ export function useResearch() {
 
   // ── refs ──
   const wsRef = useRef<WebSocket | null>(null)
+  const chargeRequestRef = useRef<{ userId: string; requestId: string } | null>(null)
+  const chargingRef = useRef(false)
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
@@ -319,14 +321,22 @@ export function useResearch() {
     if (!taskTopic.trim()) { setErrorMsg('请输入研究主题'); return }
     if (!session?.user) { setErrorMsg('请先登录'); return }
     // 防重复点击：正在运行或正在扣费时不允许再次点击
-    if (runStage === 'running' || pointsLoading) return
+    if (runStage === 'running' || pointsLoading || chargingRef.current) return
 
     setErrorMsg('')
 
     // 1. 先扣费
     setPointsLoading(true)
+    chargingRef.current = true
+    const userId = String((session.user as { id?: string }).id)
+    if (chargeRequestRef.current?.userId !== userId) {
+      chargeRequestRef.current = { userId, requestId: crypto.randomUUID() }
+    }
     try {
-      const res = await fetch('/api/research/points', { method: 'POST', cache: 'no-store' })
+      const res = await fetch('/api/research/points', {
+        method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: chargeRequestRef.current.requestId }),
+      })
       const data = await res.json()
       if (!res.ok) {
         if (res.status === 402) {
@@ -337,6 +347,7 @@ export function useResearch() {
         setErrorMsg(data.error || '扣费失败')
         return
       }
+      chargeRequestRef.current = null
       setPoints(data.remaining)
       addLog(`已扣除 ${RESEARCH_COST} 积分启动深度研究，剩余 ${data.remaining} 积分`, 'system')
     } catch (err) {
@@ -344,6 +355,7 @@ export function useResearch() {
       console.error('[startGeneration deduct]', err)
       return
     } finally {
+      chargingRef.current = false
       setPointsLoading(false)
     }
 

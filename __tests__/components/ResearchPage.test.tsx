@@ -33,6 +33,29 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Research 路由拆分回归', () => {
+  it('reuses the charge key after an ambiguous network error and blocks duplicate in-flight clicks', async () => {
+    const consoleError = vi.spyOn(console,'error').mockImplementation(() => {})
+    let attempts = 0
+    fetchMock.mockImplementation(async (url, options) => {
+      if (url === '/api/research/ws-url') return response({url:'wss://research.test'})
+      if (options?.method === 'POST') {
+        if (++attempts === 1) throw new TypeError('simulated lost charge response')
+        return response({remaining:3000})
+      }
+      return response({points:5000})
+    })
+    const {unmount}=render(<ResearchPage />)
+    const button=await screen.findByRole('button',{name:/开始生成研报/})
+    await waitFor(() => expect(button).not.toBeDisabled())
+    fireEvent.click(button)
+    await screen.findByText('网络错误，请稍后重试')
+    fireEvent.click(button); fireEvent.click(button)
+    await waitFor(() => expect(TestWebSocket.instances[0]?.send).toHaveBeenCalledOnce())
+    const charges=fetchMock.mock.calls.filter(([url,opts]) => url==='/api/research/points' && opts?.method==='POST')
+    expect(charges).toHaveLength(2)
+    expect(charges[0][1].body).toBe(charges[1][1].body)
+    unmount(); consoleError.mockRestore()
+  })
   it('扣费后发送任务，区分研究草稿与最终报告，并在完成时保存正文', async () => {
     const { unmount } = render(<ResearchPage />)
     const start = await screen.findByRole('button', { name: /开始生成研报/ })
@@ -43,7 +66,9 @@ describe('Research 路由拆分回归', () => {
     expect(socket.url).toBe('wss://research.test/ws')
     const task = JSON.parse(socket.send.mock.calls[0][0].slice('start '.length))
     expect(task).toMatchObject({ task: '测试研究主题', headers: { model: 'mimo-v2.5-pro', language: 'chinese' } })
-    expect(fetchMock).toHaveBeenCalledWith('/api/research/points', { method: 'POST', cache: 'no-store' })
+    expect(fetchMock).toHaveBeenCalledWith('/api/research/points', expect.objectContaining({
+      method: 'POST', cache: 'no-store', body: expect.stringMatching(/"requestId":"[a-f0-9-]{36}"/),
+    }))
 
     act(() => {
       socket.receive({ type: 'report', output: '研究草稿' })

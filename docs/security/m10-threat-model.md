@@ -107,3 +107,6 @@
 
 - PR [#24](https://github.com/Xavier7776/shengzongPost/pull/24) 为 Draft；首轮 02c876a 的 CI 38024384281 / job 114131988146 全步骤成功、Preview dpl_EZEhtvDnhQWbeBpjttcZEYg6rdkb READY。最终复核补充 legacy JWT picture 输出消毒（407 用例）后将按新 head 重验；不复用旧 head 门禁作为最终合并证据。
 - 浏览器上传补测的外部模块替身未覆盖 webpack 内联 SDK，未取得成功结果；缺少模拟 API key 报错，演练进程已关闭，无远端写入。该结果不算验收通过。实际文件/parser 成功拒绝路径已在隔离接口测试覆盖；Preview 中真实管理员上传/外部存储联调仍待可用登录会话。M10-B 同时检查 uploadLarge provider 异常/超时行为。
+
+- M10-A 最终 head `b35fb55a364b22aa2d0b85cb0e4da7c7db785af8` 的 CI 38024964709 / job 114133756060 全步骤成功；57 文件 / 407 tests。Preview `dpl_EUZUN7n1ArWcjyFFEAV3QHyaYHxA` 同 head READY，保护保持开启。已正常 squash 合并 PR #24 为 `d939025322f00b1ebf0d685402c35b2cb525d3d9`；Production `dpl_5rSkGM2TtcWWM329kLXN1CeXeXFV` 同 merge SHA READY、正式 Alias 已核对。Chrome 154 正式域名 GET/HEAD-only 的 Home/Learn/旧刊/Work/PDF/Skills/login/admin login、三尺寸、管理员 JSON401、CSP Report-Only、伪 Cloudinary 拒绝、旧指纹/自测/图表/RSS/sitemap/真实404 全通过，错误为空。证据 `m10-production.json` / `m10-production-smoke.json`。未进行远端登录写入和真实存储上传。上述早期 Draft/待验记录仅为历史过程。
+- M10-B1 积分事务正在独立实施，详见 [积分一致性契约](m10-points-consistency.md)。M10 整阶段保持未完成。

@@ -688,7 +688,7 @@ git diff --check
 | M07 学习中心 V3 | [x] | [#21](https://github.com/Xavier7776/shengzongPost/pull/21) 已合并 | 317 tests、三尺寸学习通过 | 412affb 全绿 | 同 head READY | 6af12cc READY/复核通过 | M07-A 完成；可选 B 未选择 |
 | M08 内容推荐/作品集 | [x] | PR #22 / 8f74cdc | 330 测试/类型/lint/构建通过 | Chrome 3 宽度/路线/推荐/项目返回通过 | 跨 Blog/Learn/Work 停用/撤回缓存通过 | CI 38020243985 全通过；Preview/正式 READY 同 SHA | 无生产写入 |
 | M09 SEO/性能 | [-] A 完成/B 待验收 | [#23](https://github.com/Xavier7776/shengzongPost/pull/23) 已合并 | 335 测试/类型/lint/构建通过 | 完整 Lighthouse 对照/手机三项 ≥90 | Preview/正式域名读取通过 | CI 全绿/生产 READY | LCP/INP/站长验证保留 |
-| M10 安全二轮 | [-] A 验证中 / B 待实施 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) Draft | 57 文件 / 407 测试；构建、类型、lint、本地浏览器通过 | Preview 待验 | — | docs/security/m10-threat-model.md | 2026-10-10 |
+| M10 安全二轮 | [-] A 已交付 / B1 验证中、B2 待实施 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) 合并 d939025；B1 本地候选 | A:407 tests 全门禁；B1:425 tests/类型/构建，原生 Neon 并发与本地浏览器通过 | A 同 SHA READY；B1 待验 | A dpl_5rSkGM2TtcWWM329kLXN1CeXeXFV READY | docs/security/m10-threat-model.md；m10-points-consistency.md | 2026-10-10 |
 | M11 数据与恢复 | [ ] | — | — | — | — | — | — |
 | M12 Next LTS | [ ] | — | — | — | — | — | — |
 | M13 可选增强 | [ ] | — | — | — | — | — | — |
@@ -984,3 +984,11 @@ Production：未发布 / BUILDING / READY / ERROR
 - 请求来源/流式体积、API 鉴权、Markdown/PDF 消毒、受控附件/宠物来源、图片签名、HMAC 验证码原子消费、新登录密码版本和脱敏日志已实现；不新增运行时依赖或生产 DDL。57 文件 / 407 用例、类型、lint、完整 fixture 生产构建通过。
 - Chrome 隔离数据上的真实 credentials/CSRF、角色撤销、改密会话拒绝/重登录、三个 Markdown 输出攻击、同源资料保存/跨站403/超大413、三个宽度通过；零页面/控制台错误。Preview 和正式生产尚未登记。
 - 威胁报告 docs/security/m10-threat-model.md 保留 M10-B：积分/奖励/审批原子一致性、历史无版本会话策略、serverless public 写文件持久性、公开防刷与实际权限最小化。旧密钥/账号权限只核查元数据，未清理或轮换；08:30 Neon 发布链路保留。
+
+### 2026-10-10 M10-A 正式验收 / M10-B1 一致性
+
+- PR #24 最终 head b35fb55a364b22aa2d0b85cb0e4da7c7db785af8，CI 38024964709/job114133756060 全成功；Preview dpl_EUZUN7n1ArWcjyFFEAV3QHyaYHxA READY。同 head 完整读取/三尺寸通过后正常 squash 合并 d939025322f00b1ebf0d685402c35b2cb525d3d9。Production dpl_5rSkGM2TtcWWM329kLXN1CeXeXFV 同 SHA READY、正式 Alias 核对通过。Chrome 154 正式 Home/Learn/旧刊/Work/PDF/Skills/登录、管理员 JSON401、CSP Report-Only/伪 Cloudinary 拒绝、旧指纹/自测/图表/RSS/sitemap/真实404 通过，错误为空；未做远端管理员写入和真实上传。
+- B1 独立 Windows 工作树 shengzongPost-m10b/codex/security-consistency-v3，基线 d939025。购买的余额/流水/所有权、收藏/点赞状态与一次奖励/扣回、阅读标记与发奖、评论批准与发奖改为原子事务。拒绝对不存在/未发布文章发奖；保留旧读标记、一次奖励规则与旧所有权，不修改历史余额。研究扣费新增账号绑定 requestId，丢失响应重试使用同编号；旧无请求体客户端兼容但不能提供重试幂等。研究后端运行/退款不在该事务中。
+- 59 文件/425 tests、类型与完整隔离 build:ci 通过；真实本地认证/同源 browser fetch、购买/发奖/扣费/审核重放、草稿拒绝/故障回滚、三尺寸 Shop/Research 通过，4100→1987 与9流水合计 -2113 一致，错误为空。证据 m10b-local.json。
+- 新临时 Neon 分支 br-misty-credit-a12n6x2e/codex-m10-consistency-20261010，只写合成 m10b_* / m10bp_* schema，原 public 数据不动。首次账户拒绝自定义休眠参数后采用默认参数成功。连接器实际串行不算并发；原生 Neon 驱动独立 backend/事务时间重叠验证7组通过，6并发同商品只有1扣款、跨商品不透支，阅读/评论/研究奖励扣费一次，流水失败全回滚。凭据只在进程环境使用，未写文件/日志/Git。临时分支保留未删除。
+- B1 CI/Preview/合并后生产读取仍待验收；B2 投稿审批 CAS、上传持久性与公开防刷仍待实施。M10 整阶段未勾完成。08:30 既有 Neon 发布链路、生产数据库、密钥、权限及调度未改变。
