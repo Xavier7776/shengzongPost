@@ -32,22 +32,22 @@ describe('submission and review HTTP contracts',()=>{
   create.mockRejectedValueOnce(new Error('Cannot resubmit'));expect((await POST(request('POST',body))).status).toBe(409)
  })
  it('rejects unauthenticated, invalid IDs and invalid approval fields without consuming requests',async()=>{
-  admin.mockResolvedValueOnce(null);expect((await PATCH(request('PATCH',{status:'approved'}),{params:{id:'1'}})).status).toBe(401)
+  admin.mockResolvedValueOnce(null);expect((await PATCH(request('PATCH',{status:'approved'}),{params:Promise.resolve({id:'1'})})).status).toBe(401)
   for(const id of ['0','1.5','Infinity','9007199254740992']) {
-   expect((await PATCH(request('PATCH',{status:'approved'}),{params:{id}})).status).toBe(400)
-   expect((await GET(new NextRequest('https://site.example'),{params:{id}})).status).toBe(400)
+   expect((await PATCH(request('PATCH',{status:'approved'}),{params:Promise.resolve({id})})).status).toBe(400)
+   expect((await GET(new NextRequest('https://site.example'),{params:Promise.resolve({id})})).status).toBe(400)
   }
-  for(const bad of [{status:'pending'},{status:'approved',admin_note:{}}])expect((await PATCH(request('PATCH',bad),{params:{id:'1'}})).status).toBe(400)
+  for(const bad of [{status:'pending'},{status:'approved',admin_note:{}}])expect((await PATCH(request('PATCH',bad),{params:Promise.resolve({id:'1'})})).status).toBe(400)
   expect(review).not.toHaveBeenCalled()
  })
  it('reports conflicts and missing targets without invalidating public content',async()=>{
   for(const [error,status] of [[new Error('Request already reviewed'),409],[new Error('Request target unavailable'),409],[new Error('Post not found'),404],[new Error('Request not found'),404],[{code:'23505'},409]] as const) {
-   review.mockRejectedValueOnce(error);expect((await PATCH(request('PATCH',{status:'approved'}),{params:{id:'1'}})).status).toBe(status)
+   review.mockRejectedValueOnce(error);expect((await PATCH(request('PATCH',{status:'approved'}),{params:Promise.resolve({id:'1'})})).status).toBe(status)
   }
   expect(invalidate).not.toHaveBeenCalled()
  })
  it('keeps newly approved drafts outside public cache invalidation',async()=>{
-  const response=await PATCH(request('PATCH',{status:'approved'}),{params:{id:'1'}})
+  const response=await PATCH(request('PATCH',{status:'approved'}),{params:Promise.resolve({id:'1'})})
   expect(response.status).toBe(200);expect(response.headers.get('X-Content-Cache-Status')).toBe('unchanged')
   expect(invalidate).not.toHaveBeenCalled()
  })

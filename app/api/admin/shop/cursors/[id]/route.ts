@@ -11,11 +11,11 @@ export const dynamic = 'force-dynamic'
 
 async function handlePATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const id = Number(params.id)
+    const id = Number((await params).id)
     if (!id) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
     const body = (await req.json()) as Partial<CursorEffectInput>
@@ -37,11 +37,11 @@ async function handlePATCH(
 
 async function handleDELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const id = Number(params.id)
+    const id = Number((await params).id)
     if (!id) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
     await deleteCursorEffect(id)

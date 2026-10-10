@@ -30,7 +30,7 @@ describe('AI technology study center', () => {
     expect(screen.getByRole('link',{name:/多模态技术/})).toHaveAttribute('href','/learn?topic=multimodal')
   })
   it('filters categories with shareable URL query params', async () => {
-    render(await LearnIndex({searchParams:{topic:'rag'}}))
+    render(await LearnIndex({searchParams:Promise.resolve({topic:'rag'})}))
     expect(screen.getByRole('region',{name:'历史精读'})).toBeInTheDocument()
     expect(screen.getByRole('link',{name:/RAG 与检索.*1 期/})).toHaveAttribute('aria-current','page')
     const queryText = sql.mock.calls.map(x=>(x[0] as TemplateStringsArray).join(' '))

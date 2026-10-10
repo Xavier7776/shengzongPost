@@ -6,6 +6,7 @@ import LearningPaths from '@/components/learn/LearningPaths'
 import { breadcrumbs, jsonLdText } from '@/lib/seo'
 
 export const revalidate = 60
+export const fetchCache = 'default-cache'
 const metadata: Metadata = {
   title: 'AI 技术图解精读 · MindStack',
   description: 'Agent 前沿、RAG 与检索、AI 原生软件工程、多模态技术：可核对的一手资料、架构图、代码、自测和实践。',
@@ -15,7 +16,7 @@ const metadata: Metadata = {
 }
 const PAGE_SIZE = 24
 type Params = { topic?: string; page?: string }
-export async function generateMetadata({ searchParams }: { searchParams?: Params | Promise<Params> }): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: { searchParams?: Promise<Params> }): Promise<Metadata> {
   const params = await searchParams
   return { ...metadata, ...(params && Object.keys(params).length ? { robots: { index: false, follow: true } } : {}) }
 }
@@ -23,7 +24,7 @@ function selectedTopic(value: string | undefined): Topic | null {
   return value && Object.prototype.hasOwnProperty.call(TOPICS, value) ? value as Topic : null
 }
 
-export default async function LearnIndex({ searchParams }: { searchParams?: Params | Promise<Params> }) {
+export default async function LearnIndex({ searchParams }: { searchParams?: Promise<Params> }) {
   const params = await searchParams
   const topic = selectedTopic(params?.topic)
   const paths = LearningPaths({ topic })

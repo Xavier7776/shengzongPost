@@ -1,6 +1,6 @@
 # MindStack
 
-一个基于 Next.js 14 (App Router) 构建的全栈站点，已从一个个人作品集/博客扩展为四条产品线：
+一个基于 Next.js 16 (App Router) 构建的全栈站点，已从一个个人作品集/博客扩展为四条产品线：
 
 1. **内容站** — 博客、作品、画廊、Skills 与 GitHub Trending、Now、Projects
 2. **用户社区与积分商店** — 注册登录、关注、通知、编辑申请审核、积分与虚拟商品
@@ -15,10 +15,10 @@
 
 | 层级 | 技术 |
 | --- | --- |
-| 框架 | Next.js 14 (App Router) |
+| 框架 | Next.js 16 (App Router) |
 | 语言 | TypeScript |
 | 样式 | Tailwind CSS 3 |
-| 主数据库 | Neon (PostgreSQL Serverless)，服务端直连，无 RLS |
+| 主数据库 | Neon (PostgreSQL Serverless)，服务端直连；博客授权不依赖历史 RLS |
 | 认证数据库 | Supabase（`@supabase/ssr`），仅用于 OnlyUs 会话刷新 |
 | 认证 | NextAuth.js v4（Credentials + GitHub OAuth，JWT） |
 | 编辑器 | Tiptap + lowlight（代码高亮）；另用 `marked` 渲染 Markdown |
@@ -60,7 +60,7 @@
 
 ### OnlyUs `/onlyus`
 
-私密情侣应用。`middleware.ts` 对 `/onlyus/:path*` 做独立门禁：未通过校验一律重定向到 `/onlyus/gate`，通过后跳回原路径。
+私密情侣应用。`proxy.ts` 对 `/onlyus/:path*` 做独立门禁：未通过校验一律重定向到 `/onlyus/gate`，通过后跳回原路径。
 
 - 首页、心情、时间线、信件、愿望清单
 - 小工具：日历、纪念日计数器、你画我猜、记账、五子棋、电影记录、宠物、问答、轮盘

@@ -9,11 +9,12 @@ import { reviseEdition } from '@/lib/learn/publish'
 
 export const dynamic='force-dynamic'
 export const fetchCache='force-no-store'
-type Ctx={params:{slug:string}}
+type Ctx={params: Promise<{slug:string}>}
 export async function GET(_req:NextRequest,{params}:Ctx) {
+  const { slug } = await params
   if(!await requireAdminApi())return NextResponse.json({error:'Unauthorized'},{status:401})
   try {
-    const rows=await sql`SELECT l.document FROM learn_editions l JOIN posts p ON p.id=l.post_id WHERE p.slug=${params.slug}`
+    const rows=await sql`SELECT l.document FROM learn_editions l JOIN posts p ON p.id=l.post_id WHERE p.slug=${slug}`
     if(!rows[0])return NextResponse.json({error:'文章不存在'},{status:404})
     if(!validateEdition(rows[0].document).ok)return NextResponse.json({error:'原始结构待修复，不能自动修订'},{status:409})
     return NextResponse.json({edition:rows[0].document,fingerprint:editionFingerprint(rows[0].document as Edition)},{headers:{'Cache-Control':'private, no-store'}})
@@ -23,6 +24,7 @@ export async function GET(_req:NextRequest,{params}:Ctx) {
   }
 }
 async function handlePATCH(req:NextRequest,{params}:Ctx) {
+  const { slug } = await params
   if(!await requireAdminApi())return NextResponse.json({error:'Unauthorized'},{status:401})
   try {
     const text=await req.text()
@@ -31,7 +33,7 @@ async function handlePATCH(req:NextRequest,{params}:Ctx) {
     if(!payload || typeof payload!=='object' || Array.isArray(payload))return NextResponse.json({error:'修订契约必须为对象'},{status:400})
     const {edition,previousFingerprint}=payload
     const verdict=validateEdition(edition)
-    if(!verdict.ok || edition.version!==2 || slugFor(edition)!==params.slug || typeof previousFingerprint!=='string' || !/^[a-f0-9]{64}$/.test(previousFingerprint))
+    if(!verdict.ok || edition.version!==2 || slugFor(edition)!==slug || typeof previousFingerprint!=='string' || !/^[a-f0-9]{64}$/.test(previousFingerprint))
       return NextResponse.json({error:'修订契约不完整',details:verdict.errors},{status:400})
     return NextResponse.json(await reviseEdition(edition as EditionV2,previousFingerprint),{headers:{'Cache-Control':'private, no-store'}})
   } catch(error) {
