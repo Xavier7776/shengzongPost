@@ -3,6 +3,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import LearnToc from '@/app/blog/[slug]/LearnToc'
 import PostHeader from '@/app/blog/[slug]/PostHeader'
 import BlogReaderToolbar from '@/app/blog/[slug]/BlogReaderToolbar'
+import ViewTracker from '@/components/sections/ViewTracker'
 
 const { getPost } = vi.hoisted(() => ({ getPost: vi.fn() }))
 vi.mock('@/lib/db', () => ({ getPostBySlug: getPost }))
@@ -93,5 +94,24 @@ describe('daily learn layout compatibility', () => {
     fireEvent.click(within(drawer).getByRole('button', { name: '基础认知' }))
     expect(scrollIntoView).toHaveBeenCalled()
     expect(screen.queryByRole('dialog', { name: '专刊章节' })).not.toBeInTheDocument()
+  })
+  it('keeps font and mode controls usable when browser storage is blocked', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new DOMException('Denied', 'SecurityError') })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('Denied', 'SecurityError') })
+    render(<div className="reader-content"><BlogReaderToolbar variant="learn" /></div>)
+    expect(screen.getByText('18px')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '放大字号' }))
+    expect(screen.getByText('20px')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '缩小字号' }))
+    expect(screen.getByText('18px')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '深色模式' }))
+    expect(document.querySelector('.reader-content')).toHaveClass('reader-mode-dark')
+  })
+  it.each(['getItem', 'setItem'] as const)('skips view counting when session storage %s fails', method => {
+    sessionStorage.clear()
+    vi.spyOn(Storage.prototype, method).mockImplementation(() => { throw new DOMException('Denied', 'SecurityError') })
+    const fetch = vi.spyOn(globalThis, 'fetch')
+    render(<ViewTracker slug="daily-learn-2026-10-09" />)
+    expect(fetch).not.toHaveBeenCalled()
   })
 })
