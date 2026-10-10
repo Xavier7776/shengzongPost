@@ -10,12 +10,12 @@ import { updateHeroSlide, deleteHeroSlide } from '@/lib/db'
 
 async function handlePATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
-  const id = Number(params.id)
+  const id = Number((await params).id)
   if (isNaN(id)) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   try {
@@ -30,12 +30,12 @@ async function handlePATCH(
 
 async function handleDELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
-  const id = Number(params.id)
+  const id = Number((await params).id)
   if (isNaN(id)) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   try {

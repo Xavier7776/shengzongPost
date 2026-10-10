@@ -47,7 +47,7 @@ describe('认证工具函数 lib/auth', () => {
   describe('requireAdmin', () => {
     it('开发环境且存在 dev-admin-bypass=1 cookie 时返回 Dev 用户且不查 session', async () => {
       vi.stubEnv('NODE_ENV', 'development')
-      mockedCookies.mockReturnValue({
+      mockedCookies.mockResolvedValue({
         get: (name: string) =>
           name === 'dev-admin-bypass' ? { value: '1' } : undefined,
       } as any)
@@ -80,7 +80,7 @@ describe('认证工具函数 lib/auth', () => {
 
     it('开发环境但 cookie 不为 1 时不走 bypass', async () => {
       vi.stubEnv('NODE_ENV', 'development')
-      mockedCookies.mockReturnValue({
+      mockedCookies.mockResolvedValue({
         get: () => undefined,
       } as any)
       const session = { user: { id: '7', role: 'admin', name: 'Leon', email: 'leon@test.com' } }
@@ -95,7 +95,7 @@ describe('认证工具函数 lib/auth', () => {
   describe('requireAdminApi', () => {
     it('提供正确的 x-admin-api-key 时返回 Admin 用户且不查 session', async () => {
       vi.stubEnv('ADMIN_API_KEY', 'secret-key')
-      mockedHeaders.mockReturnValue({
+      mockedHeaders.mockResolvedValue({
         get: (name: string) =>
           name === 'x-admin-api-key' ? 'secret-key' : undefined,
       } as any)
@@ -111,7 +111,7 @@ describe('认证工具函数 lib/auth', () => {
     it('API Key 不匹配时回落到 session 校验，无 session 返回 null', async () => {
       vi.stubEnv('ADMIN_API_KEY', 'secret-key')
       vi.stubEnv('NODE_ENV', 'test')
-      mockedHeaders.mockReturnValue({
+      mockedHeaders.mockResolvedValue({
         get: () => 'wrong-key',
       } as any)
       mockedGetServerSession.mockResolvedValue(null as any)
@@ -135,7 +135,7 @@ describe('认证工具函数 lib/auth', () => {
     it('开发环境且 dev bypass 时返回 Dev 用户', async () => {
       vi.stubEnv('NODE_ENV', 'development')
       vi.stubEnv('ADMIN_API_KEY', '')
-      mockedCookies.mockReturnValue({
+      mockedCookies.mockResolvedValue({
         get: (name: string) =>
           name === 'dev-admin-bypass' ? { value: '1' } : undefined,
       } as any)

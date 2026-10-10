@@ -11,12 +11,12 @@ import { cloudinary } from '@/lib/cloudinary'
 // PATCH /api/projects/[id] 更新项目（支持部分字段更新）
 async function handlePATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
-  const id = Number(params.id)
+  const id = Number((await params).id)
   if (isNaN(id)) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   const body = await req.json()
@@ -56,12 +56,12 @@ async function handlePATCH(
 // DELETE /api/projects/[id] 删除项目，同时清理 Cloudinary 封面图
 async function handleDELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
-  const id = Number(params.id)
+  const id = Number((await params).id)
   if (isNaN(id)) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   const publicId = await deleteProject(id)

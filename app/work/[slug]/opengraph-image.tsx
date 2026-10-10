@@ -7,11 +7,12 @@ export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 interface OgImageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export default async function OgImage({ params }: OgImageProps) {
-  const project = await getProjectBySlug(params.slug)
+  const { slug } = await params
+  const project = await getProjectBySlug(slug)
 
   const name = project?.name ?? 'MindStack Work'
   const tagline = project?.tagline ?? '数字化作品集'

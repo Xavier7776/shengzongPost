@@ -8,13 +8,13 @@ import { getEditRequestById } from '@/lib/db'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
   const userId = Number((session.user as { id?: string }).id)
-  const id     = Number(params.id)
+  const id     = Number((await params).id)
   if (!id) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   try {

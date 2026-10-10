@@ -10,6 +10,14 @@
 2. B：独立最新 main 工作树迁移 Next16.4.0、React19.3.0/对应类型、稳定 NextAuth4.24.15、ESLint9/匹配 Next config；逐项处理异步请求 API、缓存失效、图片/字体、middleware、SSR/鉴权及构建 transport。先本地生产构建与隔离账号交互，再同 SHA CI/Preview；有未解释错误或明显性能回退时阻断交付。
 3. 其余依赖只按明确公告/可达性选择独立补丁；不使用 `npm audit fix --force`，不顺带升级 Tailwind4、TypeScript7、ESLint10、Vitest5 或 OnlyUs Supabase 数据层。
 
+B实际安装发现Lucide0.383.0不支持React19，改用明确声明React19稳定peer的0.475.0；没有使用force/legacy-peer-deps。NextAuth4.24.15安装源码确认Route Handler与getServerSession均await cookies/headers/params，不打补丁改第三方代码。
+
+[ESLint支持政策](https://eslint.org/version-support/)确认9系列已于2026-08-06 EOL，而Next16.4.0配套的最新eslint-plugin-react7.37.5及jsx-a11y6.10.2的peer仍止于ESLint9；React Hooks7.1.1/typescript-eslint8.71.1支持10，但不足以完成整组升级。因此暂取无非法peer的9.39.5，不声称整个开发工具链都在官方维护期，不强装10或购买付费支持。
+
+Next config16默认新增React Compiler诊断，本仓库尚未启用Compiler，既有UI首次出现90项diagnostics：purity6/set-state-in-effect48/refs18/static-components7/immutability2/error-boundaries9。为保持本批框架迁移边界，这6类明确作为warning并保留完整报告，规则未关闭；原rules-of-hooks/exhaustive-deps、Next规则和OnlyUs边界继续阻断错误。最终0error/98warnings还含4条新Next导航提示及4条旧disable无匹配提示，不称lint无警告或旧UI已完成Compiler重构。证据m12b-lint-first.json、m12b-lint-final.log在Git外。
+
+B干净npm ci、typecheck、69文件470tests及真实ESLint边界通过；新增真实NextAuth编码/无效Bearer与OnlyUs签名gate/proxy/cookie refresh契约检查。请求参数/搜索参数均Promise；public tag失效明确expire0；proxy保留OnlyUs matcher，下载流转Node runtime保留所有SSRF/体积/超时边界；Webpack构建路径保留，React Compiler未启用。第一次构建因残留同步/联合类型失败已修；第二次在构建运行时启动重装导致DLL锁/trace缺失，按失败记录，退出后串行重新干净安装成功，随后完整构建通过。首次浏览器候选在旧精读文章发现React418，development诊断确认工具栏跨Suspense边界提前修改reader-content；现改为在已hydrated的article外层保存字号与模式，通过CSS只影响正文，不再修改待hydrated的流式节点。新增延迟正文/保存偏好检查，开发浏览器错误清空；修复后的完整构建和生产模式浏览器正在重跑。
+
 ## 兼容矩阵
 
 来源为 `npm view <精确版本> engines peerDependencies peerDependenciesMeta --json`，原始快照在 Git 外 `D:/download/search-v2-validation/m12-compatibility-metadata.json`。仅在 npm 未公布范围时记录“未声明”，不虚构最高支持版本。
@@ -49,4 +57,12 @@ Next14处于不支持状态；B以[16升级指南](https://nextjs.org/docs/app/g
 - 对照相同fixture、端口和浏览器测量页面/JS bundle、冷LCP、错误/HTTP500、SQL请求次数；记录样本次数和限制，不把单次冷LCP当真实用户P75/INP。
 - 并发/ISR、真实隔离账号登录与鉴权、编辑器保存/审核、旧专刊指纹与图表自测、HTML清洗、搜索、上传协议/下载、CSP/字体图片、三个尺寸和完整构建页面数量均要通过。
 
-A已通过Windows干净npm ci、typecheck/CLI lint、5个边界探针、66文件464tests、fixture transport self-test及89页完整隔离build。运行时锁定版本不变；Vitest同版子包之外仅其依赖chai6.3/tinyrainbow3.2、Node类型配套undici-types7.24.6发生版本变化。CI/Preview和B仍在执行。生产数据库和08:30Neon任务保持现状。
+A已通过Windows干净npm ci、typecheck/CLI lint、5个边界探针、66文件464tests、fixture transport self-test及89页完整隔离build。运行时锁定版本不变；Vitest同版子包之外仅其依赖chai6.3/tinyrainbow3.2、Node类型配套undici-types7.24.6发生版本变化。A的PR #29/CI38033321742及Preview通过，正常合并4badb72，自动生产dpl_GvXYN6tPZyknS1fCKjrCZJvUDfba同SHA READY，正式域名三个尺寸读取/学习与安全检查通过。B仍在执行。生产数据库和08:30Neon任务保持现状。
+
+B浏览器二次定位：手机上SessionProvider先返回匿名状态，流式CommentSection首轮不再与服务端loading相同；评论表单现在只在自身hydrated后显示。真实renderToString→hydrateRoot测试验证session提前完成时无recoverable/console错误。18个页面/尺寸生产上下文全部无hydration错误；管理员Tiptap预览/草稿/加载/发布/撤回与用户投稿pending通过。
+
+Next15起fetch默认不缓存，B公开Learn与Blog页面显式default-cache恢复既有60秒数据缓存，私有/API层及共享Neon客户端不设强制cache。Work尝试default-cache后，新未参与build的slug被静态fallback拒绝，撤回该尝试，保持动态slug可达。第一次远端读取脚本在本地访问未播种的真实skill产生404/Suspense419；修正本地fixture检查为实际ci-skill，不吞错误。smoke改为等networkidle后定位实际文章，避免Next16流式隐藏传输副本暂时重复元素；旧指纹/互动/分发/真实404断言均保留。
+
+主题筛选Link仅在点击时载入（prefetch=false），避免Next16在每个新上下文提前执行多个主题的SQL；文章与学习路线预取保持。框架本身的JS代价必须登记，不以这个局部成本修正宣称所有性能提高。
+
+最终lint为0error/99warnings：原98项之外，CommentSection的hydration marker产生1项set-state-in-effect提示。该两遍渲染遵循React的SSR/client不同状态处理，保留测试与提示；未关闭该规则或启用Compiler。

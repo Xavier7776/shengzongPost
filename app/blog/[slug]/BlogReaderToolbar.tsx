@@ -4,7 +4,7 @@
 // - 阅读模式：默认 / 护眼 / 深色
 // - 使用 localStorage 持久化用户选择
 // - 仅影响文章正文区域（.reader-content）
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Minus, Plus, Sun, BookOpen, Moon } from 'lucide-react'
 
 const FONT_KEY = 'blog-reader-font-size'
@@ -30,6 +30,7 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
   const [fontSize, setFontSize] = useState(initialFont)
   const [mode, setMode] = useState<Mode>('default')
   const [mounted, setMounted] = useState(false)
+  const toolbar = useRef<HTMLDivElement>(null)
 
   // 初始化：从 localStorage 读取用户偏好
   useEffect(() => {
@@ -45,23 +46,14 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
     setMounted(true)
   }, [storageKey, initialFont])
 
-  // Suspense may render the article after the toolbar hydrates. Apply when it arrives.
+  // The article shell has hydrated; its streamed reader content may still be pending.
   useEffect(() => {
     if (!mounted) return
-    const apply = () => {
-      const container = document.querySelector('.reader-content') as HTMLElement | null
-      if (!container) return false
-      container.style.setProperty('--reader-font-size', fontSize + 'px')
-      container.classList.remove('reader-mode-default', 'reader-mode-sepia', 'reader-mode-dark')
-      container.classList.add('reader-mode-' + mode)
-      return true
-    }
-    if (apply()) return
-    const observer = new MutationObserver(() => {
-      if (apply()) observer.disconnect()
-    })
-    observer.observe(document.getElementById('blog-reader-root') || document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
+    const article = toolbar.current?.closest('article')
+    if (!article) return
+    article.style.setProperty('--reader-font-size', fontSize + 'px')
+    article.classList.remove('reader-mode-default', 'reader-mode-sepia', 'reader-mode-dark')
+    article.classList.add('reader-mode-' + mode)
   }, [fontSize, mode, mounted])
 
   const decreaseFont = useCallback(() => {
@@ -88,7 +80,7 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
   if (!mounted) return null
 
   return (
-    <div className={variant === 'learn' ? 'learn-reader-toolbar sticky top-20 z-30 mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white/95 px-4 py-2 shadow-sm backdrop-blur-md' : 'sticky top-20 z-30 mb-6 flex items-center gap-3 rounded-xl border border-gray-100 bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md'}>
+    <div ref={toolbar} className={variant === 'learn' ? 'learn-reader-toolbar sticky top-20 z-30 mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white/95 px-4 py-2 shadow-sm backdrop-blur-md' : 'sticky top-20 z-30 mb-6 flex items-center gap-3 rounded-xl border border-gray-100 bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md'}>
       {/* 字号调节 */}
       <div className="flex items-center gap-1.5">
         <span className="mr-1 text-[10px] font-black uppercase tracking-widest text-gray-600">字号</span>

@@ -7,8 +7,8 @@ import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 
 // This bypass is strictly confined to local development; production cannot opt into it.
-function isDevBypass() {
-  return process.env.NODE_ENV === 'development' && cookies().get('dev-admin-bypass')?.value === '1'
+async function isDevBypass() {
+  return process.env.NODE_ENV === 'development' && (await cookies()).get('dev-admin-bypass')?.value === '1'
 }
 
 function apiKeyMatches(actual: string | null): boolean {
@@ -34,7 +34,7 @@ async function activeAdminSession() {
 
 /** Used by server components; unauthenticated and non-admin sessions are redirected. */
 export async function requireAdmin() {
-  if (isDevBypass()) return { user: { name: 'Dev', email: 'dev@local', role: 'admin' } }
+  if (await isDevBypass()) return { user: { name: 'Dev', email: 'dev@local', role: 'admin' } }
   const session = await activeAdminSession()
   if (!session) redirect('/admin/login')
   return session
@@ -43,9 +43,9 @@ export async function requireAdmin() {
 /** Used by privileged route handlers. A separately configured admin API key is preserved. */
 export async function requireAdminApi() {
   // Only the explicit server-side API key may bypass a browser user session.
-  if (process.env.ADMIN_API_KEY && apiKeyMatches(headers().get('x-admin-api-key'))) {
+  if (process.env.ADMIN_API_KEY && apiKeyMatches((await headers()).get('x-admin-api-key'))) {
     return { user: { name: 'Admin API', email: 'admin@zshengzong.top', role: 'admin' } }
   }
-  if (isDevBypass()) return { user: { name: 'Dev', email: 'dev@local', role: 'admin' } }
+  if (await isDevBypass()) return { user: { name: 'Dev', email: 'dev@local', role: 'admin' } }
   return activeAdminSession()
 }

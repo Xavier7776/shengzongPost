@@ -12,8 +12,8 @@ vi.mock('@/lib/content-cache',()=>({invalidatePublishedContent:vi.fn()}))
 import { GET, PATCH } from '@/app/api/admin/learn/[slug]/route'
 import { PATCH as approve } from '@/app/api/edit-requests/all/[id]/route'
 import { EditionEditConflict } from '@/lib/learn/edit-conflict'
-const e=makeEditionV2(),ctx={params:{slug:'daily-learn-'+e.date}}
-const req=(body:unknown)=>new NextRequest('http://localhost/api/admin/learn/'+ctx.params.slug,{method:'PATCH',body:JSON.stringify(body)})
+const e=makeEditionV2(),slug='daily-learn-'+e.date,ctx={params:Promise.resolve({slug})}
+const req=(body:unknown)=>new NextRequest('http://localhost/api/admin/learn/'+slug,{method:'PATCH',body:JSON.stringify(body)})
 beforeEach(()=>{vi.clearAllMocks();m.admin.mockResolvedValue({user:{id:1,role:'admin'}});m.revise.mockResolvedValue({updated:true})})
 describe('administrator correction boundary',()=>{
   it('rejects anonymous reads and writes before any SQL or revision',async()=>{
@@ -25,7 +25,7 @@ describe('administrator correction boundary',()=>{
   it('requires v2, exact slug and fingerprint, and returns a private response',async()=>{
     expect((await PATCH(req(null),ctx)).status).toBe(400)
     expect((await PATCH(req({edition:e}),ctx)).status).toBe(400)
-    expect((await PATCH(req({edition:e,previousFingerprint:'a'.repeat(64)}),{params:{slug:'other'}})).status).toBe(400)
+    expect((await PATCH(req({edition:e,previousFingerprint:'a'.repeat(64)}),{params:Promise.resolve({slug:'other'})})).status).toBe(400)
     const r=await PATCH(req({edition:e,previousFingerprint:'a'.repeat(64)}),ctx)
     expect(r.status).toBe(200);expect(r.headers.get('Cache-Control')).toBe('private, no-store')
     expect(m.revise).toHaveBeenCalledOnce()
@@ -37,16 +37,16 @@ describe('administrator correction boundary',()=>{
     expect(await r.text()).not.toContain('sensitive fixture')
   })
   it('reports committed readback failures separately and preserves conflict status',async()=>{
-    m.revise.mockRejectedValueOnce(new PublicationError('readback_failed',ctx.params.slug,false,[],true))
+    m.revise.mockRejectedValueOnce(new PublicationError('readback_failed',slug,false,[],true))
     const r=await PATCH(req({edition:e,previousFingerprint:'a'.repeat(64)}),ctx)
     expect(r.status).toBe(503);expect(await r.json()).toMatchObject({committed:true,error:'readback_failed'})
-    m.revise.mockRejectedValueOnce(new PublicationError('conflict',ctx.params.slug))
+    m.revise.mockRejectedValueOnce(new PublicationError('conflict',slug))
     expect((await PATCH(req({edition:e,previousFingerprint:'a'.repeat(64)}),ctx)).status).toBe(409)
   })
   it('keeps an edition edit request pending when approval would drift JSON',async()=>{
-    m.getEdit.mockResolvedValue({status:'pending',post_slug:ctx.params.slug,title:'Changed'})
+    m.getEdit.mockResolvedValue({status:'pending',post_slug:slug,title:'Changed'})
     m.review.mockRejectedValue(new EditionEditConflict())
-    const r=await approve(new NextRequest('http://localhost/api/edit-requests/all/1',{method:'PATCH',body:JSON.stringify({status:'approved'})}),{params:{id:'1'}})
+    const r=await approve(new NextRequest('http://localhost/api/edit-requests/all/1',{method:'PATCH',body:JSON.stringify({status:'approved'})}),{params:Promise.resolve({id:'1'})})
     expect(r.status).toBe(409);expect(m.review).toHaveBeenCalledOnce();expect(m.updatePost).not.toHaveBeenCalled()
   })
 })

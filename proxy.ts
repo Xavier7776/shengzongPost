@@ -1,11 +1,11 @@
-// middleware.ts
+// proxy.ts
 // 合并了原有 Supabase session 刷新 + OnlyUs gate 校验
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { verifyGateToken, COOKIE_NAME } from '@/features/onlyus/lib/gate'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   let response = NextResponse.next({ request })
 

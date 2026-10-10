@@ -114,12 +114,12 @@ export default function LearnCatalog({ articles, topic, topicCounts, total, page
     </Link>}
 
     <nav aria-label="专刊主题筛选" className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      <Link href={target(null)} aria-current={!topic?'page':undefined}
+      <Link prefetch={false} href={target(null)} aria-current={!topic?'page':undefined}
         className={'rounded-xl border p-4 transition '+(!topic?'border-blue-500 bg-blue-50 text-blue-800':'border-gray-200 bg-white text-gray-700 hover:border-blue-200')}>
         <span className="flex items-center gap-2 text-sm font-bold"><Layers className="h-4 w-4"/> 全部主题</span>
         <span className="mt-2 block text-xs">{Object.values(topicCounts).reduce((a,b)=>a+(b||0),0)} 期专刊</span>
       </Link>
-      {kinds.map(t=><Link href={target(t)} key={t} aria-current={topic===t?'page':undefined}
+      {kinds.map(t=><Link prefetch={false} href={target(t)} key={t} aria-current={topic===t?'page':undefined}
         className={'rounded-xl border p-4 transition '+(topic===t?'border-blue-500 bg-blue-50 text-blue-800':'border-gray-200 bg-white text-gray-700 hover:border-blue-200')}>
         <span className="block text-sm font-bold">{TOPICS[t]}</span>
         <span className="mt-2 block text-xs">{iconFor[t]} · {topicCounts[t]??0} 期</span>

@@ -20,11 +20,13 @@ import { getSiteUrl } from '@/lib/site-url'
 import { breadcrumbs, jsonLdText } from '@/lib/seo'
 
 export const revalidate = 60 // ISR plus explicit publication-path invalidation.
+export const fetchCache = 'default-cache'
 
-interface PageProps { params: { slug: string } }
+interface PageProps { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const post = await getPostBySlug(params.slug)
+  const { slug } = await params
+  const post = await getPostBySlug(slug)
   if (!post) notFound()
   // opengraph-image.tsx 会被 Next.js 自动识别为 OG 图片，无需在此设置 openGraph.images
   // 这里仅补充 openGraph.type / twitter card，让社交分享元数据更完整
@@ -116,12 +118,13 @@ function PostCommentsSkeleton() {
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
+  const { slug } = await params
   const [post, { prev, next }] = await Promise.all([
-    getPostBySlug(params.slug),
-    getAdjacentPosts(params.slug),
+    getPostBySlug(slug),
+    getAdjacentPosts(slug),
   ])
   if (!post) notFound()
-  const isLearnPost = /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(params.slug)
+  const isLearnPost = /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(slug)
 
   // JSON-LD 结构化数据（Article schema）
   const jsonLd = {
@@ -143,7 +146,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': getSiteUrl()+'/blog/'+encodeURIComponent(params.slug),
+      '@id': getSiteUrl()+'/blog/'+encodeURIComponent(slug),
     },
     keywords: post.tags?.join(', '),
   }
@@ -152,12 +155,12 @@ export default async function BlogPostPage({ params }: PageProps) {
     <>
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: jsonLdText([jsonLd,breadcrumbs([{name:'首页',path:'/'},{name:'博客',path:'/blog'},{name:post.title,path:'/blog/'+encodeURIComponent(params.slug)}])]) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdText([jsonLd,breadcrumbs([{name:'首页',path:'/'},{name:'博客',path:'/blog'},{name:post.title,path:'/blog/'+encodeURIComponent(slug)}])]) }}
     />
     <ReadingProgressBar />
     <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
     <BackToTop />
-    <ReadingHistory slug={params.slug} title={post.title} />
+    <ReadingHistory slug={slug} title={post.title} />
 
     <div className={isLearnPost ? 'learn-post-page min-h-screen pb-20 pt-24' : 'min-h-screen pt-24 pb-16'}>
       {isLearnPost ? (
@@ -170,15 +173,15 @@ export default async function BlogPostPage({ params }: PageProps) {
             <div className="learn-post-main min-w-0" id="blog-reader-root">
               <article>
                 <Suspense fallback={<PostHeaderSkeleton />}>
-                  <PostHeader slug={params.slug} variant="learn" />
+                  <PostHeader slug={slug} variant="learn" />
                 </Suspense>
                 <BlogReaderToolbar variant="learn" />
                 <Suspense fallback={<PostContentSkeleton />}>
-                  <PostContent slug={params.slug} />
+                  <PostContent slug={slug} />
                 </Suspense>
               </article>
               <Suspense fallback={<PostCommentsSkeleton />}>
-                <PostComments slug={params.slug} />
+                <PostComments slug={slug} />
               </Suspense>
             </div>
             <LearnToc />
@@ -194,20 +197,20 @@ export default async function BlogPostPage({ params }: PageProps) {
             </Link>
             <article>
               <Suspense fallback={<PostHeaderSkeleton />}>
-                <PostHeader slug={params.slug} />
+                <PostHeader slug={slug} />
               </Suspense>
               <BlogReaderToolbar />
               <Suspense fallback={<PostContentSkeleton />}>
-                <PostContent slug={params.slug} />
+                <PostContent slug={slug} />
               </Suspense>
             </article>
             <Suspense fallback={<PostCommentsSkeleton />}>
-              <PostComments slug={params.slug} />
+              <PostComments slug={slug} />
             </Suspense>
           </div>
         </>
       )}
-      <p className="mx-auto mt-10 max-w-[900px] px-6 text-sm text-gray-500"><a className="text-blue-700 underline" href={'mailto:1808571411@qq.com?subject='+encodeURIComponent('文章勘误：'+params.slug)+'&body='+encodeURIComponent('文章：/blog/'+params.slug+'\n具体段落或数值：\n问题与原始来源：\n建议更正：')}>发现错误 / 提交勘误</a> · 请注明段落、问题和原始依据。</p>
+      <p className="mx-auto mt-10 max-w-[900px] px-6 text-sm text-gray-500"><a className="text-blue-700 underline" href={'mailto:1808571411@qq.com?subject='+encodeURIComponent('文章勘误：'+slug)+'&body='+encodeURIComponent('文章：/blog/'+slug+'\n具体段落或数值：\n问题与原始来源：\n建议更正：')}>发现错误 / 提交勘误</a> · 请注明段落、问题和原始依据。</p>
     </div>
     </>
   )

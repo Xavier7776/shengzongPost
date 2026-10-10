@@ -47,20 +47,20 @@ describe('daily learn layout compatibility', () => {
 
   it('defaults the edition reader to 18px without changing the standard reader default', async () => {
     const { unmount } = render(
-      <div id="blog-reader-root">
+      <article id="blog-reader-root">
         <div className="reader-content">Reading</div>
         <BlogReaderToolbar variant="learn" />
-      </div>
+      </article>
     )
     await screen.findByText('18px')
-    const reader = document.querySelector('.reader-content') as HTMLElement
+    const reader = document.querySelector('article') as HTMLElement
     await waitFor(() => expect(reader.style.getPropertyValue('--reader-font-size')).toBe('18px'))
     unmount()
     render(
-      <div id="blog-reader-root">
+      <article id="blog-reader-root">
         <div className="reader-content">Reading</div>
         <BlogReaderToolbar />
-      </div>
+      </article>
     )
     await screen.findByText('16px')
   })
@@ -95,17 +95,31 @@ describe('daily learn layout compatibility', () => {
     expect(scrollIntoView).toHaveBeenCalled()
     expect(screen.queryByRole('dialog', { name: '专刊章节' })).not.toBeInTheDocument()
   })
+  it('applies saved preferences without mutating streamed article markup', async () => {
+    localStorage.setItem('learn-reader-font-size', '22')
+    localStorage.setItem('blog-reader-mode', 'sepia')
+    const { container } = render(<article><BlogReaderToolbar variant="learn" /></article>)
+    await screen.findByText('22px')
+    const article = container.querySelector('article')!
+    act(() => {
+      article.insertAdjacentHTML('beforeend', '<div class="reader-content"><p>Streamed content</p></div>')
+    })
+    expect(article.style.getPropertyValue('--reader-font-size')).toBe('22px')
+    expect(article).toHaveClass('reader-mode-sepia')
+    expect(article.querySelector('.reader-content')!.getAttribute('class')).toBe('reader-content')
+    expect(article.querySelector('.reader-content')).not.toHaveAttribute('style')
+  })
   it('keeps font and mode controls usable when browser storage is blocked', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new DOMException('Denied', 'SecurityError') })
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('Denied', 'SecurityError') })
-    render(<div className="reader-content"><BlogReaderToolbar variant="learn" /></div>)
+    render(<article><div className="reader-content" /><BlogReaderToolbar variant="learn" /></article>)
     expect(screen.getByText('18px')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '放大字号' }))
     expect(screen.getByText('20px')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '缩小字号' }))
     expect(screen.getByText('18px')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '深色模式' }))
-    expect(document.querySelector('.reader-content')).toHaveClass('reader-mode-dark')
+    expect(document.querySelector('article')).toHaveClass('reader-mode-dark')
   })
   it.each(['getItem', 'setItem'] as const)('skips view counting when session storage %s fails', method => {
     sessionStorage.clear()
