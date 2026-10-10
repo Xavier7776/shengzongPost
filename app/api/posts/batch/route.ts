@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/posts/batch/route.ts
 // Privileged bulk mutation only: a logged-in non-admin must not publish or delete articles.
 import { NextRequest, NextResponse } from 'next/server'
@@ -8,7 +10,7 @@ import { sql } from '@/lib/db'
 const MAX_BATCH = 50
 const validActions = new Set(['publish', 'unpublish', 'delete'])
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const admin = await requireAdminApi()
   if (!admin) return NextResponse.json({ error: '无管理员权限' }, { status: 403 })
 
@@ -42,7 +44,9 @@ export async function POST(req: NextRequest) {
     // Report actual affected rows, not the number of user-supplied slugs.
     return NextResponse.json({ ok: true, count: rows.length },{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
-    console.error('[posts batch]', e)
+    logFailure('app/api/posts/batch', e)
     return NextResponse.json({ error: '批量操作失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/analytics/stats/route.ts
 // GET /api/analytics/stats?range=7d|30d|90d|all  → 获取访客统计数据（需要管理员权限）
 import { NextRequest, NextResponse } from 'next/server'
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
       topReferrers,
     })
   } catch (err) {
-    console.error('[analytics/stats GET]', err)
+    logFailure('app/api/analytics/stats', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }

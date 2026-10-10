@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/gallery/route.ts
 import { NextResponse } from 'next/server'
 import { getAllGalleryImages } from '@/lib/db'
@@ -9,7 +10,7 @@ export async function GET() {
     const images = await getAllGalleryImages()
     return NextResponse.json(images)
   } catch (err) {
-    console.error('[gallery/get]', err)
+    logFailure('app/api/gallery', err)
     return NextResponse.json({ error: '获取失败' }, { status: 500 })
   }
 }

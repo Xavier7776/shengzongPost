@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { sql } from '@/lib/db/_core'
@@ -16,11 +18,11 @@ export async function GET(_req:NextRequest,{params}:Ctx) {
     if(!validateEdition(rows[0].document).ok)return NextResponse.json({error:'原始结构待修复，不能自动修订'},{status:409})
     return NextResponse.json({edition:rows[0].document,fingerprint:editionFingerprint(rows[0].document as Edition)},{headers:{'Cache-Control':'private, no-store'}})
   } catch {
-    console.error('[learn correction] read failed')
+    logFailure('app/api/admin/learn/[slug]')
     return NextResponse.json({error:'无法读取当前版本，请稍后重试'},{status:503})
   }
 }
-export async function PATCH(req:NextRequest,{params}:Ctx) {
+async function handlePATCH(req:NextRequest,{params}:Ctx) {
   if(!await requireAdminApi())return NextResponse.json({error:'Unauthorized'},{status:401})
   try {
     const text=await req.text()
@@ -35,7 +37,9 @@ export async function PATCH(req:NextRequest,{params}:Ctx) {
   } catch(error) {
     if(error instanceof PublicationError)return NextResponse.json({error:error.category,committed:error.committed,details:error.reasons},{status:error.category==='conflict'?409:error.category==='source_unverified'?422:503})
     if(error instanceof SyntaxError)return NextResponse.json({error:'JSON 格式错误'},{status:400})
-    console.error('[learn correction] request failed')
+    logFailure('app/api/admin/learn/[slug]')
     return NextResponse.json({error:'修订失败，请先回读版本，勿盲目重试'},{status:500})
   }
 }
+
+export const PATCH = withWriteGuard(handlePATCH)

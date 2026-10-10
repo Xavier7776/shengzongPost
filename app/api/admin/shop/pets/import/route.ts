@@ -1,3 +1,7 @@
+import { logFailure } from '@/lib/security/log'
+import { allowedPetAsset, readPetMetadata } from '@/lib/security/pet-assets'
+import { readRemoteBytes } from '@/lib/security/remote-assets'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // POST /api/admin/shop/pets/import — 从 codex-pets URL 解析并导入一只宠物
 //
 // Body:
@@ -18,7 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminApi } from '@/lib/auth'
 import {
   getAllCursorEffectsAdmin, createCursorEffect, updateCursorEffect,
   type CursorEffectInput,
@@ -78,9 +82,8 @@ interface CodexPet {
 async function fetchPetInfo(key: string): Promise<CodexPet> {
   // 优先尝试 /api/pets/<id> 直接精确查询，响应结构 { pet: { id, ... } }
   // 失败时回退到 /api/pets?search=<id> 模糊搜索（在结果中找 id 精确匹配）
-  const direct = await fetch(`${API_BASE}/api/pets/${encodeURIComponent(key)}`)
-  if (direct.ok) {
-    const json = await direct.json()
+  const json = await readPetMetadata(`${API_BASE}/api/pets/${encodeURIComponent(key)}`).catch(() => null)
+  if (json) {
     const pet = json.pet || json.data || json
     if (pet && (pet.id || pet.key)) {
       return {
@@ -96,12 +99,8 @@ async function fetchPetInfo(key: string): Promise<CodexPet> {
     }
   }
   // 回退到搜索模式
-  const search = await fetch(
-    `${API_BASE}/api/pets?search=${encodeURIComponent(key)}&pageSize=50`
-  )
-  if (!search.ok) throw new Error(`codex-pets API 响应 ${search.status}`)
-  const json = await search.json()
-  const list: CodexPet[] = json.pets || json.data || []
+  const search = await readPetMetadata(`${API_BASE}/api/pets?search=${encodeURIComponent(key)}&pageSize=50`)
+  const list: CodexPet[] = search.pets || search.data || []
   const match = list.find(p => String(p.id).toLowerCase() === String(key).toLowerCase())
   if (!match) {
     const sample = list.slice(0, 5).map(p => p.id).join(', ')
@@ -114,9 +113,8 @@ async function fetchPetInfo(key: string): Promise<CodexPet> {
 }
 
 async function downloadToFile(url: string, destPath: string): Promise<number> {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`下载失败 ${res.status}: ${url}`)
-  const buf = Buffer.from(await res.arrayBuffer())
+  if (!allowedPetAsset(url)) throw new Error('Pet asset origin or path rejected')
+  const buf = Buffer.from(await readRemoteBytes(url, 16 * 1024 * 1024))
   // 确保目录存在
   await fs.mkdir(path.dirname(destPath), { recursive: true })
   await fs.writeFile(destPath, buf)
@@ -131,9 +129,9 @@ function parseCellSize(cs?: string): { fw: number; fh: number } {
   return { fw: 192, fh: 208 }
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   try {
-    await requireAdmin()
+    if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const body = await req.json() as {
       url?: string; key?: string; price?: number; rarity?: string
     }
@@ -145,6 +143,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
+    if (typeof rawKey !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/.test(rawKey)) {
+      return NextResponse.json({ error: '宠物 key 无效' }, { status: 400 })
+    }
     const key = rawKey
 
     const price = typeof body.price === 'number' && body.price >= 0 ? body.price : 300
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
 
     // 1) 拉元数据
     const pet = await fetchPetInfo(key)
-    if (!pet.spritesheetUrl) throw new Error('该宠物没有 sprite sheet 可用')
+    if (!pet.spritesheetUrl || !allowedPetAsset(pet.spritesheetUrl) || (pet.posterUrl && !allowedPetAsset(pet.posterUrl))) throw new Error('Pet asset origin or path rejected')
 
     // 2) 检查是否已存在
     const existing = await getAllCursorEffectsAdmin()
@@ -228,8 +229,9 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (err) {
-    console.error('[admin pets import]', err)
-    const msg = err instanceof Error ? err.message : '未知错误'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    logFailure('app/api/admin/shop/pets/import', err)
+    return NextResponse.json({ error: '操作失败，请稍后再试' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

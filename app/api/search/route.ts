@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/search/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { searchAll } from '@/lib/db-search'
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
       headers: { 'Server-Timing': `search;dur=${(performance.now() - started).toFixed(1)}` },
     })
   } catch (err) {
-    console.error('[search] error:', err)
+    logFailure('app/api/search', err)
     return NextResponse.json(
       { error: '搜索失败，请稍后重试' },
       { status: 500 }

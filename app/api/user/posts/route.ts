@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/user/posts/route.ts
 // GET /api/user/posts?userId=xxx → 返回该用户发布的文章列表
 import { NextRequest, NextResponse } from 'next/server'
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
     const posts = await getPostsByAuthor(userId)
     return NextResponse.json(posts)
   } catch (e) {
-    console.error(e)
+    logFailure('app/api/user/posts')
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }

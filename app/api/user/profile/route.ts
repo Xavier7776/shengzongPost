@@ -1,3 +1,6 @@
+import { safeLink, safePostImageUrl } from '@/shared/markdown/sanitize'
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/user/profile/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -18,9 +21,9 @@ export async function GET(req: NextRequest) {
       if (!user) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
       const equippedFrame = await getUserEquippedFrame(user.id)
       return NextResponse.json({
-        id: user.id, name: user.name, avatar: user.avatar, bio: user.bio,
+        id: user.id, name: user.name, avatar: safePostImageUrl(user.avatar), bio: user.bio,
         title: user.title, motto: user.motto, location: user.location,
-        website: user.website, github_url: user.github_url, twitter_url: user.twitter_url,
+        website: safeLink(user.website), github_url: safeLink(user.github_url), twitter_url: safeLink(user.twitter_url),
         tech_stack: user.tech_stack, created_at: user.created_at,
         equipped_frame_css_key: equippedFrame?.css_key ?? null,
       })
@@ -44,18 +47,19 @@ export async function GET(req: NextRequest) {
     const row = rows[0] as Record<string, unknown>
     return NextResponse.json({
       ...row,
+      avatar: safePostImageUrl(row.avatar as string | null), website: safeLink(row.website as string | null), github_url: safeLink(row.github_url as string | null), twitter_url: safeLink(row.twitter_url as string | null),
       points,
       equipped_frame_css_key: equippedFrame?.css_key ?? null,
       equipped_cursor_effect: equippedCursor ?? null,   // 跟随效果仅自己可见
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[profile GET]', err)
+    logFailure('app/api/user/profile', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
 
 // PATCH /api/user/profile
-export async function PATCH(req: NextRequest) {
+async function handlePATCH(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const userId = Number((session.user as { id?: string }).id)
@@ -63,6 +67,10 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const { name, phone, bio, avatar, location, website, github_url, twitter_url, motto, tech_stack, title } = await req.json()
+    for (const value of [name, phone, bio, location, motto, title]) if (value !== undefined && value !== null && typeof value !== 'string') return NextResponse.json({ error: '资料字段格式无效' }, { status: 400 })
+    if (tech_stack !== undefined && (!Array.isArray(tech_stack) || tech_stack.some(value => typeof value !== 'string' || value.length > 100))) return NextResponse.json({ error: '技术栈格式无效' }, { status: 400 })
+    for (const value of [website, github_url, twitter_url]) if (value !== undefined && value !== null && (typeof value !== 'string' || (value.trim() && !safeLink(value)))) return NextResponse.json({ error: '个人链接需使用安全的 HTTP/HTTPS 地址' }, { status: 400 })
+    if (avatar !== undefined && avatar !== null && (typeof avatar !== 'string' || (avatar && !safePostImageUrl(avatar)))) return NextResponse.json({ error: '头像地址无效' }, { status: 400 })
     if (!name?.trim()) return NextResponse.json({ error: '昵称不能为空' }, { status: 400 })
     if (name.trim().length > 30) return NextResponse.json({ error: '昵称不能超过 30 字' }, { status: 400 })
     if (phone && phone.length > 20) return NextResponse.json({ error: '手机号格式有误' }, { status: 400 })
@@ -81,7 +89,9 @@ export async function PATCH(req: NextRequest) {
       WHERE id=${userId}`
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[profile PATCH]', err)
+    logFailure('app/api/user/profile', err)
     return NextResponse.json({ error: '保存失败，请重试' }, { status: 500 })
   }
 }
+
+export const PATCH = withWriteGuard(handlePATCH)

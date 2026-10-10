@@ -1,10 +1,12 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/comments/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { updateCommentStatus, deleteComment, addPoints, hasPointTransaction, sql } from '@/lib/db'
 
 // PATCH /api/comments/[id]  body: { action: 'approve' | 'reject' }
-export async function PATCH(
+async function handlePATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -37,13 +39,13 @@ export async function PATCH(
     }
     return NextResponse.json(comment)
   } catch (err) {
-    console.error('[comments PATCH]', err)
+    logFailure('app/api/comments/[id]', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
 }
 
 // ✅ 新增：DELETE /api/comments/[id]
-export async function DELETE(
+async function handleDELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -57,7 +59,10 @@ export async function DELETE(
     await deleteComment(id)
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[comments DELETE]', err)
+    logFailure('app/api/comments/[id]', err)
     return NextResponse.json({ error: '删除失败' }, { status: 500 })
   }
 }
+
+export const PATCH = withWriteGuard(handlePATCH)
+export const DELETE = withWriteGuard(handleDELETE)

@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/user/liked-posts/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserLikedPosts } from '@/lib/db'
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
     const posts = await getUserLikedPosts(userId)
     return NextResponse.json(posts)
   } catch (err) {
-    console.error('[liked-posts GET]', err)
+    logFailure('app/api/user/liked-posts', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }

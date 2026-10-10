@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/research/reports/route.ts
 // 深度研究历史研报：GET 列表 / POST 保存
 import { NextResponse } from 'next/server'
@@ -17,13 +19,13 @@ export async function GET() {
     const reports = await getResearchReports(userId)
     return NextResponse.json({ reports }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[research/reports GET]', err)
+    logFailure('app/api/research/reports', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }
 
 // POST /api/research/reports → 保存一条研报
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: '未登录' }, { status: 401 })
@@ -52,7 +54,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, report }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[research/reports POST]', err)
+    logFailure('app/api/research/reports', err)
     return NextResponse.json({ error: '保存失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/edit-requests/[id]/route.ts
 // PATCH /api/edit-requests/[id]  → 管理员审核（approve / reject）
 
@@ -12,7 +14,7 @@ import {
 import { invalidatePublishedContent } from '@/lib/content-cache'
 import { EditionEditConflict } from '@/lib/learn/edit-conflict'
 
-export async function PATCH(
+async function handlePATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -63,7 +65,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true, request: updated })
   } catch (err) {
     if(err instanceof EditionEditConflict)return NextResponse.json({error:err.message},{status:409})
-    console.error('[edit-requests PATCH]', err)
+    logFailure('app/api/edit-requests/all/[id]', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
 }
@@ -83,7 +85,9 @@ export async function GET(
     if (!req) return NextResponse.json({ error: '不存在' }, { status: 404 })
     return NextResponse.json(req)
   } catch (err) {
-    console.error('[edit-requests GET id]', err)
+    logFailure('app/api/edit-requests/all/[id]', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }
+
+export const PATCH = withWriteGuard(handlePATCH)

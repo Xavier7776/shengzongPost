@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/notifications/unread-count/route.ts
 // GET /api/notifications/unread-count → 获取当前用户未读通知数量
 
@@ -17,7 +18,7 @@ export async function GET() {
     const count = await getUnreadNotificationCount(userId)
     return NextResponse.json({ count })
   } catch (err) {
-    console.error('[notifications unread-count GET]', err)
+    logFailure('app/api/notifications/unread-count', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }

@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/follows/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -31,13 +33,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ error: '参数错误' }, { status: 400 })
   } catch (err) {
-    console.error('[follows GET]', err)
+    logFailure('app/api/follows', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
 
 // POST /api/follows  body: { targetId }
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
   const myId = Number((session.user as { id?: string }).id)
@@ -51,7 +53,9 @@ export async function POST(req: NextRequest) {
     const counts = await getFollowCounts(Number(targetId))
     return NextResponse.json({ ...status, ...counts })
   } catch (err) {
-    console.error('[follows POST]', err)
+    logFailure('app/api/follows', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

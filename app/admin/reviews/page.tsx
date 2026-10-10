@@ -102,7 +102,7 @@ function RequestCard({
           ) : (
             <Link
               href={`/blog/${req.post_slug}`}
-              target="_blank"
+              target="_blank" rel="noopener noreferrer"
               className="p-2 text-gray-300 hover:text-gray-600 rounded-lg transition-colors"
               title="查看原文"
             >

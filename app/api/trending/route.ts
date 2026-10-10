@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/trending/route.ts
 // GET /api/trending?period=daily&limit=30
 import { NextRequest, NextResponse } from 'next/server'
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
       }
     )
   } catch (err) {
-    console.error('[trending GET]', err)
+    logFailure('app/api/trending', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }

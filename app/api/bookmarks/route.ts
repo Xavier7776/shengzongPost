@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/bookmarks/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -20,13 +22,13 @@ export async function GET(req: NextRequest) {
     const posts = await getUserBookmarks(userId)
     return NextResponse.json(posts)
   } catch (err) {
-    console.error('[bookmarks GET]', err)
+    logFailure('app/api/bookmarks', err)
     return NextResponse.json({ error: '读取失败' }, { status: 500 })
   }
 }
 
 // POST /api/bookmarks  body: { slug }  → { bookmarked: bool }
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
   const userId = Number((session.user as { id?: string }).id)
@@ -47,7 +49,9 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ bookmarked })
   } catch (err) {
-    console.error('[bookmarks POST]', err)
+    logFailure('app/api/bookmarks', err)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

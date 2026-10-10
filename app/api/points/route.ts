@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/points/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ points, history }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    console.error('[points GET]', err)
+    logFailure('app/api/points', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }

@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 ﻿// lib/db/points.ts
 // Extracted from lib/db.ts by domain boundary. Logic unchanged.
 
@@ -24,7 +25,7 @@ export async function addPoints(
   try {
     await sql`INSERT INTO point_transactions(user_id, amount, reason, ref_slug) VALUES(${userId}, ${amount}, ${reason}, ${refSlug ?? null})`
   } catch (e) {
-    console.error('[addPoints] 流水记录失败（不影响扣费）:', e)
+    logFailure('lib/db/points.ts', e)
   }
   return newPoints
 }

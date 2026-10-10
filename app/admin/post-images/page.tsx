@@ -139,7 +139,7 @@ function ImageCard({
         {image.post_slug ? (
           <Link
             href={`/blog/${image.post_slug}`}
-            target="_blank"
+            target="_blank" rel="noopener noreferrer"
             className="mt-2 flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-mono truncate"
           >
             <span className="shrink-0">📄</span>

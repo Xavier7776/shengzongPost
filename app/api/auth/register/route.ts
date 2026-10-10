@@ -1,3 +1,5 @@
+import { logFailure } from '@/lib/security/log'
+import { withWriteGuard } from '@/lib/security/write-guard'
 // Register a new account with the same password policy used by reset endpoints.
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
@@ -6,7 +8,7 @@ import { getUserByEmail, createUser, setVerifyToken } from '@/lib/db'
 import { sendVerificationEmail } from '@/lib/email'
 import { allowAuthAttempt, normalizeEmail, validNewPassword, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from '@/lib/auth-rate-limit'
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let data: Record<string, unknown>
   try { data = await req.json() } catch { return NextResponse.json({ error: '无效的 JSON' }, { status: 400 }) }
   const email = normalizeEmail(data?.email)
@@ -29,7 +31,9 @@ export async function POST(req: NextRequest) {
     await sendVerificationEmail(email, name, token)
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('[register]', error)
+    logFailure('app/api/auth/register', error)
     return NextResponse.json({ error: '注册暂不可用，请稍后再试' }, { status: 503 })
   }
 }
+
+export const POST = withWriteGuard(handlePOST)

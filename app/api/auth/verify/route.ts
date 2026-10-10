@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/auth/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserByVerifyToken, markUserVerified } from '@/lib/db'
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
 
-  if (!token) {
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) {
     return NextResponse.redirect(new URL('/verify?status=invalid', req.url))
   }
 
@@ -26,10 +27,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL('/verify?status=already', req.url))
     }
 
-    await markUserVerified(user.id)
+    if (!await markUserVerified(user.id, token)) return NextResponse.redirect(new URL('/verify?status=expired', req.url))
     return NextResponse.redirect(new URL('/verify?status=success', req.url))
   } catch (err) {
-    console.error('[verify]', err)
+    logFailure('app/api/auth/verify', err)
     return NextResponse.redirect(new URL('/verify?status=error', req.url))
   }
 }

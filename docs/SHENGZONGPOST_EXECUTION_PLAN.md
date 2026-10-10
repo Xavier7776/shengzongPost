@@ -687,8 +687,8 @@ git diff --check
 | M06 搜索评测 | [-] | [#20](https://github.com/Xavier7776/shengzongPost/pull/20) 已合并 | 41 查询、102+20 实测 | 0c0d5ff 全绿 | sin1 READY | 07efb32 READY | M06-B 延迟/人工复核未通过 |
 | M07 学习中心 V3 | [x] | [#21](https://github.com/Xavier7776/shengzongPost/pull/21) 已合并 | 317 tests、三尺寸学习通过 | 412affb 全绿 | 同 head READY | 6af12cc READY/复核通过 | M07-A 完成；可选 B 未选择 |
 | M08 内容推荐/作品集 | [x] | PR #22 / 8f74cdc | 330 测试/类型/lint/构建通过 | Chrome 3 宽度/路线/推荐/项目返回通过 | 跨 Blog/Learn/Work 停用/撤回缓存通过 | CI 38020243985 全通过；Preview/正式 READY 同 SHA | 无生产写入 |
-| M09 SEO/性能 | [-] | PR 待创建 | 335 测试/类型/lint/构建通过 | 前后 Lighthouse/手机三项 ≥90 候选 | 浏览器 SEO/锚点/焦点/Esc 通过 | 待 CI/Preview/正式域名 | LCP/INP/站长验证保留 |
-| M10 安全二轮 | [ ] | — | — | — | — | — | — |
+| M09 SEO/性能 | [-] A 完成/B 待验收 | [#23](https://github.com/Xavier7776/shengzongPost/pull/23) 已合并 | 335 测试/类型/lint/构建通过 | 完整 Lighthouse 对照/手机三项 ≥90 | Preview/正式域名读取通过 | CI 全绿/生产 READY | LCP/INP/站长验证保留 |
+| M10 安全二轮 | [-] A 验证中 / B 待实施 | [#24](https://github.com/Xavier7776/shengzongPost/pull/24) Draft | 57 文件 / 407 测试；构建、类型、lint、本地浏览器通过 | Preview 待验 | — | docs/security/m10-threat-model.md | 2026-10-10 |
 | M11 数据与恢复 | [ ] | — | — | — | — | — | — |
 | M12 Next LTS | [ ] | — | — | — | — | — | — |
 | M13 可选增强 | [ ] | — | — | — | — | — | — |
@@ -970,3 +970,17 @@ Production：未发布 / BUILDING / READY / ERROR
 - M09 截图复核发现继承的普通博客列表 flex 规则将架构图步骤压成竖排；已限定精读列表规则并增加手机卡片标题宽度断言。此前 `m09-after-*` 候选测量保留，最终样式使用 `m09-final-*` 重新测量后替换主报告；不把无横溢当成可读性通过。
 
 - M09 最终 12 组记录已取代主报告的候选值：390px 性能 96/96/94/95、无障碍 100/100/96/96、SEO 均 100；旧刊 1440px 性能 63→58，完整退化记录保留。M09-B 尚未关闭。
+
+### 2026-10-10 M09-A 交付与正式验收 / M10 启动
+
+- PR #23 `cdeb35ee9b2004171c6e025a3b8374fa6d58b619` 的 CI 38022226322/job 114125482409 全部步骤成功；Preview `dpl_Bbav23wfNC5aAe8vGxbnsZL1CHTo` READY 并通过浏览器验收。普通 expected-head squash 合并 `a5267471f7c7fc231e6e0ca7edf30f5a6460fe34`，生产 `dpl_7yGKKPLjTWU5JY3KXNc7qLBmhzyo` READY 且正式域名绑定该部署。
+- 正式域名 canonical/三类结构化数据、查询 noindex/私有响应头/sitemap、减少动态效果、手机焦点/Esc、刷新深链、三宽度以及旧刊指纹/自测/图表/来源/RSS/真实 404 回归全部通过；浏览器零应用错误，部署范围 error/fatal 日志统计为空。M09-B 的 LCP/桌面性能/INP/站长账号和官方富媒体工具仍待验收。
+- M10 基于该合并提交独立 Windows 工作树，已完成剩余写入口与认证/上传/附件的只读检查，开始修复 API 重定向鉴权、请求来源/大小、Markdown 输出、验证码原子消费和 SSRF。生产 DDL/DML/密钥与调度仍未改动。
+
+
+### 2026-10-10 M10-A 本地门禁
+
+- 50 个 custom 写路由 / 61 个方法及 NextAuth 独立协议已形成权限表；50 个受保护写方法匿名拒绝不读流/不调用副作用。补齐普通用户、管理员、服务端 Key 上传归属与对象所有权案例。
+- 请求来源/流式体积、API 鉴权、Markdown/PDF 消毒、受控附件/宠物来源、图片签名、HMAC 验证码原子消费、新登录密码版本和脱敏日志已实现；不新增运行时依赖或生产 DDL。57 文件 / 407 用例、类型、lint、完整 fixture 生产构建通过。
+- Chrome 隔离数据上的真实 credentials/CSRF、角色撤销、改密会话拒绝/重登录、三个 Markdown 输出攻击、同源资料保存/跨站403/超大413、三个宽度通过；零页面/控制台错误。Preview 和正式生产尚未登记。
+- 威胁报告 docs/security/m10-threat-model.md 保留 M10-B：积分/奖励/审批原子一致性、历史无版本会话策略、serverless public 写文件持久性、公开防刷与实际权限最小化。旧密钥/账号权限只核查元数据，未清理或轮换；08:30 Neon 发布链路保留。

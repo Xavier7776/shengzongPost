@@ -1,3 +1,4 @@
+import { logFailure } from '@/lib/security/log'
 // app/api/edit-requests/my/[id]/route.ts
 // 用户读取自己的某条 edit-request（用于拒绝后回填内容）
 import { NextRequest, NextResponse } from 'next/server'
@@ -23,7 +24,7 @@ export async function GET(
     if (req.user_id !== userId) return NextResponse.json({ error: '无权限' }, { status: 403 })
     return NextResponse.json(req)
   } catch (err) {
-    console.error('[edit-requests/my GET]', err)
+    logFailure('app/api/edit-requests/my/[id]', err)
     return NextResponse.json({ error: '查询失败' }, { status: 500 })
   }
 }
