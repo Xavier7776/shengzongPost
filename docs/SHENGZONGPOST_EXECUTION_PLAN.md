@@ -1008,3 +1008,13 @@ Production：未发布 / BUILDING / READY / ERROR
 - 自动 Production 未出现后，经用户明确批准重试该提交，生产 dpl_E3QEARrQp2SLUvVEQQLyz4m53gRY 同 SHA READY，正式域名指向该部署。Chrome 正式公开/Markdown/PDF/登录、编辑申请 JSON401/空审核界面/投稿登录跳转、旧刊指纹/自测/图表/RSS/sitemap/404 与390/1024/1440通过；预期401单独记录，无未解释错误，部署范围error/fatal统计为空。未执行生产审批/上传/数据库写入，08:30任务、生产DB/密钥未改变。证据 m10c-production{,-smoke,-review}.json。
 - B2B 在 shengzongPost-m10d / codex/security-storage-v2 基于2d2684e实现：复用 Cloudinary upload_stream 一次传输，移除临时磁盘与结果不确定时的重试；头像/GIF/宠物写持久资源且唯一ID不覆盖旧资源。公共订阅/画廊点赞/浏览/互动/统计复用既有055持久限流；统计路径去查询、来源只存origin、不存UA/真实IP、IP每日HMAC、私有路由不追踪。新增21项协议/路由/实际SQL用例已通过，完整门禁与真实本地集成验证继续。
 - M11只读准备已有同提供商快照恢复至新分支并核对哈希，未切换生产分支；独立备份与生产治理尚未批准，不标记整阶段完成。
+
+### 2026-10-10 M10-B2B 正式交付 / M11 独立备份及基线
+
+- B2B PR #27 head3638d7be76b3773dcf2cfa6ffdc6d41eb19717d1，最终CI38029842010/job114148276685全部成功（66文件/464tests）；Preview dpl_8qACvkaQyhiDq56shDGDpqYiEHMK 同SHA READY/只读通过。首轮CI的multipart取消未处理异常明确判失败，wire bytes测试修复后重跑，没有吞异常。
+- 正常expected-head squash合并7438bee79bbe3f63ff4985b725d4860cb13a9d8b，自动Production dpl_RK9g5w91DzCgVdqkaDWuVagPZhiR READY并绑定正式域名。公共/安全/Shop/Research、旧刊指纹/测验/图表、RSS/Sitemap/404、390/1024/1440只读通过；浏览器错误为空，近15分钟部署error/fatal聚合为空。未做生产上传/审核/扣款/真实Cloudinary账户测试。
+- M11基于该merge在Windows独立codex/neon-data-governance实施。只读public库存27表/244列/71约束/85索引，迁移35文件分OnlyUs与Neon，不能混排；056未应用。完整库另有neon_auth9托管表。孤儿引用均0、11未分配图片不作为垃圾，未清理或加索引；四条真实SQL单次EXPLAIN不是P95，M06整体824.9ms未达标仍保留。
+- 用户明确批准桌面独立加密备份及桌面可移植恢复密钥。06:29:33Z–06:29:46Z只读一致快照导出CMS722424字节，27public表1693行；完整archive另含9neon_auth表1行。新分支br-dry-truth-a18ntqb1新空库m11_backup_restore恢复约33.1秒，全部public行哈希/sequence及后来托管表核对一致，244列/71约束/85索引、Edition无孤儿，四条实际应用SQL可执行。main数据、DSN、应用密钥及08:30任务不动。
+- recovery-private.pem与验证脚本放桌面shengzongPost-Recovery-Key；真实CMS经可移植密钥验证成功，无DPAPI依赖、无明文dump。用户表示已备份到其他电脑，但新PEM需同步，另一台电脑实机恢复未测试。RPO24h/RTO60m为接受的目标，单次观测不是保证；03:00日程待代码交付后启用，首次保留全部副本/演练资源，不自动删除。
+- public-only真实基线在新空库m11_schema_baseline重建通过；列/索引一致，70约束定义相同、1处CHECK cast重解析但枚举/非法/空/NULL真值一致。不通过legacy迁移脚本执行，不重排OnlyUs历史，不把元数据JSON当基线。
+- M11本地464 Vitest、Windowstypecheck/lint/89页完整隔离build通过；Node3项加密/认证损坏/缺失密钥/导出失败保留与连接/恢复边界检查通过。初次Node check被Vitest误收为0test已更名；并行build时4个既有PGlite初始化超时不算通过，未改超时门槛，build结束后原测试全部通过。PR/CI/Preview与日程仍待交付登记。

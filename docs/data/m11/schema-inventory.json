@@ -1,0 +1,3304 @@
+{
+  "at": "2026-10-10T05:13:00Z",
+  "scope": "Neon public metadata only; no row contents, DSN, credential or account records",
+  "project": "crimson-cloud-17403928",
+  "branch": "br-old-truth-a1bnmt7i",
+  "columns": [
+    {
+      "table_name": "auth_rate_limits",
+      "column_name": "scope",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "auth_rate_limits",
+      "column_name": "subject_hash",
+      "data_type": "character",
+      "udt_name": "bpchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "auth_rate_limits",
+      "column_name": "window_started_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "auth_rate_limits",
+      "column_name": "hit_count",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('avatar_frames_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "key",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "name",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "price",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "rarity",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'common'::character varying",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "css_key",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "enabled",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "avatar_frames",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "bookmarks",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('bookmarks_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "bookmarks",
+      "column_name": "post_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "bookmarks",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "bookmarks",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "comment_likes",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('comment_likes_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "comment_likes",
+      "column_name": "comment_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "comment_likes",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "comment_likes",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "comments",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('comments_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "comments",
+      "column_name": "post_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "comments",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "comments",
+      "column_name": "user_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "comments",
+      "column_name": "content",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "comments",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'pending'::text",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "comments",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "comments",
+      "column_name": "parent_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('cursor_effects_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "key",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "name",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "price",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "rarity",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'common'::character varying",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "sprite_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "cols",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "8",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "rows",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "9",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "fps",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "10",
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "frame_width",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "192",
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "frame_height",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "208",
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "scale",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "56",
+      "ordinal_position": 13
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "follow_easing",
+      "data_type": "real",
+      "udt_name": "float4",
+      "is_nullable": "NO",
+      "column_default": "0.12",
+      "ordinal_position": 14
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "state_map",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'{\"idle\":0,\"runRight\":1,\"runLeft\":2}'::text",
+      "ordinal_position": 15
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "emoji",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'👻'::character varying",
+      "ordinal_position": 16
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "enabled",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 17
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 18
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "render_type",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'sprite_sheet'::character varying",
+      "ordinal_position": 19
+    },
+    {
+      "table_name": "cursor_effects",
+      "column_name": "poster_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 20
+    },
+    {
+      "table_name": "follows",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('follows_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "follows",
+      "column_name": "follower_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "follows",
+      "column_name": "following_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "follows",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('gallery_images_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "public_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "category",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "sort_order",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "tags",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "width",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "height",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "likes",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "gallery_images",
+      "column_name": "is_featured",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "ordinal_position": 13
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('github_trending_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "repo_name",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "slug",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "full_name",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "html_url",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "stars",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "forks",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "language",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "owner_avatar",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "topics",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "period",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "stars_gained",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "ordinal_position": 13
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "rank",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "ordinal_position": 14
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "crawled_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 15
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 16
+    },
+    {
+      "table_name": "github_trending",
+      "column_name": "crawled_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_DATE",
+      "ordinal_position": 17
+    },
+    {
+      "table_name": "hero_slides",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('hero_slides_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "hero_slides",
+      "column_name": "img",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "hero_slides",
+      "column_name": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "hero_slides",
+      "column_name": "subtitle",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "hero_slides",
+      "column_name": "sort_order",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "hero_slides",
+      "column_name": "enabled",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "hero_slides",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "learn_editions",
+      "column_name": "post_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "learn_editions",
+      "column_name": "edition_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "learn_editions",
+      "column_name": "topic",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "learn_editions",
+      "column_name": "document",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "learn_editions",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'published'::text",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "learn_editions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "newsletter_subscribers",
+      "column_name": "email",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "newsletter_subscribers",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "type",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'system'::character varying",
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "title",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "content",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "link",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "is_read",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "notifications",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "point_read_log",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "point_read_log",
+      "column_name": "post_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "point_read_log",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "point_transactions",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('point_transactions_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "point_transactions",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "point_transactions",
+      "column_name": "amount",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "point_transactions",
+      "column_name": "reason",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "point_transactions",
+      "column_name": "ref_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "point_transactions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('post_attachments_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "post_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "public_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "filename",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "size",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "mime_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'application/pdf'::text",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "uploaded_by",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "post_attachments",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('post_edit_requests_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "post_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "excerpt",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "content",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "tags",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "cover_image",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'pending'::text",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "admin_note",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "post_edit_requests",
+      "column_name": "reviewed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('post_images_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "post_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "public_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "filename",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "size",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "mime_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "uploaded_by",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "post_images",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "post_reactions",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('post_reactions_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "post_reactions",
+      "column_name": "post_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "post_reactions",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "post_reactions",
+      "column_name": "type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "post_reactions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "posts",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('posts_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "posts",
+      "column_name": "slug",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "posts",
+      "column_name": "title",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "posts",
+      "column_name": "excerpt",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "posts",
+      "column_name": "content",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "posts",
+      "column_name": "tags",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "posts",
+      "column_name": "published",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "posts",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "posts",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "posts",
+      "column_name": "view_count",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "posts",
+      "column_name": "cover_image",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "posts",
+      "column_name": "author_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "posts",
+      "column_name": "attachments",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb",
+      "ordinal_position": 13
+    },
+    {
+      "table_name": "projects",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('projects_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "projects",
+      "column_name": "slug",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "projects",
+      "column_name": "name",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "projects",
+      "column_name": "tagline",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "projects",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "projects",
+      "column_name": "cover_image",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "projects",
+      "column_name": "cover_public_id",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "projects",
+      "column_name": "tech_stack",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "projects",
+      "column_name": "highlights",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "projects",
+      "column_name": "demo_url",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "projects",
+      "column_name": "github_url",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "projects",
+      "column_name": "year",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "projects",
+      "column_name": "sort_order",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "ordinal_position": 13
+    },
+    {
+      "table_name": "projects",
+      "column_name": "enabled",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "YES",
+      "column_default": "true",
+      "ordinal_position": 14
+    },
+    {
+      "table_name": "projects",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 15
+    },
+    {
+      "table_name": "projects",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 16
+    },
+    {
+      "table_name": "projects",
+      "column_name": "content",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 17
+    },
+    {
+      "table_name": "projects",
+      "column_name": "attachments",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb",
+      "ordinal_position": 18
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "id",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": "nextval('research_reports_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "user_id",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "topic",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "model",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "''::character varying",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "language",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'中文'::character varying",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "status",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'finished'::character varying",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "report_content",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "elapsed_seconds",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "research_reports",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "skills",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('skills_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "skills",
+      "column_name": "name",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "skills",
+      "column_name": "slug",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "skills",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "skills",
+      "column_name": "content",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "skills",
+      "column_name": "source_url",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "skills",
+      "column_name": "source_type",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": "'github'::character varying",
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "skills",
+      "column_name": "stars",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "skills",
+      "column_name": "tags",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "skills",
+      "column_name": "category",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": "'other'::character varying",
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "skills",
+      "column_name": "cover_image",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "skills",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "skills",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 13
+    },
+    {
+      "table_name": "skills",
+      "column_name": "chinese_summary",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 14
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('user_cursor_effects_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "column_name": "effect_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "column_name": "purchased_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "user_frames",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('user_frames_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "user_frames",
+      "column_name": "user_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "user_frames",
+      "column_name": "frame_id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "user_frames",
+      "column_name": "purchased_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "users",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('users_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "users",
+      "column_name": "email",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "users",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "users",
+      "column_name": "password",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "users",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "users",
+      "column_name": "verified",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "users",
+      "column_name": "verify_token",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "users",
+      "column_name": "token_expires",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "users",
+      "column_name": "phone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "users",
+      "column_name": "bio",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "table_name": "users",
+      "column_name": "avatar",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "table_name": "users",
+      "column_name": "role",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'user'::text",
+      "ordinal_position": 12
+    },
+    {
+      "table_name": "users",
+      "column_name": "location",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 13
+    },
+    {
+      "table_name": "users",
+      "column_name": "website",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 14
+    },
+    {
+      "table_name": "users",
+      "column_name": "github_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 15
+    },
+    {
+      "table_name": "users",
+      "column_name": "twitter_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 16
+    },
+    {
+      "table_name": "users",
+      "column_name": "motto",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 17
+    },
+    {
+      "table_name": "users",
+      "column_name": "tech_stack",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 18
+    },
+    {
+      "table_name": "users",
+      "column_name": "title",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 19
+    },
+    {
+      "table_name": "users",
+      "column_name": "equipped_frame",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 20
+    },
+    {
+      "table_name": "users",
+      "column_name": "points",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 21
+    },
+    {
+      "table_name": "users",
+      "column_name": "equipped_cursor_effect",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 22
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "id",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "nextval('visitor_tracking_id_seq'::regclass)",
+      "ordinal_position": 1
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "visitor_id",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "session_id",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "path",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "referrer",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "user_agent",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "ip_hash",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "country",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "is_logged_in",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "ordinal_position": 9
+    },
+    {
+      "table_name": "visitor_tracking",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 10
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "auth_rate_limits",
+      "conname": "auth_rate_limits_hit_count_check",
+      "contype": "c",
+      "definition": "CHECK ((hit_count >= 0))"
+    },
+    {
+      "table_name": "auth_rate_limits",
+      "conname": "auth_rate_limits_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (scope, subject_hash)"
+    },
+    {
+      "table_name": "auth_rate_limits",
+      "conname": "auth_rate_limits_scope_check",
+      "contype": "c",
+      "definition": "CHECK (((length(scope) >= 2) AND (length(scope) <= 48)))"
+    },
+    {
+      "table_name": "avatar_frames",
+      "conname": "avatar_frames_key_key",
+      "contype": "u",
+      "definition": "UNIQUE (key)"
+    },
+    {
+      "table_name": "avatar_frames",
+      "conname": "avatar_frames_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "bookmarks",
+      "conname": "bookmarks_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "bookmarks",
+      "conname": "bookmarks_post_slug_user_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (post_slug, user_id)"
+    },
+    {
+      "table_name": "bookmarks",
+      "conname": "bookmarks_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "comment_likes",
+      "conname": "comment_likes_comment_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "comment_likes",
+      "conname": "comment_likes_comment_id_user_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (comment_id, user_id)"
+    },
+    {
+      "table_name": "comment_likes",
+      "conname": "comment_likes_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "comment_likes",
+      "conname": "comment_likes_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "comments",
+      "conname": "comments_parent_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "comments",
+      "conname": "comments_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "comments",
+      "conname": "comments_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "cursor_effects",
+      "conname": "check_render_type",
+      "contype": "c",
+      "definition": "CHECK (((render_type)::text = ANY ((ARRAY['sprite_sheet'::character varying, 'gif'::character varying])::text[])))"
+    },
+    {
+      "table_name": "cursor_effects",
+      "conname": "cursor_effects_key_key",
+      "contype": "u",
+      "definition": "UNIQUE (key)"
+    },
+    {
+      "table_name": "cursor_effects",
+      "conname": "cursor_effects_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "follows",
+      "conname": "follows_check",
+      "contype": "c",
+      "definition": "CHECK ((follower_id <> following_id))"
+    },
+    {
+      "table_name": "follows",
+      "conname": "follows_follower_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "follows",
+      "conname": "follows_follower_id_following_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (follower_id, following_id)"
+    },
+    {
+      "table_name": "follows",
+      "conname": "follows_following_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "follows",
+      "conname": "follows_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "gallery_images",
+      "conname": "gallery_images_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "github_trending",
+      "conname": "github_trending_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "hero_slides",
+      "conname": "hero_slides_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "learn_editions",
+      "conname": "learn_editions_edition_date_key",
+      "contype": "u",
+      "definition": "UNIQUE (edition_date)"
+    },
+    {
+      "table_name": "learn_editions",
+      "conname": "learn_editions_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (post_id)"
+    },
+    {
+      "table_name": "learn_editions",
+      "conname": "learn_editions_post_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "learn_editions",
+      "conname": "learn_editions_status_check",
+      "contype": "c",
+      "definition": "CHECK ((status = 'published'::text))"
+    },
+    {
+      "table_name": "learn_editions",
+      "conname": "learn_editions_topic_check",
+      "contype": "c",
+      "definition": "CHECK ((topic = ANY (ARRAY['agent'::text, 'rag'::text, 'engineering'::text, 'multimodal'::text])))"
+    },
+    {
+      "table_name": "newsletter_subscribers",
+      "conname": "newsletter_subscribers_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (email)"
+    },
+    {
+      "table_name": "notifications",
+      "conname": "notifications_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "notifications",
+      "conname": "notifications_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "point_read_log",
+      "conname": "point_read_log_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (user_id, post_slug)"
+    },
+    {
+      "table_name": "point_transactions",
+      "conname": "point_transactions_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "point_transactions",
+      "conname": "point_transactions_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "post_attachments",
+      "conname": "post_attachments_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "post_edit_requests",
+      "conname": "post_edit_requests_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "post_edit_requests",
+      "conname": "post_edit_requests_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "post_images",
+      "conname": "post_images_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "post_images",
+      "conname": "post_images_post_slug_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (post_slug) REFERENCES posts(slug) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "table_name": "post_images",
+      "conname": "post_images_public_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (public_id)"
+    },
+    {
+      "table_name": "post_images",
+      "conname": "post_images_uploaded_by_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL"
+    },
+    {
+      "table_name": "post_reactions",
+      "conname": "post_reactions_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "post_reactions",
+      "conname": "post_reactions_post_slug_user_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (post_slug, user_id)"
+    },
+    {
+      "table_name": "post_reactions",
+      "conname": "post_reactions_type_check",
+      "contype": "c",
+      "definition": "CHECK ((type = ANY (ARRAY['like'::text, 'dislike'::text])))"
+    },
+    {
+      "table_name": "post_reactions",
+      "conname": "post_reactions_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "posts",
+      "conname": "posts_author_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (author_id) REFERENCES users(id)"
+    },
+    {
+      "table_name": "posts",
+      "conname": "posts_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "posts",
+      "conname": "posts_slug_key",
+      "contype": "u",
+      "definition": "UNIQUE (slug)"
+    },
+    {
+      "table_name": "projects",
+      "conname": "projects_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "projects",
+      "conname": "projects_slug_key",
+      "contype": "u",
+      "definition": "UNIQUE (slug)"
+    },
+    {
+      "table_name": "research_reports",
+      "conname": "research_reports_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "research_reports",
+      "conname": "research_reports_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "skills",
+      "conname": "skills_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "skills",
+      "conname": "skills_slug_key",
+      "contype": "u",
+      "definition": "UNIQUE (slug)"
+    },
+    {
+      "table_name": "skills",
+      "conname": "skills_source_url_key",
+      "contype": "u",
+      "definition": "UNIQUE (source_url)"
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "conname": "user_cursor_effects_effect_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (effect_id) REFERENCES cursor_effects(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "conname": "user_cursor_effects_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "conname": "user_cursor_effects_user_id_effect_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (user_id, effect_id)"
+    },
+    {
+      "table_name": "user_cursor_effects",
+      "conname": "user_cursor_effects_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "user_frames",
+      "conname": "user_frames_frame_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (frame_id) REFERENCES avatar_frames(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "user_frames",
+      "conname": "user_frames_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "user_frames",
+      "conname": "user_frames_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "user_frames",
+      "conname": "user_frames_user_id_frame_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (user_id, frame_id)"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_email_key",
+      "contype": "u",
+      "definition": "UNIQUE (email)"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_equipped_cursor_effect_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (equipped_cursor_effect) REFERENCES cursor_effects(id) ON DELETE SET NULL"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_equipped_frame_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (equipped_frame) REFERENCES avatar_frames(id) ON DELETE SET NULL"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "visitor_tracking",
+      "conname": "visitor_tracking_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "indexes": [
+    {
+      "tablename": "auth_rate_limits",
+      "indexname": "auth_rate_limits_pkey",
+      "indexdef": "CREATE UNIQUE INDEX auth_rate_limits_pkey ON public.auth_rate_limits USING btree (scope, subject_hash)"
+    },
+    {
+      "tablename": "auth_rate_limits",
+      "indexname": "auth_rate_limits_window_start_idx",
+      "indexdef": "CREATE INDEX auth_rate_limits_window_start_idx ON public.auth_rate_limits USING btree (window_started_at)"
+    },
+    {
+      "tablename": "avatar_frames",
+      "indexname": "avatar_frames_key_key",
+      "indexdef": "CREATE UNIQUE INDEX avatar_frames_key_key ON public.avatar_frames USING btree (key)"
+    },
+    {
+      "tablename": "avatar_frames",
+      "indexname": "avatar_frames_pkey",
+      "indexdef": "CREATE UNIQUE INDEX avatar_frames_pkey ON public.avatar_frames USING btree (id)"
+    },
+    {
+      "tablename": "bookmarks",
+      "indexname": "bookmarks_pkey",
+      "indexdef": "CREATE UNIQUE INDEX bookmarks_pkey ON public.bookmarks USING btree (id)"
+    },
+    {
+      "tablename": "bookmarks",
+      "indexname": "bookmarks_post_slug_user_id_key",
+      "indexdef": "CREATE UNIQUE INDEX bookmarks_post_slug_user_id_key ON public.bookmarks USING btree (post_slug, user_id)"
+    },
+    {
+      "tablename": "bookmarks",
+      "indexname": "idx_bookmarks_user",
+      "indexdef": "CREATE INDEX idx_bookmarks_user ON public.bookmarks USING btree (user_id)"
+    },
+    {
+      "tablename": "comment_likes",
+      "indexname": "comment_likes_comment_id_user_id_key",
+      "indexdef": "CREATE UNIQUE INDEX comment_likes_comment_id_user_id_key ON public.comment_likes USING btree (comment_id, user_id)"
+    },
+    {
+      "tablename": "comment_likes",
+      "indexname": "comment_likes_pkey",
+      "indexdef": "CREATE UNIQUE INDEX comment_likes_pkey ON public.comment_likes USING btree (id)"
+    },
+    {
+      "tablename": "comment_likes",
+      "indexname": "idx_comment_likes_comment_id",
+      "indexdef": "CREATE INDEX idx_comment_likes_comment_id ON public.comment_likes USING btree (comment_id)"
+    },
+    {
+      "tablename": "comment_likes",
+      "indexname": "idx_comment_likes_user_id",
+      "indexdef": "CREATE INDEX idx_comment_likes_user_id ON public.comment_likes USING btree (user_id)"
+    },
+    {
+      "tablename": "comments",
+      "indexname": "comments_pkey",
+      "indexdef": "CREATE UNIQUE INDEX comments_pkey ON public.comments USING btree (id)"
+    },
+    {
+      "tablename": "comments",
+      "indexname": "comments_post_slug_idx",
+      "indexdef": "CREATE INDEX comments_post_slug_idx ON public.comments USING btree (post_slug)"
+    },
+    {
+      "tablename": "comments",
+      "indexname": "comments_status_idx",
+      "indexdef": "CREATE INDEX comments_status_idx ON public.comments USING btree (status)"
+    },
+    {
+      "tablename": "comments",
+      "indexname": "idx_comments_parent",
+      "indexdef": "CREATE INDEX idx_comments_parent ON public.comments USING btree (parent_id)"
+    },
+    {
+      "tablename": "comments",
+      "indexname": "idx_comments_parent_id",
+      "indexdef": "CREATE INDEX idx_comments_parent_id ON public.comments USING btree (parent_id)"
+    },
+    {
+      "tablename": "comments",
+      "indexname": "idx_comments_post_slug",
+      "indexdef": "CREATE INDEX idx_comments_post_slug ON public.comments USING btree (post_slug)"
+    },
+    {
+      "tablename": "cursor_effects",
+      "indexname": "cursor_effects_key_key",
+      "indexdef": "CREATE UNIQUE INDEX cursor_effects_key_key ON public.cursor_effects USING btree (key)"
+    },
+    {
+      "tablename": "cursor_effects",
+      "indexname": "cursor_effects_pkey",
+      "indexdef": "CREATE UNIQUE INDEX cursor_effects_pkey ON public.cursor_effects USING btree (id)"
+    },
+    {
+      "tablename": "follows",
+      "indexname": "follows_follower_id_following_id_key",
+      "indexdef": "CREATE UNIQUE INDEX follows_follower_id_following_id_key ON public.follows USING btree (follower_id, following_id)"
+    },
+    {
+      "tablename": "follows",
+      "indexname": "follows_pkey",
+      "indexdef": "CREATE UNIQUE INDEX follows_pkey ON public.follows USING btree (id)"
+    },
+    {
+      "tablename": "follows",
+      "indexname": "idx_follows_follower",
+      "indexdef": "CREATE INDEX idx_follows_follower ON public.follows USING btree (follower_id)"
+    },
+    {
+      "tablename": "follows",
+      "indexname": "idx_follows_following",
+      "indexdef": "CREATE INDEX idx_follows_following ON public.follows USING btree (following_id)"
+    },
+    {
+      "tablename": "gallery_images",
+      "indexname": "gallery_images_pkey",
+      "indexdef": "CREATE UNIQUE INDEX gallery_images_pkey ON public.gallery_images USING btree (id)"
+    },
+    {
+      "tablename": "gallery_images",
+      "indexname": "idx_gallery_tags",
+      "indexdef": "CREATE INDEX idx_gallery_tags ON public.gallery_images USING gin (tags)"
+    },
+    {
+      "tablename": "github_trending",
+      "indexname": "github_trending_pkey",
+      "indexdef": "CREATE UNIQUE INDEX github_trending_pkey ON public.github_trending USING btree (id)"
+    },
+    {
+      "tablename": "github_trending",
+      "indexname": "idx_trending_period_crawled",
+      "indexdef": "CREATE INDEX idx_trending_period_crawled ON public.github_trending USING btree (period, crawled_at DESC)"
+    },
+    {
+      "tablename": "github_trending",
+      "indexname": "idx_trending_slug",
+      "indexdef": "CREATE INDEX idx_trending_slug ON public.github_trending USING btree (slug)"
+    },
+    {
+      "tablename": "github_trending",
+      "indexname": "idx_trending_stars",
+      "indexdef": "CREATE INDEX idx_trending_stars ON public.github_trending USING btree (stars DESC)"
+    },
+    {
+      "tablename": "github_trending",
+      "indexname": "idx_trending_stars_gained",
+      "indexdef": "CREATE INDEX idx_trending_stars_gained ON public.github_trending USING btree (stars_gained DESC)"
+    },
+    {
+      "tablename": "github_trending",
+      "indexname": "idx_trending_unique_daily",
+      "indexdef": "CREATE UNIQUE INDEX idx_trending_unique_daily ON public.github_trending USING btree (repo_name, period, crawled_date)"
+    },
+    {
+      "tablename": "hero_slides",
+      "indexname": "hero_slides_pkey",
+      "indexdef": "CREATE UNIQUE INDEX hero_slides_pkey ON public.hero_slides USING btree (id)"
+    },
+    {
+      "tablename": "learn_editions",
+      "indexname": "learn_editions_edition_date_key",
+      "indexdef": "CREATE UNIQUE INDEX learn_editions_edition_date_key ON public.learn_editions USING btree (edition_date)"
+    },
+    {
+      "tablename": "learn_editions",
+      "indexname": "learn_editions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX learn_editions_pkey ON public.learn_editions USING btree (post_id)"
+    },
+    {
+      "tablename": "learn_editions",
+      "indexname": "learn_editions_topic_date",
+      "indexdef": "CREATE INDEX learn_editions_topic_date ON public.learn_editions USING btree (topic, edition_date DESC)"
+    },
+    {
+      "tablename": "newsletter_subscribers",
+      "indexname": "newsletter_subscribers_pkey",
+      "indexdef": "CREATE UNIQUE INDEX newsletter_subscribers_pkey ON public.newsletter_subscribers USING btree (email)"
+    },
+    {
+      "tablename": "notifications",
+      "indexname": "idx_notifications_user_created",
+      "indexdef": "CREATE INDEX idx_notifications_user_created ON public.notifications USING btree (user_id, created_at DESC)"
+    },
+    {
+      "tablename": "notifications",
+      "indexname": "idx_notifications_user_unread",
+      "indexdef": "CREATE INDEX idx_notifications_user_unread ON public.notifications USING btree (user_id, is_read) WHERE (is_read = false)"
+    },
+    {
+      "tablename": "notifications",
+      "indexname": "notifications_pkey",
+      "indexdef": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)"
+    },
+    {
+      "tablename": "point_read_log",
+      "indexname": "point_read_log_pkey",
+      "indexdef": "CREATE UNIQUE INDEX point_read_log_pkey ON public.point_read_log USING btree (user_id, post_slug)"
+    },
+    {
+      "tablename": "point_transactions",
+      "indexname": "idx_point_tx_user",
+      "indexdef": "CREATE INDEX idx_point_tx_user ON public.point_transactions USING btree (user_id, created_at DESC)"
+    },
+    {
+      "tablename": "point_transactions",
+      "indexname": "point_transactions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX point_transactions_pkey ON public.point_transactions USING btree (id)"
+    },
+    {
+      "tablename": "post_attachments",
+      "indexname": "post_attachments_pkey",
+      "indexdef": "CREATE UNIQUE INDEX post_attachments_pkey ON public.post_attachments USING btree (id)"
+    },
+    {
+      "tablename": "post_edit_requests",
+      "indexname": "idx_edit_requests_slug",
+      "indexdef": "CREATE INDEX idx_edit_requests_slug ON public.post_edit_requests USING btree (post_slug)"
+    },
+    {
+      "tablename": "post_edit_requests",
+      "indexname": "idx_edit_requests_status",
+      "indexdef": "CREATE INDEX idx_edit_requests_status ON public.post_edit_requests USING btree (status)"
+    },
+    {
+      "tablename": "post_edit_requests",
+      "indexname": "idx_edit_requests_user",
+      "indexdef": "CREATE INDEX idx_edit_requests_user ON public.post_edit_requests USING btree (user_id)"
+    },
+    {
+      "tablename": "post_edit_requests",
+      "indexname": "post_edit_requests_pkey",
+      "indexdef": "CREATE UNIQUE INDEX post_edit_requests_pkey ON public.post_edit_requests USING btree (id)"
+    },
+    {
+      "tablename": "post_images",
+      "indexname": "idx_post_images_slug",
+      "indexdef": "CREATE INDEX idx_post_images_slug ON public.post_images USING btree (post_slug)"
+    },
+    {
+      "tablename": "post_images",
+      "indexname": "idx_post_images_uploader",
+      "indexdef": "CREATE INDEX idx_post_images_uploader ON public.post_images USING btree (uploaded_by)"
+    },
+    {
+      "tablename": "post_images",
+      "indexname": "post_images_pkey",
+      "indexdef": "CREATE UNIQUE INDEX post_images_pkey ON public.post_images USING btree (id)"
+    },
+    {
+      "tablename": "post_images",
+      "indexname": "post_images_public_id_key",
+      "indexdef": "CREATE UNIQUE INDEX post_images_public_id_key ON public.post_images USING btree (public_id)"
+    },
+    {
+      "tablename": "post_reactions",
+      "indexname": "idx_reactions_slug",
+      "indexdef": "CREATE INDEX idx_reactions_slug ON public.post_reactions USING btree (post_slug)"
+    },
+    {
+      "tablename": "post_reactions",
+      "indexname": "post_reactions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX post_reactions_pkey ON public.post_reactions USING btree (id)"
+    },
+    {
+      "tablename": "post_reactions",
+      "indexname": "post_reactions_post_slug_user_id_key",
+      "indexdef": "CREATE UNIQUE INDEX post_reactions_post_slug_user_id_key ON public.post_reactions USING btree (post_slug, user_id)"
+    },
+    {
+      "tablename": "posts",
+      "indexname": "idx_posts_published_created",
+      "indexdef": "CREATE INDEX idx_posts_published_created ON public.posts USING btree (published, created_at DESC)"
+    },
+    {
+      "tablename": "posts",
+      "indexname": "idx_posts_slug",
+      "indexdef": "CREATE INDEX idx_posts_slug ON public.posts USING btree (slug)"
+    },
+    {
+      "tablename": "posts",
+      "indexname": "posts_pkey",
+      "indexdef": "CREATE UNIQUE INDEX posts_pkey ON public.posts USING btree (id)"
+    },
+    {
+      "tablename": "posts",
+      "indexname": "posts_slug_key",
+      "indexdef": "CREATE UNIQUE INDEX posts_slug_key ON public.posts USING btree (slug)"
+    },
+    {
+      "tablename": "projects",
+      "indexname": "idx_projects_enabled",
+      "indexdef": "CREATE INDEX idx_projects_enabled ON public.projects USING btree (enabled)"
+    },
+    {
+      "tablename": "projects",
+      "indexname": "idx_projects_sort_order",
+      "indexdef": "CREATE INDEX idx_projects_sort_order ON public.projects USING btree (sort_order)"
+    },
+    {
+      "tablename": "projects",
+      "indexname": "projects_pkey",
+      "indexdef": "CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id)"
+    },
+    {
+      "tablename": "projects",
+      "indexname": "projects_slug_key",
+      "indexdef": "CREATE UNIQUE INDEX projects_slug_key ON public.projects USING btree (slug)"
+    },
+    {
+      "tablename": "research_reports",
+      "indexname": "idx_research_reports_created_at",
+      "indexdef": "CREATE INDEX idx_research_reports_created_at ON public.research_reports USING btree (created_at DESC)"
+    },
+    {
+      "tablename": "research_reports",
+      "indexname": "idx_research_reports_user_id",
+      "indexdef": "CREATE INDEX idx_research_reports_user_id ON public.research_reports USING btree (user_id)"
+    },
+    {
+      "tablename": "research_reports",
+      "indexname": "research_reports_pkey",
+      "indexdef": "CREATE UNIQUE INDEX research_reports_pkey ON public.research_reports USING btree (id)"
+    },
+    {
+      "tablename": "skills",
+      "indexname": "idx_skills_category",
+      "indexdef": "CREATE INDEX idx_skills_category ON public.skills USING btree (category)"
+    },
+    {
+      "tablename": "skills",
+      "indexname": "idx_skills_source_type",
+      "indexdef": "CREATE INDEX idx_skills_source_type ON public.skills USING btree (source_type)"
+    },
+    {
+      "tablename": "skills",
+      "indexname": "idx_skills_stars",
+      "indexdef": "CREATE INDEX idx_skills_stars ON public.skills USING btree (stars DESC)"
+    },
+    {
+      "tablename": "skills",
+      "indexname": "idx_skills_updated",
+      "indexdef": "CREATE INDEX idx_skills_updated ON public.skills USING btree (updated_at DESC)"
+    },
+    {
+      "tablename": "skills",
+      "indexname": "skills_pkey",
+      "indexdef": "CREATE UNIQUE INDEX skills_pkey ON public.skills USING btree (id)"
+    },
+    {
+      "tablename": "skills",
+      "indexname": "skills_slug_key",
+      "indexdef": "CREATE UNIQUE INDEX skills_slug_key ON public.skills USING btree (slug)"
+    },
+    {
+      "tablename": "skills",
+      "indexname": "skills_source_url_key",
+      "indexdef": "CREATE UNIQUE INDEX skills_source_url_key ON public.skills USING btree (source_url)"
+    },
+    {
+      "tablename": "user_cursor_effects",
+      "indexname": "idx_user_cursor_effects_user",
+      "indexdef": "CREATE INDEX idx_user_cursor_effects_user ON public.user_cursor_effects USING btree (user_id)"
+    },
+    {
+      "tablename": "user_cursor_effects",
+      "indexname": "user_cursor_effects_pkey",
+      "indexdef": "CREATE UNIQUE INDEX user_cursor_effects_pkey ON public.user_cursor_effects USING btree (id)"
+    },
+    {
+      "tablename": "user_cursor_effects",
+      "indexname": "user_cursor_effects_user_id_effect_id_key",
+      "indexdef": "CREATE UNIQUE INDEX user_cursor_effects_user_id_effect_id_key ON public.user_cursor_effects USING btree (user_id, effect_id)"
+    },
+    {
+      "tablename": "user_frames",
+      "indexname": "idx_user_frames_user",
+      "indexdef": "CREATE INDEX idx_user_frames_user ON public.user_frames USING btree (user_id)"
+    },
+    {
+      "tablename": "user_frames",
+      "indexname": "user_frames_pkey",
+      "indexdef": "CREATE UNIQUE INDEX user_frames_pkey ON public.user_frames USING btree (id)"
+    },
+    {
+      "tablename": "user_frames",
+      "indexname": "user_frames_user_id_frame_id_key",
+      "indexdef": "CREATE UNIQUE INDEX user_frames_user_id_frame_id_key ON public.user_frames USING btree (user_id, frame_id)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "users_email_key",
+      "indexdef": "CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "users_pkey",
+      "indexdef": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)"
+    },
+    {
+      "tablename": "visitor_tracking",
+      "indexname": "idx_visitor_tracking_created_at",
+      "indexdef": "CREATE INDEX idx_visitor_tracking_created_at ON public.visitor_tracking USING btree (created_at DESC)"
+    },
+    {
+      "tablename": "visitor_tracking",
+      "indexname": "idx_visitor_tracking_path",
+      "indexdef": "CREATE INDEX idx_visitor_tracking_path ON public.visitor_tracking USING btree (path)"
+    },
+    {
+      "tablename": "visitor_tracking",
+      "indexname": "idx_visitor_tracking_referrer",
+      "indexdef": "CREATE INDEX idx_visitor_tracking_referrer ON public.visitor_tracking USING btree (referrer)"
+    },
+    {
+      "tablename": "visitor_tracking",
+      "indexname": "idx_visitor_tracking_visitor_id",
+      "indexdef": "CREATE INDEX idx_visitor_tracking_visitor_id ON public.visitor_tracking USING btree (visitor_id)"
+    },
+    {
+      "tablename": "visitor_tracking",
+      "indexname": "visitor_tracking_pkey",
+      "indexdef": "CREATE UNIQUE INDEX visitor_tracking_pkey ON public.visitor_tracking USING btree (id)"
+    }
+  ],
+  "growth": [
+    {
+      "relname": "auth_rate_limits",
+      "n_live_tup": "0",
+      "n_dead_tup": "0",
+      "n_tup_ins": "0",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "24576"
+    },
+    {
+      "relname": "avatar_frames",
+      "n_live_tup": "7",
+      "n_dead_tup": "0",
+      "n_tup_ins": "7",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "49152"
+    },
+    {
+      "relname": "bookmarks",
+      "n_live_tup": "2",
+      "n_dead_tup": "0",
+      "n_tup_ins": "2",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "65536"
+    },
+    {
+      "relname": "comment_likes",
+      "n_live_tup": "0",
+      "n_dead_tup": "1",
+      "n_tup_ins": "1",
+      "n_tup_upd": "0",
+      "n_tup_del": "1",
+      "bytes": "73728"
+    },
+    {
+      "relname": "comments",
+      "n_live_tup": "50",
+      "n_dead_tup": "50",
+      "n_tup_ins": "94",
+      "n_tup_upd": "6",
+      "n_tup_del": "44",
+      "bytes": "172032"
+    },
+    {
+      "relname": "cursor_effects",
+      "n_live_tup": "24",
+      "n_dead_tup": "1",
+      "n_tup_ins": "25",
+      "n_tup_upd": "32",
+      "n_tup_del": "1",
+      "bytes": "49152"
+    },
+    {
+      "relname": "follows",
+      "n_live_tup": "4",
+      "n_dead_tup": "4",
+      "n_tup_ins": "8",
+      "n_tup_upd": "0",
+      "n_tup_del": "4",
+      "bytes": "73728"
+    },
+    {
+      "relname": "gallery_images",
+      "n_live_tup": "5",
+      "n_dead_tup": "23",
+      "n_tup_ins": "11",
+      "n_tup_upd": "17",
+      "n_tup_del": "6",
+      "bytes": "57344"
+    },
+    {
+      "relname": "github_trending",
+      "n_live_tup": "989",
+      "n_dead_tup": "0",
+      "n_tup_ins": "1619",
+      "n_tup_upd": "0",
+      "n_tup_del": "630",
+      "bytes": "1024000"
+    },
+    {
+      "relname": "hero_slides",
+      "n_live_tup": "2",
+      "n_dead_tup": "0",
+      "n_tup_ins": "2",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "32768"
+    },
+    {
+      "relname": "learn_editions",
+      "n_live_tup": "1",
+      "n_dead_tup": "0",
+      "n_tup_ins": "1",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "114688"
+    },
+    {
+      "relname": "newsletter_subscribers",
+      "n_live_tup": "1",
+      "n_dead_tup": "0",
+      "n_tup_ins": "1",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "32768"
+    },
+    {
+      "relname": "notifications",
+      "n_live_tup": "0",
+      "n_dead_tup": "0",
+      "n_tup_ins": "0",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "32768"
+    },
+    {
+      "relname": "point_read_log",
+      "n_live_tup": "23",
+      "n_dead_tup": "0",
+      "n_tup_ins": "23",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "32768"
+    },
+    {
+      "relname": "point_transactions",
+      "n_live_tup": "94",
+      "n_dead_tup": "0",
+      "n_tup_ins": "94",
+      "n_tup_upd": "1",
+      "n_tup_del": "0",
+      "bytes": "81920"
+    },
+    {
+      "relname": "post_attachments",
+      "n_live_tup": "0",
+      "n_dead_tup": "0",
+      "n_tup_ins": "0",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "16384"
+    },
+    {
+      "relname": "post_edit_requests",
+      "n_live_tup": "2",
+      "n_dead_tup": "4",
+      "n_tup_ins": "4",
+      "n_tup_upd": "2",
+      "n_tup_del": "0",
+      "bytes": "98304"
+    },
+    {
+      "relname": "post_images",
+      "n_live_tup": "11",
+      "n_dead_tup": "12",
+      "n_tup_ins": "23",
+      "n_tup_upd": "0",
+      "n_tup_del": "2",
+      "bytes": "81920"
+    },
+    {
+      "relname": "post_reactions",
+      "n_live_tup": "5",
+      "n_dead_tup": "9",
+      "n_tup_ins": "7",
+      "n_tup_upd": "7",
+      "n_tup_del": "2",
+      "bytes": "65536"
+    },
+    {
+      "relname": "posts",
+      "n_live_tup": "115",
+      "n_dead_tup": "31",
+      "n_tup_ins": "145",
+      "n_tup_upd": "835",
+      "n_tup_del": "23",
+      "bytes": "851968"
+    },
+    {
+      "relname": "projects",
+      "n_live_tup": "2",
+      "n_dead_tup": "5",
+      "n_tup_ins": "2",
+      "n_tup_upd": "12",
+      "n_tup_del": "0",
+      "bytes": "262144"
+    },
+    {
+      "relname": "research_reports",
+      "n_live_tup": "2",
+      "n_dead_tup": "4",
+      "n_tup_ins": "6",
+      "n_tup_upd": "0",
+      "n_tup_del": "4",
+      "bytes": "163840"
+    },
+    {
+      "relname": "skills",
+      "n_live_tup": "49",
+      "n_dead_tup": "19",
+      "n_tup_ins": "139",
+      "n_tup_upd": "313",
+      "n_tup_del": "55",
+      "bytes": "557056"
+    },
+    {
+      "relname": "user_cursor_effects",
+      "n_live_tup": "10",
+      "n_dead_tup": "0",
+      "n_tup_ins": "10",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "57344"
+    },
+    {
+      "relname": "user_frames",
+      "n_live_tup": "3",
+      "n_dead_tup": "0",
+      "n_tup_ins": "3",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "57344"
+    },
+    {
+      "relname": "users",
+      "n_live_tup": "5",
+      "n_dead_tup": "10",
+      "n_tup_ins": "6",
+      "n_tup_upd": "193",
+      "n_tup_del": "1",
+      "bytes": "49152"
+    },
+    {
+      "relname": "visitor_tracking",
+      "n_live_tup": "287",
+      "n_dead_tup": "0",
+      "n_tup_ins": "287",
+      "n_tup_upd": "0",
+      "n_tup_del": "0",
+      "bytes": "229376"
+    }
+  ]
+}
