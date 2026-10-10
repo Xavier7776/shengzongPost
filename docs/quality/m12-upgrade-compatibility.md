@@ -66,3 +66,5 @@ Next15起fetch默认不缓存，B公开Learn与Blog页面显式default-cache恢�
 主题筛选Link仅在点击时载入（prefetch=false），避免Next16在每个新上下文提前执行多个主题的SQL；文章与学习路线预取保持。框架本身的JS代价必须登记，不以这个局部成本修正宣称所有性能提高。
 
 最终lint为0error/99warnings：原98项之外，CommentSection的hydration marker产生1项set-state-in-effect提示。该两遍渲染遵循React的SSR/client不同状态处理，保留测试与提示；未关闭该规则或启用Compiler。
+
+后续导航水合修复在2e93ad4通过完整CI/同提交Preview，警告增至100；用户因手机旧刊87分要求保持PR30 Draft。性能优化让二维码只在点击时加载，公开Navbar及共用匿名UserMenu入口不预取，页顶目录直接选首章、有恢复位置则保留测量。71文件474tests/typecheck/完整85页build与三尺寸实际交互通过；lint0error/101warnings，目录页顶状态更新的新提示保留。相同条件三轮手机旧刊91/90/90、首页94/94/94；LCP中位数分别3325/3012ms，JS仍比Next14更大，M09指标不称完成。更新后的CI/Preview待验收，Draft和生产状态保持。

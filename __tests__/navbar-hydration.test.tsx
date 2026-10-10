@@ -7,7 +7,7 @@ import Navbar from '@/components/layout/Navbar'
 const navigation = vi.hoisted(() => ({ pathname: '/learn' }))
 vi.mock('next/navigation', () => ({ usePathname: () => navigation.pathname, useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null }), signOut: vi.fn() }))
-vi.mock('next/link', () => ({ default: ({ children, ...props }: React.ComponentProps<'a'>) => <a {...props}>{children}</a> }))
+vi.mock('next/link', () => ({ default: ({ children, prefetch, ...props }: React.ComponentProps<'a'> & { prefetch?: boolean }) => <a {...props} data-prefetch={String(prefetch)}>{children}</a> }))
 vi.mock('next/image', () => ({ default: (props: React.ComponentProps<'img'>) => React.createElement('img', props) }))
 vi.mock('@/components/layout/UserMenu', () => ({ default: () => null }))
 vi.mock('@/components/layout/NotificationBell', () => ({ default: () => null }))
@@ -30,6 +30,8 @@ it('hydrates route-dependent active links consistently and then tracks the brows
     await act(async () => { root = hydrateRoot(host, <Navbar />, { onRecoverableError: error => errors.push(error) }) })
     expect(host.querySelector('nav a[href="/blog"] span')).not.toBeNull()
     expect(host.querySelector('nav a[href="/learn"] span')).toBeNull()
+    expect(host.querySelector('nav a[href="/learn"]')).toHaveAttribute('data-prefetch', 'false')
+    expect(host.querySelector('nav a[href="/login"]')).toHaveAttribute('data-prefetch', 'false')
     navigation.pathname = '/learn'
     await act(async () => { root?.render(<Navbar />) })
     expect(host.querySelector('nav a[href="/learn"] span')).not.toBeNull()
