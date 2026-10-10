@@ -23,6 +23,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - name: Check backup connection and restore boundaries
+        run: node --test scripts/database-backup-check.mjs
       - name: Check fixture transport boundaries
         run: npm run build:ci -- --self-test
       - name: Production build with isolated fixtures

@@ -9,7 +9,7 @@
 | Next.js | `^14.2.35` | App Router。**不是** Next 16 |
 | React | `^18` | **不是** React 19 |
 | Tailwind CSS | `^3.4.1` | **不是** Tailwind 4；配置见 `tailwind.config.ts` |
-| 主数据库 | Neon PostgreSQL（`@neondatabase/serverless`） | 服务端直连，无 RLS |
+| 主数据库 | Neon PostgreSQL（`@neondatabase/serverless`） | 服务端直连；博客授权不依赖 RLS，见第 7 节 |
 | 认证数据库 | Supabase（`@supabase/ssr`） | 仅用于 OnlyUs 会话刷新 |
 | 认证 | NextAuth v4（GitHub OAuth + credentials），JWT | `session.user.id` 是真实 DB id |
 | 编辑器 | Tiptap + lowlight（CodeBlockLowlight） | 另有 `marked` 做 markdown → HTML |
@@ -81,7 +81,7 @@ lib/          博客侧数据访问与工具
   db-search.ts / db-skills.ts / db-trending.ts / db-works.ts  尚未迁入 db/，计划合入
   data.ts     静态兜底数据（HERO_SLIDES 是 Hero 的 DB 降级兜底，勿整体删除）
 shared/       跨模块通用能力（当前只有 hooks.ts 与 ui/SpriteCanvas.tsx）
-supabase/migrations/   32 个 SQL 迁移
+supabase/migrations/   35 个 SQL 文件（OnlyUs 与 Neon 必须分开；056 尚未应用）
 __tests__/   Vitest 用例
 ```
 
@@ -231,11 +231,14 @@ __tests__/   Vitest 用例
 
 按风险从高到低：
 
-1. **迁移编号断层（阻塞级）** — `supabase/migrations/` 下 32 个文件，
+1. **迁移编号断层（阻塞级）** — `supabase/migrations/` 下 35 个文件，
    但编号分两套并行系列：`schema.sql` / `migration.sql` / `_002`~`_009`，
    以及 `032`~`053`。**`010`~`031` 整段不存在**。现有库是历史增量叠加的产物，
-   **全新环境无法从零建库**。修复方式：按实际执行顺序把这些文件重排成一套线性序列，
-   或从现有库 dump 出一份 `schema.sql` 作为基线。
+   **不能把历史文件混排后从零建库**。`schema.sql` 与 032–043 属于 OnlyUs/Supabase，
+   不可当作博客 Neon 基线。博客 public 的实测重建基线在
+   `docs/data/neon-public-baseline.sql`，只用于新建空白隔离库；不得交给旧迁移脚本或生产。
+   054/055 已存在，056 仍未获批；托管 `neon_auth` 与 OnlyUs 独立处理。
+   漂移/恢复证据见 `docs/data/schema-drift-report.md`。
 2. **`/admin` 无入口（已修复）** — 此前 `Navbar` 与 `UserMenu` 都没有后台链接，
    只能手敲 URL。现已补：桌面端在 `UserMenu`，移动端抽屉在 `Navbar`
    （均以 `role === 'admin'` 收敛）。
@@ -255,6 +258,11 @@ __tests__/   Vitest 用例
 > 已核实**不成立**、勿再当遗留项的两条旧说法：
 > ①「`{app` 与 `blog` 两个空目录」—— 当前根目录已无此二目录；
 > ②「ESLint 配置缺失」—— `.eslintrc.json` 存在（`extends: next/core-web-vitals`）。
+
+M11 实际核对：Neon `public.notifications`、`research_reports`、`visitor_tracking`
+启用历史 RLS；notifications/visitor_tracking 的策略为宽松 `true`，owner 可绕过 RLS。
+不能把它们当作用户隔离。授权仍依赖博客服务端会话、角色与所有权检查；实际 Vercel
+角色/最小权限未证明，不因重建基线而修改 GRANT、角色或生产 DSN。
 
 ## 8. 模型服务移出 Web（2026-10-09）
 - 站点不再提供 `/api/ai/write`、`/api/ai/write-gemini`、`/api/ai/comment` 和 `/api/ai/review-comment`；后台/投稿编辑器只提供人工编辑与本地 Slug 生成。
