@@ -123,7 +123,7 @@ async function SkillsSection() {
 
 export default async function HomePage() {
   return (
-    <div className="animate-in">
+    <div>
       {/* Hero 直接渲染，不进入 Suspense，保证首屏最快 paint */}
       <Hero />
 

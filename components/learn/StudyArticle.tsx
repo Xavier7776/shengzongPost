@@ -9,17 +9,53 @@ export default function StudyArticle({ edition, slug, fingerprint }: { edition: 
   const { records, available, update } = useLearningProgress()
   const root = useRef<HTMLDivElement>(null)
   const resumed = useRef(false)
+  const cancelResume = useRef<(() => void) | undefined>(undefined)
   const previous = records[slug], current = previous?.fingerprint === fingerprint ? previous : undefined
   const correct = Object.fromEntries(edition.blocks.flatMap((b, i) => b.type === 'quiz' ? [[String(i), b.answerIndex]] : []))
   const passed = selfTestPassed(current?.answers ?? {}, correct)
   const state = current ? learningState(current.practiceDone, passed, current.completedAt) : 'not_started'
+  const restorePosition = useCallback((position: number) => {
+    cancelResume.current?.()
+    const node = root.current
+    if (!node) return
+    const reader = node.closest('article')
+    let cancelled = false, done = false
+    let frame = 0
+    let observer: MutationObserver | undefined
+    const scroll = () => {
+      if (cancelled || done || root.current !== node) return
+      const article = node.querySelector('.learn-article')
+      if (!article) return
+      done = true
+      resumed.current = true
+      window.scrollTo({ top: Math.max(0, window.scrollY + article.getBoundingClientRect().top + position), behavior: 'instant' })
+    }
+    const ready = () => {
+      // The toolbar applies the stored font size here; measuring its earlier layout shifts the saved position.
+      if (reader && !reader.style.getPropertyValue('--reader-font-size')) return
+      observer?.disconnect()
+      // A painted layout discovers fonts that the newly applied reader style needs.
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          if (document.fonts) void document.fonts.ready.then(scroll)
+          else scroll()
+        })
+      })
+    }
+    if (reader && !reader.style.getPropertyValue('--reader-font-size')) {
+      observer = new MutationObserver(ready)
+      observer.observe(reader, { attributes: true, attributeFilter: ['style'] })
+    }
+    const cancel = () => { cancelled = true; observer?.disconnect(); cancelAnimationFrame(frame) }
+    cancelResume.current = cancel
+    ready()
+    return cancel
+  }, [])
+  useEffect(() => () => cancelResume.current?.(), [])
   useEffect(() => {
     if (resumed.current || !current || new URLSearchParams(window.location.search).get('resume') !== '1') return
-    const article = root.current?.querySelector('.learn-article')
-    if (!article) return
-    resumed.current = true
-    window.scrollTo({ top: Math.max(0, window.scrollY + article.getBoundingClientRect().top + current.position), behavior: 'instant' })
-  }, [current])
+    return restorePosition(current.position)
+  }, [current, restorePosition])
   const fresh = (): LearningProgress => ({ slug, title: edition.title, fingerprint, state: 'in_progress', answers: {}, practiceDone: false, position: 0, section: '', updatedAt: Date.now(), completedAt: null })
   function change(patch: (record: LearningProgress) => LearningProgress) {
     update(slug, old => {
@@ -51,7 +87,7 @@ export default function StudyArticle({ edition, slug, fingerprint }: { edition: 
       {!available && <p role="status">浏览器无法保存；本页仍可学习，离开后可能丢失本次进度。</p>}
       {previous && !current && <p>文章内容已有更正；旧版记录保留，开始学习或作答将记录当前版本，自测需重新完成。</p>}
       {state === 'not_started' && <button type="button" className="mt-2 rounded-lg border border-indigo-300 px-4 py-2 font-semibold" onClick={() => change(r => r)}>开始学习</button>}
-      {current && current.position > 0 && <button type="button" className="mt-2 rounded-lg border border-indigo-300 px-4 py-2" onClick={() => { const article = root.current?.querySelector('.learn-article'); if (article) window.scrollTo({ top: Math.max(0, window.scrollY + article.getBoundingClientRect().top + current.position), behavior: 'instant' }) }}>继续上次位置{current.section ? ' · ' + current.section : ''}</button>}
+      {current && current.position > 0 && <button type="button" className="mt-2 rounded-lg border border-indigo-300 px-4 py-2" onClick={() => restorePosition(current.position)}>继续上次位置{current.section ? ' · ' + current.section : ''}</button>}
     </section>
     <LearnInteractive edition={edition} quizProgress={{ answers: current?.answers ?? {}, onAnswer: (i, answer) => change(r => ({ ...r, answers: { ...r.answers, [i]: answer } })) }} practiceControls={<div className="mt-5 border-t pt-4 text-sm leading-7">
       <label className="flex items-start gap-2"><input type="checkbox" className="mt-2" checked={current?.practiceDone ?? false} onChange={event => change(r => ({ ...r, practiceDone: event.target.checked }))}/><span>我已动手完成上述实践并核对验收标准（个人确认，本站未自动检验）。</span></label>

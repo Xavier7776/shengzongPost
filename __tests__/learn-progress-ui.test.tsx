@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import StudyArticle from '@/components/learn/StudyArticle'
 import ReadingHistory, { getReadingHistory, hasRead } from '@/components/sections/ReadingHistory'
@@ -103,8 +103,10 @@ describe('local study interactions', () => {
     expect(window.scrollTo).not.toHaveBeenCalled()
     vi.spyOn(article, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 350, 1000, 5000))
     fireEvent.click(screen.getByRole('button', { name: /继续上次位置/ }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(50) })
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 1000, behavior: 'instant' })
     view.unmount(); window.history.replaceState({}, '', '/?resume=1'); render(<StudyArticle {...props}/>)
+    await act(async () => { await vi.advanceTimersByTimeAsync(50) })
     expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 650, behavior: 'instant' })
   })
   it('resets only the selected edition while preserving old reading history', () => {
@@ -118,6 +120,78 @@ describe('local study interactions', () => {
     expect(screen.getByText('未开始学习')).toBeInTheDocument()
     expect(Object.keys(parseLearningProgress(localStorage.getItem(LEARN_PROGRESS_KEY)))).toEqual(['daily-learn-2026-10-08'])
     expect(hasRead(slug)).toBe(true)
+  })
+  it.each(['automatic', 'manual'])('waits for reader preferences and fonts before %s resume', async entry => {
+    localStorage.setItem(LEARN_PROGRESS_KEY, serializeLearningProgress({ [slug]: record }))
+    if (entry === 'automatic') window.history.replaceState({}, '', '/?resume=1')
+    let finishFonts!: () => void
+    const ready = new Promise<void>(resolve => { finishFonts = resolve })
+    const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { status: 'loading', ready } })
+    try {
+      const view = render(<article><StudyArticle {...props}/></article>)
+      const reader = view.container.querySelector('article')!
+      const article = view.container.querySelector('.learn-article')!
+      const measure = vi.spyOn(article, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 350, 1000, 5000))
+      if (entry === 'manual') fireEvent.click(screen.getByRole('button', { name: /继续上次位置/ }))
+      expect(window.scrollTo).not.toHaveBeenCalled()
+      expect(measure).not.toHaveBeenCalled()
+      await act(async () => { reader.style.setProperty('--reader-font-size', '20px') })
+      expect(window.scrollTo).not.toHaveBeenCalled()
+      measure.mockReturnValue(new DOMRect(0, 400, 1000, 5000))
+      await act(async () => { finishFonts(); await ready })
+      await waitFor(() => expect(window.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 1000, behavior: 'instant' }))
+      await act(async () => { reader.style.setProperty('--reader-font-size', '22px') })
+      expect(window.scrollTo).toHaveBeenCalledTimes(1)
+      view.unmount()
+    } finally {
+      if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts)
+      else Reflect.deleteProperty(document, 'fonts')
+    }
+  })
+  it('cancels pending font resume when the article unmounts', async () => {
+    localStorage.setItem(LEARN_PROGRESS_KEY, serializeLearningProgress({ [slug]: record }))
+    window.history.replaceState({}, '', '/?resume=1')
+    let finishFonts!: () => void
+    const ready = new Promise<void>(resolve => { finishFonts = resolve })
+    const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { status: 'loading', ready } })
+    try {
+      const view = render(<article style={{ '--reader-font-size': '20px' } as React.CSSProperties}><StudyArticle {...props}/></article>)
+      await act(async () => { await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))) })
+      view.unmount()
+      await act(async () => { finishFonts(); await ready })
+      expect(window.scrollTo).not.toHaveBeenCalled()
+    } finally {
+      if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts)
+      else Reflect.deleteProperty(document, 'fonts')
+    }
+  })
+  it('waits for a painted reader layout to discover newly needed fonts', async () => {
+    localStorage.setItem(LEARN_PROGRESS_KEY, serializeLearningProgress({ [slug]: record }))
+    window.history.replaceState({}, '', '/?resume=1')
+    let finishFonts!: () => void
+    const pending = new Promise<void>(resolve => { finishFonts = resolve })
+    const readReady = vi.fn(() => pending)
+    const fonts = { get ready() { return readReady() } }
+    const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+    Object.defineProperty(document, 'fonts', { configurable: true, value: fonts })
+    try {
+      const view = render(<article style={{ '--reader-font-size': '20px' } as React.CSSProperties}><StudyArticle {...props}/></article>)
+      const article = view.container.querySelector('.learn-article')!
+      vi.spyOn(article, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 350, 1000, 5000))
+      expect(readReady).not.toHaveBeenCalled()
+      await act(async () => { await new Promise(requestAnimationFrame) })
+      expect(readReady).not.toHaveBeenCalled()
+      await waitFor(() => expect(readReady).toHaveBeenCalledTimes(1))
+      expect(window.scrollTo).not.toHaveBeenCalled()
+      await act(async () => { finishFonts(); await pending })
+      expect(window.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 950, behavior: 'instant' })
+      view.unmount()
+    } finally {
+      if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts)
+      else Reflect.deleteProperty(document, 'fonts')
+    }
   })
   it('shows completed records separately from visits and filters only the current public page', () => {
     const second = { ...record, slug: 'daily-learn-2026-10-08', title: '第二期', updatedAt: 2000 }

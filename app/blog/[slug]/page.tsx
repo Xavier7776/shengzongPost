@@ -8,7 +8,7 @@ import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import KeyboardShortcuts from '@/components/sections/KeyboardShortcuts'
 import BackToTop from '@/components/ui/BackToTop'
 import ReadingHistory from '@/components/sections/ReadingHistory'
-import { Skeleton, SkeletonText, SkeletonAvatar } from '@/components/ui/Skeleton'
+import { Skeleton, SkeletonText } from '@/components/ui/Skeleton'
 import PostHeader from './PostHeader'
 import PostContent from './PostContent'
 import PostComments from './PostComments'
@@ -53,29 +53,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 // ── 骨架屏组件 ────────────────────────────────────────────────
-function PostHeaderSkeleton() {
-  return (
-    <header className="mb-12">
-      <Skeleton className="h-4 w-28 mb-4" />
-      <Skeleton className="h-12 w-full mb-2" />
-      <Skeleton className="h-12 w-2/3 mb-8" />
-      <div className="flex items-center gap-3 mb-8">
-        <SkeletonAvatar size={40} />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-3 w-32" />
-        </div>
-      </div>
-      <Skeleton className="h-5 w-full mb-2" />
-      <Skeleton className="h-5 w-3/4 mb-8" />
-      <div className="flex gap-2">
-        <Skeleton className="h-6 w-16 rounded-md" />
-        <Skeleton className="h-6 w-20 rounded-md" />
-      </div>
-    </header>
-  )
-}
-
 function PostContentSkeleton() {
   return (
     <div>
@@ -172,12 +149,10 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="learn-post-grid">
             <div className="learn-post-main min-w-0" id="blog-reader-root">
               <article>
-                <Suspense fallback={<PostHeaderSkeleton />}>
-                  <PostHeader slug={slug} variant="learn" />
-                </Suspense>
+                <PostHeader post={post} variant="learn" />
                 <BlogReaderToolbar variant="learn" />
                 <Suspense fallback={<PostContentSkeleton />}>
-                  <PostContent slug={slug} />
+                  <PostContent post={post} />
                 </Suspense>
               </article>
               <Suspense fallback={<PostCommentsSkeleton />}>
@@ -196,12 +171,10 @@ export default async function BlogPostPage({ params }: PageProps) {
               返回博客列表
             </Link>
             <article>
-              <Suspense fallback={<PostHeaderSkeleton />}>
-                <PostHeader slug={slug} />
-              </Suspense>
+              <PostHeader post={post} />
               <BlogReaderToolbar />
               <Suspense fallback={<PostContentSkeleton />}>
-                <PostContent slug={slug} />
+                <PostContent post={post} />
               </Suspense>
             </article>
             <Suspense fallback={<PostCommentsSkeleton />}>
