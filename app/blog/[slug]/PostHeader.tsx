@@ -1,10 +1,10 @@
 // app/blog/[slug]/PostHeader.tsx
-import { getPostBySlug } from '@/lib/db'
+import type { Post } from '@/lib/db/posts'
 import Link from 'next/link'
 import AuthorCard from '@/components/sections/AuthorCard'
 
 interface PostHeaderProps {
-  slug: string
+  post: Post
   variant?: 'standard' | 'learn'
 }
 
@@ -41,10 +41,7 @@ function calculateReadingStats(content: string): { totalWords: number; minutes: 
   return { totalWords, minutes }
 }
 
-export default async function PostHeader({ slug, variant = 'standard' }: PostHeaderProps) {
-  const post = await getPostBySlug(slug)
-  if (!post) return null
-
+export default function PostHeader({ post, variant = 'standard' }: PostHeaderProps) {
   const { totalWords, minutes } = calculateReadingStats(post.content)
 
   if (variant === 'learn') {
