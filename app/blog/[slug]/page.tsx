@@ -1,9 +1,9 @@
 // 路径：app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
-import { Suspense } from 'react'
+import { cache, Suspense } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { getPostBySlug, getAdjacentPosts } from '@/lib/db'
+import { getPostBySlug as readPublishedPost, getAdjacentPosts } from '@/lib/db'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import KeyboardShortcuts from '@/components/sections/KeyboardShortcuts'
 import BackToTop from '@/components/ui/BackToTop'
@@ -23,6 +23,9 @@ export const revalidate = 60 // ISR plus explicit publication-path invalidation.
 export const fetchCache = 'default-cache'
 
 interface PageProps { params: Promise<{ slug: string }> }
+
+// Metadata and the page share one published lookup within each render request.
+const getPostBySlug = cache(readPublishedPost)
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
@@ -62,35 +65,6 @@ function PostContentSkeleton() {
       <Skeleton className="h-40 w-full mb-8" />
       <SkeletonText lines={3} />
     </div>
-  )
-}
-
-function PostCommentsSkeleton() {
-  return (
-    <>
-      <div className="mt-16 pt-8 border-t border-gray-100">
-        <div className="flex gap-3 mb-6">
-          <Skeleton className="h-9 w-24 rounded-lg" />
-          <Skeleton className="h-9 w-24 rounded-lg" />
-        </div>
-        <div className="flex gap-3">
-          <Skeleton className="h-8 w-8 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
-        </div>
-      </div>
-      <div className="mt-8 grid grid-cols-2 gap-4">
-        <Skeleton className="h-20 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" />
-      </div>
-      <div className="mt-16">
-        <Skeleton className="h-6 w-32 mb-6" />
-        <div className="space-y-4">
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
-        </div>
-      </div>
-    </>
   )
 }
 
@@ -155,9 +129,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                   <PostContent post={post} />
                 </Suspense>
               </article>
-              <Suspense fallback={<PostCommentsSkeleton />}>
-                <PostComments slug={slug} />
-              </Suspense>
+              <PostComments post={post} prev={prev} next={next} />
             </div>
             <LearnToc />
           </div>
@@ -177,9 +149,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <PostContent post={post} />
               </Suspense>
             </article>
-            <Suspense fallback={<PostCommentsSkeleton />}>
-              <PostComments slug={slug} />
-            </Suspense>
+            <PostComments post={post} prev={prev} next={next} />
           </div>
         </>
       )}

@@ -1,5 +1,5 @@
 // app/blog/[slug]/PostComments.tsx
-import { getPostBySlug, getAdjacentPosts } from '@/lib/db'
+import type { Post, PostMeta } from '@/lib/db/posts'
 import CommentSection from '@/components/sections/CommentSection'
 import PostActions from '@/components/sections/PostActions'
 import ViewTracker from '@/components/sections/ViewTracker'
@@ -9,14 +9,13 @@ import RelatedContent from '@/components/sections/RelatedContent'
 import { Suspense } from 'react'
 
 interface PostCommentsProps {
-  slug: string
+  post: Post
+  prev: PostMeta | null
+  next: PostMeta | null
 }
 
-export default async function PostComments({ slug }: PostCommentsProps) {
-  const [post, { prev, next }] = await Promise.all([
-    getPostBySlug(slug),
-    getAdjacentPosts(slug),
-  ])
+export default function PostComments({ post, prev, next }: PostCommentsProps) {
+  const { slug } = post
 
   return (
     <>
@@ -24,7 +23,7 @@ export default async function PostComments({ slug }: PostCommentsProps) {
 
       <div className="mt-16 pt-8 border-t border-gray-100">
         <PostActions slug={slug} />
-        {post && <ShareButtons title={post.title} slug={slug} />}
+        <ShareButtons title={post.title} slug={slug} />
       </div>
 
       <PostNavigation prev={prev} next={next} />
