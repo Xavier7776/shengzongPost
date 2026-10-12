@@ -4,15 +4,14 @@ import LearnToc from '@/app/blog/[slug]/LearnToc'
 import PostHeader from '@/app/blog/[slug]/PostHeader'
 import BlogReaderToolbar from '@/app/blog/[slug]/BlogReaderToolbar'
 import ViewTracker from '@/components/sections/ViewTracker'
+import type { Post } from '@/lib/db/posts'
 
-const { getPost } = vi.hoisted(() => ({ getPost: vi.fn() }))
-vi.mock('@/lib/db', () => ({ getPostBySlug: getPost }))
 vi.mock('@/components/sections/AuthorCard', () => ({
   default: () => <div data-testid="legacy-author-card">Full author card</div>,
 }))
 
-beforeEach(() => {
-  getPost.mockReset().mockResolvedValue({
+const post: Post = {
+    id: 1, published: true, updated_at: '2026-10-09T01:00:00Z', cover_image: null,
     slug: 'daily-learn-2026-10-09',
     title: '结构化切块真的让 RAG 更准吗？用安慰剂实验拆解四种检索机制',
     excerpt: '用实验区分结构切块、真实标题与两阶段路由的收益。',
@@ -23,9 +22,8 @@ beforeEach(() => {
     author_name: 'Xavier',
     author_bio: 'Too long for the edition byline',
     author_avatar: null,
-  })
-  localStorage.clear()
-})
+}
+beforeEach(() => { localStorage.clear() })
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('daily learn layout compatibility', () => {
@@ -50,7 +48,7 @@ describe('daily learn layout compatibility', () => {
     expect(cancelFrame).toHaveBeenCalledWith(1)
   })
   it('uses a compact edition byline with explicit lesson and practice estimates', async () => {
-    render(await PostHeader({ slug: 'daily-learn-2026-10-09', variant: 'learn' }))
+    render(PostHeader({ post, variant: 'learn' }))
     expect(screen.getByRole('heading', { level: 1 })).toHaveClass('learn-post-title')
     expect(screen.getByText('预计阅读 23 分钟')).toBeInTheDocument()
     expect(screen.getByText('动手练习约 25 分钟')).toBeInTheDocument()
@@ -60,7 +58,7 @@ describe('daily learn layout compatibility', () => {
   })
 
   it('keeps the original author card for ordinary blog posts', async () => {
-    render(await PostHeader({ slug: 'normal-post' }))
+    render(PostHeader({ post: { ...post, slug: 'normal-post' } }))
     expect(screen.getByTestId('legacy-author-card')).toBeInTheDocument()
     expect(screen.queryByText('动手练习约 25 分钟')).not.toBeInTheDocument()
   })
