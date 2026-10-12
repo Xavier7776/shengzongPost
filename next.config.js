@@ -48,6 +48,7 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  experimental: { inlineCss: true },
   // 移除 X-Powered-By: Next.js 响应头，避免暴露技术栈
   poweredByHeader: false,
   // 隐藏版本信息
