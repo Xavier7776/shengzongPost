@@ -267,7 +267,8 @@ M11 实际核对：Neon `public.notifications`、`research_reports`、`visitor_t
 ## 8. 模型服务移出 Web（2026-10-09）
 - 站点不再提供 `/api/ai/write`、`/api/ai/write-gemini`、`/api/ai/comment` 和 `/api/ai/review-comment`；后台/投稿编辑器只提供人工编辑与本地 Slug 生成。
 - 新评论默认 `pending`，由现有管理员评论审核界面批准或拒绝；不要为了恢复自动审核而直接公开未审评论。
-- 每日精读由 GitHub Actions 外部执行 OpenAI Responses API，Web 只保留严格校验的 HMAC 发布接口。Vercel 不需要模型密钥。
+- 每日精读沿用 ChatGPT 08:30 任务；生产写入通道仍阻断，生成不等于发布。收费 OpenAI 手动脚本与 workflow 已撤除，不启用第二调度，不通过密钥绕过安全检查。Web 保留现有严格校验的 HMAC 发布接口，不新增模型调用。
+- `npm run learn:validate -- <candidate.json>` 只做当日候选离线校验，复用 `lib/learn/document.ts` 与 `publication-contract.ts`；不联网、不写库，不是已验证的任务发布适配器。056 仍为候选，生产 DDL 须单独批准，禁止补写或覆盖旧刊。
 - 保留 `/skills/research` 与 OnlyUs 业务，不在此 PR 中删除其独立产品能力。
 
 <!-- BEGIN:nextjs-agent-rules -->
