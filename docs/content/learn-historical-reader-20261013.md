@@ -34,7 +34,31 @@ Captured the public Edition and matching post fields with a parameterized SELECT
 
 ## Preview acceptance
 
-Pending branch Preview build and browser acceptance. This is not a production acceptance claim.
+Accepted on 2026-10-13, 11:41–11:46 Asia/Shanghai, after the full local gates above.
+
+- Runtime commit: `b6eefba86aaebf971abc2826900f4209418933a5`.
+- Real Vercel Git Preview: [deployment](https://shengzong-post-kdlo87lwz-leonidasholya-2025s-projects.vercel.app), deployment ID `dpl_9uvr8EYQNTRXtSwZthBmqcvRY7sk`, READY, target Preview (not production), matching repository/branch/SHA.
+- [GitHub Actions run 38342740013](https://github.com/Xavier7776/shengzongPost/actions/runs/38342740013): completed / success. Vercel commit status: success.
+- Both dates verified at 1440×1000 desktop and 390×844 mobile. `data-learn-validation` was `ok` for 10-09 and `historical` for 10-10, with the exact fingerprints above. Both viewports had no document overflow (scrollWidth 1425 / 375 including the browser's scrollbar allocation).
+- Both editions: interactive quizzes, deliberately wrong answer feedback, correct answers, explicit practice confirmation, completion and reload restoration passed. On 10-10 mobile a wrong answer canceled completion and disabled the completion button; correcting it permitted explicit completion again.
+- Both editions: desktop chapter buttons and mobile drawer navigation scrolled to the selected section; mobile drawer closed after selection. Desktop target heading offsets were approximately 145px, below the toolbar. The 10-10 chart displayed 20/90/50/75/48 fictional units; 10-09 displayed 1/2/3 illustrative evidence items, with expandable data tables and teaching labels retained.
+- No hydration, minified React or uncaught rendering errors observed across the six page loads/reloads. Saved-progress SSR/hydration is also covered by real-snapshot tests.
+
+### Read-only browser boundary and limits
+
+The available browser API has no request interception. To honor the no-production-write requirement, the browser loaded **the real Preview HTML/JS/CSS through a local read-only forwarding relay**, not a local Next build or fixture page. Response bodies were streamed unchanged. The relay targeted only the verified Preview origin, held its temporary Vercel access cookie in memory, and rejected every non-GET/HEAD request and every `/api/` path before forwarding. No authentication secret is in the evidence. Header transport decoding/cache behavior and browser origin differ from direct Preview access.
+
+The [request log](evidence/learn-historical-20261013/requests.jsonl) records 175 forwarded reads and **zero forwarded writes**. Blocked requests include 6 analytics POSTs, 2 view-count POSTs, 6 CSP-report POSTs and 6 auth-log POSTs, plus read-only session/comments/reactions APIs. The [console log](evidence/learn-historical-20261013/browser-console.json) contains six expected next-auth CLIENT_FETCH_ERROR entries caused by the blocked session endpoint; these are not hydration errors. Session/login, comments/reactions, direct-origin cookies/security policy and authenticated admin browser acceptance are outside this read-only reader acceptance. Admin classification/count/calendar are verified using the real snapshots in component tests; no production admin session was used.
+
+This is Preview reader acceptance, not production release acceptance. The final evidence-only commit does not change the tested runtime code.
+
+### Screenshots
+
+| Evidence | Desktop | 390px |
+| --- | --- | --- |
+| 10-09 strict reader | [desktop](evidence/learn-historical-20261013/10-09-desktop.jpg) | [mobile](evidence/learn-historical-20261013/10-09-mobile.jpg) |
+| 10-10 historical reader | [desktop](evidence/learn-historical-20261013/10-10-desktop.jpg) | [mobile, restored completed progress](evidence/learn-historical-20261013/10-10-mobile.jpg) |
+| 10-10 chart | — | [chart and data table](evidence/learn-historical-20261013/10-10-mobile-chart.jpg) |
 
 ## Risks and rollback
 
