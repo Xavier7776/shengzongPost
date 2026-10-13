@@ -41,6 +41,7 @@ export default function Lightbox({
   const [likes, setLikes] = useState(img?.likes ?? 0)
   const [liked, setLiked] = useState(false)
   const [copied, setCopied] = useState(false)
+  const imageRef = useRef<HTMLImageElement>(null)
   const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null)
   const touchRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -53,7 +54,8 @@ export default function Lightbox({
   useEffect(() => {
     setScale(MIN_SCALE)
     setOffset({ x: 0, y: 0 })
-    setLoaded(false)
+    // A cached image can fire load before this passive effect runs.
+    setLoaded(Boolean(imageRef.current?.complete && imageRef.current.naturalWidth > 0))
     setLikes(images[index]?.likes ?? 0)
   }, [index, images])
 
@@ -242,6 +244,7 @@ export default function Lightbox({
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          ref={imageRef}
           key={img.id}
           src={img.url}
           alt={img.title}
