@@ -1,0 +1,38 @@
+[
+  {
+    "level": "error",
+    "message": "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error [object] Object",
+    "timestamp": "2026-10-13T03:41:49.239Z",
+    "url": "http://127.0.0.1:4315/_next/static/chunks/7882-45ffd805c8e58a42.js"
+  },
+  {
+    "level": "error",
+    "message": "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error [object] Object",
+    "timestamp": "2026-10-13T03:42:41.769Z",
+    "url": "http://127.0.0.1:4315/_next/static/chunks/7882-45ffd805c8e58a42.js"
+  },
+  {
+    "level": "error",
+    "message": "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error [object] Object",
+    "timestamp": "2026-10-13T03:44:03.210Z",
+    "url": "http://127.0.0.1:4315/_next/static/chunks/7882-45ffd805c8e58a42.js"
+  },
+  {
+    "level": "error",
+    "message": "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error [object] Object",
+    "timestamp": "2026-10-13T03:44:24.235Z",
+    "url": "http://127.0.0.1:4315/_next/static/chunks/7882-45ffd805c8e58a42.js"
+  },
+  {
+    "level": "error",
+    "message": "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error [object] Object",
+    "timestamp": "2026-10-13T03:44:52.655Z",
+    "url": "http://127.0.0.1:4315/_next/static/chunks/7882-45ffd805c8e58a42.js"
+  },
+  {
+    "level": "error",
+    "message": "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error [object] Object",
+    "timestamp": "2026-10-13T03:45:26.779Z",
+    "url": "http://127.0.0.1:4315/_next/static/chunks/7882-45ffd805c8e58a42.js"
+  }
+]

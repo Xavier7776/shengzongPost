@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeEdition } from './fixtures/learn-edition'
+import historical from './fixtures/learn-published-2026-10-10.json'
 import { PublicationError } from '@/lib/learn/publication-contract'
 const { publish } = vi.hoisted(() => ({ publish: vi.fn() }))
 vi.mock('@/lib/learn/publish', () => ({ publishEdition: publish }))
@@ -25,6 +26,22 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs() })
 
 describe('learn publication authorization and input boundaries', () => {
+  it.each([18,19])('rejects new drafts with %i-character questions before publication', async length => {
+    const edition=makeEdition()
+    const quiz=edition.blocks.find(b=>b.type==='quiz')!
+    if(quiz.type==='quiz')quiz.question='问'.repeat(length)
+    const response=await POST(request(JSON.stringify(edition)))
+    expect(response.status).toBe(422)
+    expect((await response.json()).reasons.join(' ')).toContain('quiz')
+    expect(publish).not.toHaveBeenCalled()
+  })
+  it('rejects even the exact allowlisted historical document at the publishing API', async () => {
+    vi.setSystemTime(new Date('2026-10-10T00:30:00Z'))
+    const response=await POST(request(JSON.stringify(historical.document),String(Math.floor(Date.now()/1000))))
+    expect(response.status).toBe(422)
+    expect((await response.json()).reasons).toEqual(['block 32: quiz','block 34: quiz'])
+    expect(publish).not.toHaveBeenCalled()
+  })
   it('fails closed without a publishing secret', async () => {
     vi.stubEnv('LEARN_PUBLISH_SECRET', '')
     expect((await POST(request('{}'))).status).toBe(503)

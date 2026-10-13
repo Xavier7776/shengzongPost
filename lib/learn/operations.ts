@@ -1,25 +1,28 @@
 import { chinaDate, validateEdition, type Edition } from './document'
 import { textVersion } from './publication-contract'
+import { isHistoricalReaderEdition } from './historical-reader'
 
 export interface PublicationRow {
   id: number | null; post_id: number | null; slug: string | null; title: string | null
   published: boolean | null; content: string | null; edition_date: string; topic: string
   document: unknown; status: string | null; created_at: string | null
 }
-export type Audit = {code:'ok'|'invalid'|'drift'|'draft';text:string;detail:string}
+export type Audit = {code:'ok'|'historical'|'invalid'|'drift'|'draft';text:string;detail:string}
 export type CheckedPublication = PublicationRow & {audit:Audit}
 export function auditPublication(row: PublicationRow): Audit {
   if (row.post_id == null || row.id !== row.post_id || row.slug !== 'daily-learn-'+row.edition_date || row.status !== 'published') {
     return {code:'invalid',text:'关联异常',detail:'日期、Slug 或文章与专刊关联不一致'}
   }
-  if (!row.published) return {code:'draft',text:'未公开',detail:'请检查文章发布状态'}
+  if (row.published !== true) return {code:'draft',text:'未公开',detail:'请检查文章发布状态'}
   const check=validateEdition(row.document)
-  if (!check.ok) return {code:'invalid',text:'结构校验失败',detail:check.errors.slice(0,3).join('；')}
+  const historical = !check.ok && isHistoricalReaderEdition(row.document, check.errors)
+  if (!check.ok && !historical) return {code:'invalid',text:'结构校验失败',detail:check.errors.join('；')}
   const e=row.document as Edition
   if (e.date!==row.edition_date || e.topic!==row.topic || e.title!==row.title) {
     return {code:'invalid',text:'结构元数据不一致',detail:'JSON 日期、主题或标题与存储记录不一致'}
   }
   if (textVersion(e)!==row.content) return {code:'drift',text:'正文与结构数据不一致',detail:'阅读器会保留现有正文并使用安全回退'}
+  if (historical) return {code:'historical',text:'历史兼容（未完全合规）',detail:'仅限已核实完整指纹的历史已发布内容，只读结构化展示；'+check.errors.join('；')+'。题目长度 18、19，未达到新稿 20 字符门槛；不计入完全合规统计。'}
   return {code:'ok',text:'正常',detail:'结构、关联及正文一致；任务运行与公网状态需独立证据'}
 }
 
@@ -39,7 +42,7 @@ export function publicationCalendar(rows:CheckedPublication[],now:Date,publicChe
     return {date,code,slug:row?.slug??null,publicStatus,taskStatus:'unknown' as const,expected:date>=EXPECTED_FROM}
   })
 }
-export const CALENDAR_LABELS:Record<string,string>={ok:'已存在且合规',invalid:'内容或关联异常',drift:'正文漂移',draft:'未公开',public_pending:'公网待刷新',not_due:'未到 08:30',waiting:'出版宽限期至 09:30',missing:'尚未见刊',unknown:'出版期望未知'}
+export const CALENDAR_LABELS:Record<string,string>={ok:'已存在且合规',historical:'历史兼容（未完全合规）',invalid:'内容或关联异常',drift:'正文漂移',draft:'未公开',public_pending:'公网待刷新',not_due:'未到 08:30',waiting:'出版宽限期至 09:30',missing:'尚未见刊',unknown:'出版期望未知'}
 export function publicationSummary(rows:CheckedPublication[]) {
   const dates=rows.filter(row=>row.audit.code==='ok' && rows.filter(other=>other.edition_date===row.edition_date).length===1).map(row=>row.edition_date).sort().reverse()
   const latestDate=dates[0]??null

@@ -31,7 +31,7 @@ describe('learn migration and legacy article compatibility', () => {
   })
   it('renders current structured editions and preserves later manual edits', async () => {
     const edition = makeEdition()
-    sql.mockResolvedValue([{ document: edition }])
+    sql.mockResolvedValue([{ ...post, title:edition.title, document: edition, content:textVersion(edition), post_id:post.id, edition_date:edition.date, topic:edition.topic, status:'published' }])
     const { unmount } = render(await PostContent({ post: { ...post, content: textVersion(edition) } }))
     expect(screen.getByText('教学示例数据，非论文实验结果')).toBeInTheDocument()
     unmount()
