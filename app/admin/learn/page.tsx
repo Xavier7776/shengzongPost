@@ -43,6 +43,7 @@ export default async function AdminLearnPage() {
   const today = checked.find(row => row.edition_date === now)
   const invalid = checked.filter(row => row.audit.code === 'invalid' || row.audit.code === 'drift')
   const ok = checked.filter(row => row.audit.code === 'ok')
+  const historical = checked.filter(row => row.audit.code === 'historical')
   return <main className="min-h-screen bg-[#FAFAF8] px-5 pb-20 pt-28 sm:px-8">
     <div className="mx-auto max-w-6xl">
       <Link href="/admin" className="mb-7 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600">
@@ -74,8 +75,9 @@ export default async function AdminLearnPage() {
           </p>
         </div>
         <div className="rounded-2xl border bg-white p-5">
-          <p className="text-xs font-semibold text-gray-500">最近 60 期中已校验通过</p>
+          <p className="text-xs font-semibold text-gray-500">最近 60 期中完全合规</p>
           <p className="mt-2 text-2xl font-black text-emerald-700">{databaseStatus==='已观察'?ok.length:'未知'}</p>
+          <p className="mt-2 text-xs leading-6 text-amber-700">历史兼容（未计入完全合规）：{databaseStatus==='已观察'?historical.length:'未知'} 期</p>
         </div>
         <div className="rounded-2xl border bg-white p-5">
           <p className="text-xs font-semibold text-gray-500">存在结构或正文不一致</p>
@@ -106,7 +108,7 @@ export default async function AdminLearnPage() {
                 <span>· {TOPICS[row.topic as Topic] ?? row.topic}</span>
                 <span className={'inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold '+(
                   row.audit.code==='ok'?'bg-emerald-50 text-emerald-700':
-                  row.audit.code==='draft'?'bg-amber-50 text-amber-700':'bg-red-50 text-red-700'
+                  row.audit.code==='draft'||row.audit.code==='historical'?'bg-amber-50 text-amber-700':'bg-red-50 text-red-700'
                 )}>
                   {row.audit.code==='ok' ? <CheckCircle2 className="h-3 w-3"/> :
                    row.audit.code==='draft' ? <Clock className="h-3 w-3"/> :

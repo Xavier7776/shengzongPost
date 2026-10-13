@@ -8,6 +8,7 @@ import { chinaDate, type Edition } from '@/lib/learn/document'
 import { canonicalEdition, editionFingerprint, textVersion } from '@/lib/learn/publication-contract'
 import { makeEdition } from './fixtures/learn-edition'
 import { makeEditionV2 } from './fixtures/learn-edition-v2'
+import historical from './fixtures/learn-published-2026-10-10.json'
 
 const dir = mkdtempSync(join(tmpdir(), 'learn-offline-'))
 const guard = join(dir, 'guard.cjs')
@@ -61,6 +62,12 @@ it.each([18, 19])('rejects a %i-character quiz through the shared validator', le
   expect(status).toBe(1)
   expect(output.ok).toBe(false)
   expect(output.errors.join(' ')).toMatch(/quiz/)
+})
+
+it.each([historical.document as Edition, today(historical.document as Edition)])('rejects the historical snapshot and a regenerated current-day copy offline', edition => {
+  const { status, output } = run(edition)
+  expect(status).toBe(1)
+  expect(output.errors).toEqual(expect.arrayContaining(['block 32: quiz','block 34: quiz']))
 })
 
 it('rejects an old date without a backfill flag', () => {
