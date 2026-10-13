@@ -20,13 +20,9 @@ describe('site AI runtime isolation', () => {
       'app/api/comments/route.ts',
     ]) expect(load(path)).not.toMatch(/XIAOMI_API_KEY|GEMINI_API_KEY|useAiWriting|AiSidebar|\/api\/ai\//)
   })
-  it('runs external OpenAI in Actions, not Next.js and does not execute untrusted article code', () => {
-    const action = load('.github/workflows/daily-learn.yml')
-    const external = load('scripts/publish-learn-daily.ts')
-    expect(action).toContain('OPENAI_API_KEY')
-    expect(action).not.toContain('XIAOMI_API_KEY')
-    expect(external).toContain('https://api.openai.com/v1/responses')
-    expect(external).not.toContain('api.xiaomimimo.com')
+  it('keeps paid manual publishing quarantined and the Web route model-free', () => {
+    expect(existsSync(resolve(root, '.github/workflows/daily-learn.yml'))).toBe(false)
+    expect(existsSync(resolve(root, 'scripts/publish-learn-daily.ts'))).toBe(false)
     const route = load('app/api/internal/learn/publish/route.ts')
     expect(route).toContain('LEARN_PUBLISH_SECRET')
     expect(route).not.toContain('OPENAI_API_KEY')

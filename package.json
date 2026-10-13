@@ -8,6 +8,7 @@
   },
   "packageManager": "npm@11.6.0",
   "scripts": {
+    "learn:validate": "tsx scripts/validate-learn-edition.ts",
     "dev": "next dev",
     "build": "next build --webpack",
     "build:ci": "node scripts/ci-build.mjs",

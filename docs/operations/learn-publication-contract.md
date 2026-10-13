@@ -1,6 +1,8 @@
 # 每日专刊发布与核验契约（M02-A）
 
-现有 08:30 ChatGPT → Neon 通道保持不变。HTTP HMAC 接口仍为可选受控入口，本阶段不配置密钥、不修改任务、不发布或重写生产文章。直接 SQL 不会自动调用下面的 TypeScript 门槛；任务通道验收仍待独立运行证据。
+现有 08:30 ChatGPT 调度保持不变；截至 2026-10-13，ChatGPT → Neon 生产写入通道仍阻断。连接器授权状态不能替代平台安全检查或实际任务运行证据。HTTP HMAC 接口保留，不配置密钥、不绕过阻断、不修改任务、不发布或重写生产文章。直接 SQL 不会自动调用下面的 TypeScript 门槛。
+
+离线预检入口为 `npm run learn:validate -- <candidate.json>`，复用现有结构校验、北京时间当日门禁、canonical 指纹与正文派生规则。输出 `offline_validation_only` 不代表已完成科学事实核验、写入、回读或公网核验。收费手动脚本及 workflow 已撤除，不启用第二调度；056 仍为未获批候选。当前运行边界见 [运行手册](../daily-learn-autopublish.md)。
 
 ## 服务端契约
 
