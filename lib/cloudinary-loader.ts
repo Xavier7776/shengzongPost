@@ -1,7 +1,7 @@
 // lib/cloudinary-loader.ts
 // next/images.loaderFile 自定义加载器：
 // - Cloudinary URL：注入 f_auto(自动 AVIF/WebP) + q_auto + 按设备宽度裁剪，替代全尺寸原图
-// - 其他来源：原样返回，走默认行为
+// - 本地 Logo：复用 Next 图片端点；其他来源保留原 URL
 
 interface LoaderParams {
   src: string
@@ -14,6 +14,7 @@ const CLD_RE = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/(?:image|video|raw)\/up
 const HAS_TRANSFORM = /^(c_|w_|h_|q_|f_|e_|ar_|g_|dpr_)/
 
 export default function cloudinaryLoader({ src, width, quality }: LoaderParams): string {
+  if (src === '/logo.png') return `/_next/image?url=%2Flogo.png&w=${width}&q=75`
   const m = src.match(CLD_RE)
   if (!m || HAS_TRANSFORM.test(m[2])) return src
 
