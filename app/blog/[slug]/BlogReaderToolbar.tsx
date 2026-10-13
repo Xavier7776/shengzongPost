@@ -77,8 +77,6 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
     try { localStorage.setItem(MODE_KEY, m) } catch { /* The current page remains adjustable. */ }
   }, [])
 
-  if (!mounted) return null
-
   return (
     <div ref={toolbar} className={variant === 'learn' ? 'learn-reader-toolbar sticky top-20 z-30 mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white/95 px-4 py-2 shadow-sm backdrop-blur-md' : 'sticky top-20 z-30 mb-6 flex items-center gap-3 rounded-xl border border-gray-100 bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md'}>
       {/* 字号调节 */}

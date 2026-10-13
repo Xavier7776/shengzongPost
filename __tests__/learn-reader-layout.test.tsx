@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
 import LearnToc from '@/app/blog/[slug]/LearnToc'
 import PostHeader from '@/app/blog/[slug]/PostHeader'
 import BlogReaderToolbar from '@/app/blog/[slug]/BlogReaderToolbar'
@@ -27,6 +28,13 @@ beforeEach(() => { localStorage.clear() })
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('daily learn layout compatibility', () => {
+  it.each([['learn', 18], ['standard', 16]] as const)('renders the %s reader controls on the server at %dpx', (variant, font) => {
+    localStorage.setItem(variant === 'learn' ? 'learn-reader-font-size' : 'blog-reader-font-size', '24')
+    const html = renderToStaticMarkup(<BlogReaderToolbar variant={variant} />)
+    expect(html).toContain('aria-label="缩小字号"')
+    expect(html).toContain(`${font}px`)
+    expect(html).not.toContain('24px')
+  })
   it.each([0, 240])('avoids initial layout reads at the top and measures restored position %d', position => {
     vi.stubGlobal('scrollY', position)
     const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1)
