@@ -1,14 +1,14 @@
 // 路径：app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
-import { Suspense } from 'react'
+import { cache, Suspense } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { getPostBySlug, getAdjacentPosts } from '@/lib/db'
+import { getPostBySlug as readPublishedPost, getAdjacentPosts } from '@/lib/db'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import KeyboardShortcuts from '@/components/sections/KeyboardShortcuts'
 import BackToTop from '@/components/ui/BackToTop'
 import ReadingHistory from '@/components/sections/ReadingHistory'
-import { Skeleton, SkeletonText, SkeletonAvatar } from '@/components/ui/Skeleton'
+import { Skeleton, SkeletonText } from '@/components/ui/Skeleton'
 import PostHeader from './PostHeader'
 import PostContent from './PostContent'
 import PostComments from './PostComments'
@@ -20,11 +20,16 @@ import { getSiteUrl } from '@/lib/site-url'
 import { breadcrumbs, jsonLdText } from '@/lib/seo'
 
 export const revalidate = 60 // ISR plus explicit publication-path invalidation.
+export const fetchCache = 'default-cache'
 
-interface PageProps { params: { slug: string } }
+interface PageProps { params: Promise<{ slug: string }> }
+
+// Metadata and the page share one published lookup within each render request.
+const getPostBySlug = cache(readPublishedPost)
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const post = await getPostBySlug(params.slug)
+  const { slug } = await params
+  const post = await getPostBySlug(slug)
   if (!post) notFound()
   // opengraph-image.tsx 会被 Next.js 自动识别为 OG 图片，无需在此设置 openGraph.images
   // 这里仅补充 openGraph.type / twitter card，让社交分享元数据更完整
@@ -51,29 +56,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 // ── 骨架屏组件 ────────────────────────────────────────────────
-function PostHeaderSkeleton() {
-  return (
-    <header className="mb-12">
-      <Skeleton className="h-4 w-28 mb-4" />
-      <Skeleton className="h-12 w-full mb-2" />
-      <Skeleton className="h-12 w-2/3 mb-8" />
-      <div className="flex items-center gap-3 mb-8">
-        <SkeletonAvatar size={40} />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-3 w-32" />
-        </div>
-      </div>
-      <Skeleton className="h-5 w-full mb-2" />
-      <Skeleton className="h-5 w-3/4 mb-8" />
-      <div className="flex gap-2">
-        <Skeleton className="h-6 w-16 rounded-md" />
-        <Skeleton className="h-6 w-20 rounded-md" />
-      </div>
-    </header>
-  )
-}
-
 function PostContentSkeleton() {
   return (
     <div>
@@ -86,42 +68,14 @@ function PostContentSkeleton() {
   )
 }
 
-function PostCommentsSkeleton() {
-  return (
-    <>
-      <div className="mt-16 pt-8 border-t border-gray-100">
-        <div className="flex gap-3 mb-6">
-          <Skeleton className="h-9 w-24 rounded-lg" />
-          <Skeleton className="h-9 w-24 rounded-lg" />
-        </div>
-        <div className="flex gap-3">
-          <Skeleton className="h-8 w-8 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
-        </div>
-      </div>
-      <div className="mt-8 grid grid-cols-2 gap-4">
-        <Skeleton className="h-20 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" />
-      </div>
-      <div className="mt-16">
-        <Skeleton className="h-6 w-32 mb-6" />
-        <div className="space-y-4">
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
-        </div>
-      </div>
-    </>
-  )
-}
-
 export default async function BlogPostPage({ params }: PageProps) {
+  const { slug } = await params
   const [post, { prev, next }] = await Promise.all([
-    getPostBySlug(params.slug),
-    getAdjacentPosts(params.slug),
+    getPostBySlug(slug),
+    getAdjacentPosts(slug),
   ])
   if (!post) notFound()
-  const isLearnPost = /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(params.slug)
+  const isLearnPost = /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(slug)
 
   // JSON-LD 结构化数据（Article schema）
   const jsonLd = {
@@ -143,7 +97,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': getSiteUrl()+'/blog/'+encodeURIComponent(params.slug),
+      '@id': getSiteUrl()+'/blog/'+encodeURIComponent(slug),
     },
     keywords: post.tags?.join(', '),
   }
@@ -152,12 +106,12 @@ export default async function BlogPostPage({ params }: PageProps) {
     <>
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: jsonLdText([jsonLd,breadcrumbs([{name:'首页',path:'/'},{name:'博客',path:'/blog'},{name:post.title,path:'/blog/'+encodeURIComponent(params.slug)}])]) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdText([jsonLd,breadcrumbs([{name:'首页',path:'/'},{name:'博客',path:'/blog'},{name:post.title,path:'/blog/'+encodeURIComponent(slug)}])]) }}
     />
     <ReadingProgressBar />
     <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
     <BackToTop />
-    <ReadingHistory slug={params.slug} title={post.title} />
+    <ReadingHistory slug={slug} title={post.title} />
 
     <div className={isLearnPost ? 'learn-post-page min-h-screen pb-20 pt-24' : 'min-h-screen pt-24 pb-16'}>
       {isLearnPost ? (
@@ -169,17 +123,13 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="learn-post-grid">
             <div className="learn-post-main min-w-0" id="blog-reader-root">
               <article>
-                <Suspense fallback={<PostHeaderSkeleton />}>
-                  <PostHeader slug={params.slug} variant="learn" />
-                </Suspense>
+                <PostHeader post={post} variant="learn" />
                 <BlogReaderToolbar variant="learn" />
                 <Suspense fallback={<PostContentSkeleton />}>
-                  <PostContent slug={params.slug} />
+                  <PostContent post={post} />
                 </Suspense>
               </article>
-              <Suspense fallback={<PostCommentsSkeleton />}>
-                <PostComments slug={params.slug} />
-              </Suspense>
+              <PostComments post={post} prev={prev} next={next} />
             </div>
             <LearnToc />
           </div>
@@ -193,21 +143,17 @@ export default async function BlogPostPage({ params }: PageProps) {
               返回博客列表
             </Link>
             <article>
-              <Suspense fallback={<PostHeaderSkeleton />}>
-                <PostHeader slug={params.slug} />
-              </Suspense>
+              <PostHeader post={post} />
               <BlogReaderToolbar />
               <Suspense fallback={<PostContentSkeleton />}>
-                <PostContent slug={params.slug} />
+                <PostContent post={post} />
               </Suspense>
             </article>
-            <Suspense fallback={<PostCommentsSkeleton />}>
-              <PostComments slug={params.slug} />
-            </Suspense>
+            <PostComments post={post} prev={prev} next={next} />
           </div>
         </>
       )}
-      <p className="mx-auto mt-10 max-w-[900px] px-6 text-sm text-gray-500"><a className="text-blue-700 underline" href={'mailto:1808571411@qq.com?subject='+encodeURIComponent('文章勘误：'+params.slug)+'&body='+encodeURIComponent('文章：/blog/'+params.slug+'\n具体段落或数值：\n问题与原始来源：\n建议更正：')}>发现错误 / 提交勘误</a> · 请注明段落、问题和原始依据。</p>
+      <p className="mx-auto mt-10 max-w-[900px] px-6 text-sm text-gray-500"><a className="text-blue-700 underline" href={'mailto:1808571411@qq.com?subject='+encodeURIComponent('文章勘误：'+slug)+'&body='+encodeURIComponent('文章：/blog/'+slug+'\n具体段落或数值：\n问题与原始来源：\n建议更正：')}>发现错误 / 提交勘误</a> · 请注明段落、问题和原始依据。</p>
     </div>
     </>
   )

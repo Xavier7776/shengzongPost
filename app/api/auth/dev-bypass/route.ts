@@ -9,7 +9,7 @@ async function handlePOST() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  cookies().set('dev-admin-bypass', '1', {
+  (await cookies()).set('dev-admin-bypass', '1', {
     httpOnly: true,
     path: '/',
     // 开发环境不需要 secure

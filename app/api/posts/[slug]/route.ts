@@ -12,9 +12,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { EditionEditConflict } from '@/lib/learn/edit-conflict'
 
-interface Ctx { params: { slug: string } }
+interface Ctx { params: Promise<{ slug: string }> }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
+  const { slug } = await params
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: '请先登录' }, { status: 401 })
 
@@ -29,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     // Check the live DB role; a JWT may still carry an old elevated role after revocation.
     const role = await getUserRoleById(userId)
     const isAdmin = user.role === 'admin' && role === 'admin'
-    const post = isAdmin ? await getPostBySlugAdmin(params.slug) : await getPostBySlug(params.slug)
+    const post = isAdmin ? await getPostBySlugAdmin(slug) : await getPostBySlug(slug)
     if (!post || (!isAdmin && post.author_id !== userId)) {
       return NextResponse.json({ error: '文章不存在' }, { status: 404 })
     }
@@ -41,12 +42,13 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 }
 
 async function handlePATCH(req: NextRequest, { params }: Ctx) {
+  const { slug } = await params
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     const body = await req.json()
-    const post = await updatePost(params.slug, {
+    const post = await updatePost(slug, {
       title:       body.title,
       excerpt:     body.excerpt,
       content:     body.content,
@@ -58,7 +60,7 @@ async function handlePATCH(req: NextRequest, { params }: Ctx) {
       author_id:    body.author_id ?? undefined,
     })
 
-    const cacheStatus=invalidatePublishedContent([params.slug,post.slug])
+    const cacheStatus=invalidatePublishedContent([slug,post.slug])
     return NextResponse.json(post,{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
     if(e instanceof EditionEditConflict)return NextResponse.json({error:e.message},{status:409})
@@ -68,13 +70,14 @@ async function handlePATCH(req: NextRequest, { params }: Ctx) {
 }
 
 async function handleDELETE(_req: NextRequest, { params }: Ctx) {
+  const { slug } = await params
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    await deletePost(params.slug)
+    await deletePost(slug)
 
-    const cacheStatus=invalidatePublishedContent([params.slug])
+    const cacheStatus=invalidatePublishedContent([slug])
     return NextResponse.json({ ok: true },{headers:{'X-Content-Cache-Status':cacheStatus}})
   } catch (e) {
     logFailure('app/api/posts/[slug]')

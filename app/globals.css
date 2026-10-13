@@ -303,17 +303,16 @@ body::before {
 
 /* 字号调节：通过 CSS 变量控制文章正文字号，默认 1.05rem 保持原有外观 */
 .reader-content {
-  --reader-font-size: 1.05rem;
   border-radius: 1rem;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 .reader-content .post-content p,
 .reader-content .space-y-5 p {
-  font-size: var(--reader-font-size);
+  font-size: var(--reader-font-size, 1.05rem);
 }
 
 /* 阅读模式 - 护眼（米黄色背景，深棕色文字） */
-.reader-mode-sepia {
+.reader-mode-sepia .reader-content {
   background-color: #f5f0e8;
   color: #5b4636;
 }
@@ -348,7 +347,7 @@ body::before {
 .reader-mode-sepia .post-content tr:nth-child(even) { background: #ede0c8; }
 
 /* 阅读模式 - 深色（深色背景，浅色文字） */
-.reader-mode-dark {
+.reader-mode-dark .reader-content {
   background-color: #1a1a1a;
   color: #d4d4d4;
 }
@@ -420,7 +419,6 @@ body::before {
   border-top: 1px solid #e5e7eb;
 }
 .learn-post-page .reader-content {
-  --reader-font-size: 18px;
   width: 100%;
   min-width: 0;
 }

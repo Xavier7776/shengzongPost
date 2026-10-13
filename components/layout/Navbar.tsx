@@ -43,6 +43,7 @@ export default function Navbar() {
   const [swinging,   setSwinging]   = useState(false)
   const [hidden,     setHidden]     = useState(false)   // 下滚隐藏、上滚出现
   const [progress,   setProgress]   = useState(0)       // 页面阅读进度
+  const [hydrated,   setHydrated]   = useState(false)
   const pathname  = usePathname()
   const router    = useRouter()
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -50,6 +51,7 @@ export default function Navbar() {
 
   // 注入摇摆动画 CSS
   useEffect(() => {
+    setHydrated(true)
     if (document.getElementById('logo-swing-style')) return
     const style = document.createElement('style')
     style.id = 'logo-swing-style'
@@ -171,7 +173,7 @@ export default function Navbar() {
         <div className={`${pathname === '/gallery' ? 'relative px-5 sm:px-8 lg:px-12' : 'max-w-6xl mx-auto px-6'} flex items-center justify-between`}>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" prefetch={false} className="flex items-center gap-2.5">
             <Image
               src="/logo.png"
               alt="MindStack"
@@ -187,11 +189,12 @@ export default function Navbar() {
           {/* 桌面端导航 */}
           <div className={`hidden items-center space-x-10 md:flex ${pathname === '/gallery' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : ''}`}>
             {NAV_ITEMS.map(({ label, href }) => {
-              const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+              const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
               return (
                 <Link
                   key={href}
                   href={href}
+                  prefetch={false}
                   className={`capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
                     isGalleryHero
                       ? isActive ? 'text-white' : 'text-white/65 hover:text-white'
@@ -208,6 +211,7 @@ export default function Navbar() {
             {/* 搜索入口：跳转 /search（原 ⌘K 命令面板已移除） */}
             <Link
               href="/search"
+              prefetch={false}
               className={`flex items-center gap-2 text-xs font-black tracking-widest transition-colors py-2 ${isGalleryHero ? 'text-white/65 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
               title="搜索 (Cmd/Ctrl + K)"
             >
@@ -235,7 +239,7 @@ export default function Navbar() {
                 </div>
               </Link>
             ) : (
-              <Link href="/login" className={`text-xs font-black transition-colors px-3 py-1.5 rounded-xl border ${isGalleryHero ? 'border-white/20 text-white/70 hover:border-white/40 hover:text-white' : 'border-gray-200 text-gray-500 hover:text-gray-900'}`}>
+              <Link href="/login" prefetch={false} className={`text-xs font-black transition-colors px-3 py-1.5 rounded-xl border ${isGalleryHero ? 'border-white/20 text-white/70 hover:border-white/40 hover:text-white' : 'border-gray-200 text-gray-500 hover:text-gray-900'}`}>
                 登录
               </Link>
             )}
@@ -267,7 +271,7 @@ export default function Navbar() {
           >
             {/* 抽屉顶部 */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50">
-              <Link href="/" onClick={handleClose} className="flex items-center gap-2">
+              <Link href="/" prefetch={false} onClick={handleClose} className="flex items-center gap-2">
                 <Image src="/logo.png" alt="MindStack" width={24} height={24} className="w-6 h-6 rounded-full" />
                 <span className="tracking-tighter text-lg font-black text-gray-900">
                   Mind<span className="text-blue-600">Stack</span>
@@ -286,11 +290,12 @@ export default function Navbar() {
             <div className="flex-1 overflow-y-auto py-4 px-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-3 mb-2">导航</p>
               {NAV_ITEMS.map(({ label, href }) => {
-                const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+                const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
                 return (
                   <Link
                     key={href}
                     href={href}
+                    prefetch={false}
                     onClick={handleClose}
                     className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-colors ${
                       isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'
@@ -308,6 +313,7 @@ export default function Navbar() {
               {/* 搜索入口 */}
               <Link
                 href="/search"
+                prefetch={false}
                 onClick={handleClose}
                 className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
               >
@@ -393,7 +399,7 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="px-3 py-4 border-t border-gray-50">
-                <Link href="/login" onClick={handleClose}
+                <Link href="/login" prefetch={false} onClick={handleClose}
                   className="w-full flex items-center justify-center py-2.5 rounded-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-700 transition-colors">
                   登录 / 注册
                 </Link>

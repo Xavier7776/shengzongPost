@@ -155,7 +155,7 @@ function LoginContent() {
         <div className="w-full max-w-md">
           <div className="mb-10 text-center">
             <div className="flex items-center justify-center gap-2.5 mb-3">
-              <Image src="/logo.png" alt="MindStack" width={36} height={36} className="rounded-full" unoptimized />
+              <Image src="/logo.png" alt="MindStack" width={36} height={36} className="rounded-full" />
               <span className="text-3xl font-black tracking-tighter text-gray-900">
                 Mind<span className="text-blue-600">Stack</span>
               </span>

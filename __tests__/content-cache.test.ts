@@ -6,7 +6,7 @@ beforeEach(()=>{path.mockReset();tag.mockReset()})
 describe('content invalidation across public entry points',()=>{
   it('covers distribution, old/new slugs and adjacent article navigation without private layouts',()=>{
     expect(invalidatePublishedContent(['old','new','old'])).toBe('invalidated')
-    expect(tag).toHaveBeenCalledWith('published-content')
+    expect(tag).toHaveBeenCalledWith('published-content', { expire: 0 })
     for(const route of ['/','/blog','/learn','/feed.xml','/sitemap.xml','/blog/old','/blog/new'])expect(path).toHaveBeenCalledWith(route)
     expect(path).toHaveBeenCalledWith('/blog/[slug]','page')
     expect(path.mock.calls.filter(([route])=>route==='/blog/old')).toHaveLength(1)
@@ -24,7 +24,7 @@ describe('content invalidation across public entry points',()=>{
   })
   it('invalidates project routes and shared discovery after a project change', () => {
     expect(invalidatePublishedContent([])).toBe('invalidated')
-    expect(tag).toHaveBeenCalledWith('published-content')
+    expect(tag).toHaveBeenCalledWith('published-content', { expire: 0 })
     expect(path).toHaveBeenCalledWith('/work')
     expect(path).toHaveBeenCalledWith('/work/[slug]', 'page')
     expect(path).toHaveBeenCalledWith('/blog/[slug]', 'page')

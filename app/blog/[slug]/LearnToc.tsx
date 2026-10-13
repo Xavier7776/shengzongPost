@@ -68,7 +68,8 @@ export default function LearnToc() {
     const onScroll = () => {
       if (!frame) frame = window.requestAnimationFrame(update)
     }
-    update()
+    if (window.scrollY === 0) setActiveId(items[0].id)
+    else onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
     return () => {

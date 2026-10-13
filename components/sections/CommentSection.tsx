@@ -113,6 +113,7 @@ function CommentItem({ comment: c, depth, onReply, onAvatarClick, onLike }: Comm
 
 export default function CommentSection({ slug }: { slug: string }) {
   const { data: session, status } = useSession()
+  const [hydrated, setHydrated] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [content, setContent] = useState('')
@@ -133,7 +134,7 @@ export default function CommentSection({ slug }: { slug: string }) {
       .catch(() => setLoading(false))
   }, [slug])
 
-  useEffect(() => { loadComments() }, [loadComments])
+  useEffect(() => { setHydrated(true); loadComments() }, [loadComments])
 
   function handleReply(id: number, name: string) {
     setReplyTo({ id, name })
@@ -212,7 +213,7 @@ export default function CommentSection({ slug }: { slug: string }) {
       )}
 
       <div className="bg-gray-50 rounded-2xl p-5">
-        {status === 'loading' ? null : !session ? (
+        {!hydrated || status === 'loading' ? null : !session ? (
           <div className="text-center py-4 space-y-3">
             <p className="text-sm text-gray-500">登录后参与评论</p>
             <div className="flex items-center justify-center gap-3">

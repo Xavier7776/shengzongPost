@@ -1,5 +1,5 @@
 // app/blog/[slug]/PostContent.tsx
-import { getPostBySlug } from '@/lib/db'
+import type { Post } from '@/lib/db/posts'
 import AttachmentList from '@/components/sections/AttachmentList'
 import CodeCopyButton from '@/components/sections/CodeCopyButton'
 import ImageLazyLoad from '@/components/sections/ImageLazyLoad'
@@ -108,12 +108,11 @@ function renderMarkdown(content: string) {
 }
 
 interface PostContentProps {
-  slug: string
+  post: Post
 }
 
-export default async function PostContent({ slug }: PostContentProps) {
-  const post = await getPostBySlug(slug)
-  if (!post) return null
+export default async function PostContent({ post }: PostContentProps) {
+  const { slug } = post
   if (slug.startsWith('daily-learn-')) {
     const article = await LearnArticle({ slug, content: post.content })
     if (article) return <div className="reader-content">{article}</div>

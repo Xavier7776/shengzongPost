@@ -6,8 +6,8 @@
 
 | 项 | 实际版本 | 备注 |
 | --- | --- | --- |
-| Next.js | `^14.2.35` | App Router。**不是** Next 16 |
-| React | `^18` | **不是** React 19 |
+| Next.js | `^16.4.0` | App Router；请求参数、cookies/headers 使用异步 API |
+| React | `^19.3.0` | React DOM 与配套类型保持19；未启用 React Compiler |
 | Tailwind CSS | `^3.4.1` | **不是** Tailwind 4；配置见 `tailwind.config.ts` |
 | 主数据库 | Neon PostgreSQL（`@neondatabase/serverless`） | 服务端直连；博客授权不依赖 RLS，见第 7 节 |
 | 认证数据库 | Supabase（`@supabase/ssr`） | 仅用于 OnlyUs 会话刷新 |
@@ -17,7 +17,7 @@
 
 其他运行时依赖：`zustand`、`three`、`recharts`、`lucide-react`、`cloudinary`、`resend`、`dayjs`、`qrcode.react`、`bcryptjs`。
 
-**历史文档里「Next.js 16 / React 19 / Tailwind 4」的说法是错的，不要照抄。**
+**框架已在 M12 升级为 Next16/React19；Tailwind仍为3。以 package.json 和锁文件为准，历史阶段记录不代表当前版本。**
 
 ## 2. 命令
 
@@ -98,11 +98,11 @@ __tests__/   Vitest 用例
 | `features/onlyus/**`、`app/onlyus/**` → 其余任何代码 | **禁止**（`@/components/*` `@/lib/*` `@/stores/*` `@/features/*`；`@/features/onlyus` 自身除外） |
 | 其余任何代码 → `features/onlyus/**` | **禁止** |
 
-需要两方共用时，把代码上提到 `@/shared/`。规则在 `.eslintrc.json` 的两个 `overrides` 中，
+需要两方共用时，把代码上提到 `@/shared/`。规则在 `eslint.config.mjs` 的两个路径配置中，
 违反会直接 lint 报错。保持这条边界，将来若要把 onlyus 整体剥离成独立应用，
 只需 `git mv features/onlyus` 加一份 app 外壳，不必再理依赖。
 
-> **`middleware.ts` 仍留在仓库根目录**（Next.js 要求该位置）。它的 `matcher` 只有
+> **`proxy.ts` 仍留在仓库根目录**（Next16使用proxy约定；此前名为middleware.ts）。它的 `matcher` 只有
 > `/onlyus/:path*`，逻辑全部属于 onlyus，内部从 `@/features/onlyus/lib/gate` 取校验函数。
 > 之所以不整体搬进 `features/onlyus/`：若把 `export const config` 改成 re-export，
 > Next 的静态分析读不到 `matcher`，会退化成匹配全部路由。
@@ -119,7 +119,7 @@ __tests__/   Vitest 用例
 
 1. **内容站** — `/`（Hero）、`/blog`、`/work`、`/gallery`、`/skills`、`/now`、`/projects`
 2. **用户社区与商店** — `/profile`、`/shop`（积分 + 头像框）、`/notifications`、`/dashboard`
-3. **OnlyUs 私密情侣应用** — `/onlyus/*`，有 middleware gate + zustand + Service Worker 推送
+3. **OnlyUs 私密情侣应用** — `/onlyus/*`，有 proxy gate + zustand + Service Worker 推送
 4. **Research Agent 工作台** — `/skills/research`（`MultiAgentHub.tsx`）
 
 ## 5. 开发约定
@@ -269,3 +269,13 @@ M11 实际核对：Neon `public.notifications`、`research_reports`、`visitor_t
 - 新评论默认 `pending`，由现有管理员评论审核界面批准或拒绝；不要为了恢复自动审核而直接公开未审评论。
 - 每日精读由 GitHub Actions 外部执行 OpenAI Responses API，Web 只保留严格校验的 HMAC 发布接口。Vercel 不需要模型密钥。
 - 保留 `/skills/research` 与 OnlyUs 业务，不在此 PR 中删除其独立产品能力。
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

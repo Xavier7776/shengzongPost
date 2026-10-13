@@ -26,7 +26,7 @@ function batchRequest(action: string, slugs: unknown) {
     body: JSON.stringify({ action, slugs }),
   })
 }
-const ctx = { params: { slug: 'article' } }
+const ctx = { params: Promise.resolve({ slug: 'article' }) }
 beforeEach(() => {
   for (const stub of [session, admin, getPrivate, getPublished, dbRole, sql, revalidate]) stub.mockReset()
   session.mockResolvedValue({ user: { id: '7', role: 'user' } })

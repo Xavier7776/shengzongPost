@@ -18,7 +18,7 @@ interface Props {
   onExcerptChange: (v: string) => void
   coverImage: string
   onCoverClear: () => void
-  coverFileRef: React.RefObject<HTMLInputElement>
+  coverFileRef: React.RefObject<HTMLInputElement | null>
   onCoverFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   uploadingCover: boolean
   coverUploadError: string

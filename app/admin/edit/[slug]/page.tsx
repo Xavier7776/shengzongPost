@@ -4,11 +4,12 @@ import { requireAdmin } from '@/lib/auth'
 import { getPostBySlugAdmin } from '@/lib/db'
 import PostEditor from '@/features/admin-posts/AdminPostEditor'
 
-interface Props { params: { slug: string } }
+interface Props { params: Promise<{ slug: string }> }
 
 export default async function EditPostPage({ params }: Props) {
+  const { slug } = await params
   await requireAdmin()
-  const post = await getPostBySlugAdmin(params.slug)
+  const post = await getPostBySlugAdmin(slug)
   if (!post) notFound()
 
   return (

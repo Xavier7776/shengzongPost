@@ -71,10 +71,11 @@ export default function BlogCard({ post, index, showNew = false }: BlogCardProps
             {/* 封面图 */}
             <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0 bg-gray-50">
               {post.cover_image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={stripCdnCrop(post.cover_image)}
                   alt={post.title}
+                  fill
+                  sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1200px) calc((100vw - 72px) / 2), 540px"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (

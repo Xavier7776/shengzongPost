@@ -4,13 +4,14 @@ import { useRef, useState, useEffect } from 'react'
 
 export function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null)
-  const [isVisible, setIsVisible] = useState(false)
+  // Server-rendered content must be visible before scroll effects can run.
+  const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
+        setIsVisible(entry.isIntersecting)
         if (entry.isIntersecting) {
-          setIsVisible(true)
           observer.unobserve(entry.target)
         }
       },

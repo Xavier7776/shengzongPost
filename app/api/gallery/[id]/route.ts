@@ -8,11 +8,11 @@ import { cloudinary } from '@/lib/cloudinary'
 
 async function handleDELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const id = Number(params.id)
+    const id = Number((await params).id)
     const publicId = await deleteGalleryImage(id)
 
     // 同步删除 Cloudinary 上的文件
@@ -27,11 +27,11 @@ async function handleDELETE(
 
 async function handlePATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!await requireAdminApi()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const id = Number(params.id)
+    const id = Number((await params).id)
     const data = await req.json()
     const image = await updateGalleryImage(id, data)
     return NextResponse.json({ success: true, image })

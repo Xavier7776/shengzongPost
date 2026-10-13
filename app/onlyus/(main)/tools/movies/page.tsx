@@ -30,7 +30,7 @@ export default function MoviesPage() {
   const [formPosterUrl, setFormPosterUrl] = useState('')
   const [formTmdbId, setFormTmdbId] = useState<number | null>(null)
 
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>()
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const coupleId = coupleInfo?.id
   const userId = profile?.id
 

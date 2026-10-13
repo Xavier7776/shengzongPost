@@ -1,8 +1,12 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Link2, Check, X } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(module => module.QRCodeSVG), {
+  ssr: false,
+  loading: () => <div className="flex h-[180px] w-[180px] items-center justify-center text-sm text-gray-500" role="status">加载二维码…</div>,
+})
 
 interface ShareButtonsProps {
   title: string

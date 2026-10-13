@@ -11,10 +11,10 @@ export const dynamic = 'force-dynamic'
 
 async function handlePOST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = Number(params.id)
+    const id = Number((await params).id)
     if (!Number.isSafeInteger(id) || id<=0) {
       return NextResponse.json({ error: '无效 ID' }, { status: 400 })
     }

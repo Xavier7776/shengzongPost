@@ -14,12 +14,12 @@ import { EditionEditConflict } from '@/lib/learn/edit-conflict'
 
 async function handlePATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
-  const id = Number(params.id)
+  const id = Number((await params).id)
   if (!Number.isSafeInteger(id) || id<=0) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   try {
@@ -43,12 +43,12 @@ async function handlePATCH(
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })
 
-  const id = Number(params.id)
+  const id = Number((await params).id)
   if (!Number.isSafeInteger(id) || id<=0) return NextResponse.json({ error: '参数错误' }, { status: 400 })
 
   try {

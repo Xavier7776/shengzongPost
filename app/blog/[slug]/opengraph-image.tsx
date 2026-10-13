@@ -9,13 +9,13 @@ import { getPostBySlug } from '@/lib/db'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-// Next.js 14.2 中 params 为同步对象（与该路由 page.tsx 保持一致）
 interface OgImageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export default async function OgImage({ params }: OgImageProps) {
-  const post = await getPostBySlug(params.slug)
+  const { slug } = await params
+  const post = await getPostBySlug(slug)
 
   // 文章不存在时返回占位卡片，避免抛错导致 OG 图片 500
   const title = post?.title ?? 'MindStack'

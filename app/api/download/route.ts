@@ -5,7 +5,7 @@ import { allowedCloudinaryUrl } from '@/lib/security/remote-assets'
 // HTTP and redirected responses; this route is intentionally fail-closed.
 import { NextRequest } from 'next/server'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024
 const DOWNLOAD_TIMEOUT_MS = 60_000
 

@@ -55,6 +55,7 @@ export default function UserMenu({ dark = false }: UserMenuProps) {
     return (
       <Link
         href="/login"
+        prefetch={false}
         className={`text-xs font-black tracking-widest transition-colors duration-300 px-4 py-2 rounded-xl border ${
           dark
             ? 'border-white/20 text-white/60 hover:text-white hover:border-white/40'

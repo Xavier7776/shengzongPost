@@ -224,7 +224,7 @@ describe('every privileged or account-bound custom write entry', () => {
     let reads = 0
     const body = new ReadableStream<Uint8Array>({ pull(controller) { reads++; controller.enqueue(new TextEncoder().encode('{"user_id":7,"role":"admin"}')); controller.close() } }, { highWaterMark: 0 })
     const req = new NextRequest('https://blog.test/api/test', { method, headers: { 'content-type': 'application/json', 'x-user-id': '7', 'x-role': 'admin' }, body, signal: new AbortController().signal, duplex: 'half' } as RequestInit & { signal: AbortSignal })
-    const response = await handlers[method](req, { params: { id: '1', slug: 'test-only' } })
+    const response = await handlers[method](req, { params: Promise.resolve({ id: '1', slug: 'test-only' }) })
     expect([401,403]).toContain(response.status)
     expect(reads).toBe(0)
     for (const effect of Object.values(effects)) expect(effect).not.toHaveBeenCalled()
