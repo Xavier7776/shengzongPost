@@ -44,6 +44,7 @@ export default function GalleryClient({
     : images[0]?.id ?? null
 
   const [view, setView] = useState<GalleryView>('masonry')
+  const [mounted, setMounted] = useState(false)
   const [category, setCategory] = useState('ALL')
   const [tag, setTag] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -52,6 +53,7 @@ export default function GalleryClient({
   const [lightboxId, setLightboxId] = useState<number | null>(initialImageId ? initialId : null)
 
   useEffect(() => {
+    setMounted(true)
     const saved = localStorage.getItem(VIEW_KEY)
     if (saved === 'film' || saved === 'masonry') setView(saved)
     setLikedIds(storedLikedIds())
@@ -379,7 +381,7 @@ export default function GalleryClient({
         </div>
       </section>
 
-      {lightboxId !== null ? createPortal(
+      {mounted && lightboxId !== null ? createPortal(
         <Lightbox
           images={filtered}
           currentId={lightboxId}

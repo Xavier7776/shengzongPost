@@ -21,7 +21,7 @@ export type GalleryView = 'masonry' | 'film'
 export function blurPlaceholder(url: string): string {
   const m = url.match(/^(https:\/\/res\.cloudinary\.com\/[^/]+\/(?:image|video)\/upload\/)(.+)$/)
   if (!m) return url
-  return `${m[1]}w_32,e_blur:800,q_auto:lowest/${m[2]}`
+  return `${m[1]}w_32,e_blur:800,q_auto:low/${m[2]}`
 }
 
 export function ratioOf(img: GalleryItem): number {
