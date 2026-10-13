@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import StudyArticle from '@/components/learn/StudyArticle'
+import { useLearningProgress } from '@/components/learn/useLearningProgress'
 import ReadingHistory, { getReadingHistory, hasRead } from '@/components/sections/ReadingHistory'
 import LearnCatalog from '@/app/learn/LearnCatalog'
 import { LEARN_PROGRESS_KEY, parseLearningProgress, serializeLearningProgress, type LearningProgress } from '@/lib/learn/progress'
@@ -17,6 +18,14 @@ beforeEach(() => { localStorage.clear(); window.history.replaceState({}, '', '/'
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers() })
 
 describe('local study interactions', () => {
+  it('does not rerender an empty catalog or article after loading or clearing empty storage', () => {
+    const rendered = vi.fn()
+    const view = renderHook(() => { rendered(); return useLearningProgress() })
+    expect(view.result.current.records).toEqual({})
+    expect(rendered).toHaveBeenCalledTimes(1)
+    fireEvent(window, new StorageEvent('storage', { key: null }))
+    expect(rendered).toHaveBeenCalledTimes(1)
+  })
   it('keeps a visit unstarted and requires answers, practice and explicit completion; cancellation preserves learning', () => {
     render(<StudyArticle {...props}/>)
     expect(screen.getByText('未开始学习')).toBeInTheDocument()

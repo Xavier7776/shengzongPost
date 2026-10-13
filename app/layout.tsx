@@ -14,9 +14,18 @@ import { jsonLdText } from '@/lib/seo'
 const dmSans = DM_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '700', '900'],
-  style: ['normal', 'italic'],
+  style: ['normal'],
   variable: '--font-switzer',
   display: 'swap',
+})
+// Keep the genuine italic faces available without preloading them for every page.
+const dmSansItalic = DM_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '700', '900'],
+  style: ['italic'],
+  variable: '--font-switzer',
+  display: 'swap',
+  preload: false,
 })
 const dmMono = DM_Mono({
   subsets: ['latin'],
@@ -75,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <html lang="zh" className={`${dmSans.variable} ${dmMono.variable}`}>
+    <html lang="zh" className={`${dmSans.variable} ${dmSansItalic.variable} ${dmMono.variable}`}>
       <body className="overflow-x-hidden">
         {/* WebSite 结构化数据注入 */}
         <script

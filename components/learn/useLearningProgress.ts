@@ -10,7 +10,12 @@ export function useLearningProgress() {
   const volatile = useRef(false)
   useEffect(() => {
     const load = () => {
-      try { memory.current = parseLearningProgress(localStorage.getItem(LEARN_PROGRESS_KEY)); setAvailable(true); setRecords(memory.current) }
+      try {
+        const next = parseLearningProgress(localStorage.getItem(LEARN_PROGRESS_KEY))
+        memory.current = next
+        setAvailable(true)
+        setRecords(previous => Object.keys(previous).length === 0 && Object.keys(next).length === 0 ? previous : next)
+      }
       catch { setAvailable(false) }
     }
     const storage = (event: StorageEvent) => { if (event.key === LEARN_PROGRESS_KEY || event.key === null) load() }
