@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { updateProject, deleteProject } from '@/lib/db'
 import { invalidatePublishedContent } from '@/lib/content-cache'
-import { cloudinary } from '@/lib/cloudinary'
+import { deleteGitHubAsset } from '@/lib/github-assets'
 
 // PATCH /api/projects/[id] 更新项目（支持部分字段更新）
 async function handlePATCH(
@@ -53,7 +53,7 @@ async function handlePATCH(
   }
 }
 
-// DELETE /api/projects/[id] 删除项目，同时清理 Cloudinary 封面图
+// DELETE /api/projects/[id] 删除项目及 GitHub 资源分支中的封面条目
 async function handleDELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -66,10 +66,10 @@ async function handleDELETE(
 
   const publicId = await deleteProject(id)
 
-  // 清理 Cloudinary 封面图（失败不影响删除结果）
+  // 清理 GitHub 分支条目（失败不影响删除结果；历史固定链接仍可能可访问）
   if (publicId) {
     try {
-      await cloudinary.uploader.destroy(publicId, { resource_type: 'image' })
+      await deleteGitHubAsset(publicId)
     } catch (e) {
       logFailure('app/api/projects/[id]', e)
     }

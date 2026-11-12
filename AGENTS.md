@@ -10,24 +10,23 @@
 | React | `^19.3.0` | React DOM 与配套类型保持19；未启用 React Compiler |
 | Tailwind CSS | `^3.4.1` | **不是** Tailwind 4；配置见 `tailwind.config.ts` |
 | 主数据库 | Neon PostgreSQL（`@neondatabase/serverless`） | 服务端直连；博客授权不依赖 RLS，见第 7 节 |
-| 认证数据库 | Supabase（`@supabase/ssr`） | 仅用于 OnlyUs 会话刷新 |
 | 认证 | NextAuth v4（GitHub OAuth + credentials），JWT | `session.user.id` 是真实 DB id |
 | 编辑器 | Tiptap + lowlight（CodeBlockLowlight） | 另有 `marked` 做 markdown → HTML |
 | 测试 | Vitest + Testing Library | 配置见 `vitest.config.ts` |
 
-其他运行时依赖：`zustand`、`three`、`recharts`、`lucide-react`、`cloudinary`、`resend`、`dayjs`、`qrcode.react`、`bcryptjs`。
+其他运行时依赖：`three`、`recharts`、`lucide-react`、`sharp`、`resend`、`qrcode.react`、`bcryptjs`。
 
 **框架已在 M12 升级为 Next16/React19；Tailwind仍为3。以 package.json 和锁文件为准，历史阶段记录不代表当前版本。**
 
 ## 2. 命令
 
-本地路径：`D:\BaiduNetdisk\post\shengzongPost`（远端 `github.com/Xavier7776/shengzongPost`）。
+本地路径：`E:\post\shengzongPost`（远端 `github.com/Xavier7776/shengzongPost`）。
 
 ```bash
 npm run dev           # 开发服务器
 npm run build         # 生产构建（见下方 Windows 注意）
 npm run start         # 启动构建产物
-npm run lint          # ESLint CLI；检查目录与 OnlyUs 双向边界保持一致
+npm run lint          # ESLint CLI
 npm run typecheck     # tsc --noEmit（含 scripts/）
 npm test              # vitest run；文件/用例数以当前执行结果为准
 npm run test:watch
@@ -57,16 +56,13 @@ mkdir -p .tmpbuild && TMP="$PWD/.tmpbuild" TEMP="$PWD/.tmpbuild" npx next build
 数据库变更用 `npm run db:apply <migration-file>`（等价于
 `node scripts/apply-migration.mjs <migration-file>`），迁移文件统一放在 `supabase/migrations/`。
 
-> ⚠️ **迁移编号断层（未修复）**：`migration.sql` + `_002`~`_009` 与 `032`~`053`
-> 是**两套并行编号系列**，`010`~`031` 整段缺失。当前库是历史增量叠加出来的，
-> **全新环境无法仅凭这些文件从零建库**。详见第 7 节。
+> 历史迁移不完整，不能直接从零建库。新建空白隔离库使用 `docs/data/neon-public-baseline.sql`，见第 7 节。
 
 ## 3. 目录结构
 
 ```
 app/          路由（App Router）。页面应尽量薄，只做取数 + 组装
-  onlyus/     私密情侣应用的薄路由；实现全部在 features/onlyus/
-  api/        接口路由（无 onlyus 专属接口 —— onlyus 由浏览器直连 Supabase）
+  api/        博客、账户与研究工作台接口路由
 components/   博客侧共享 UI（ui / layout / sections / admin / shop 等）
 features/     业务模块（模块内自带 components / stores / lib）
   editor/           编辑器内核，与业务无关、可复用
@@ -74,53 +70,33 @@ features/     业务模块（模块内自带 components / stores / lib）
   submissions/      用户投稿
   research/         Research 工作台、运行 hook、协议映射与分区视图
   profile/          资料设置、用户主页、数据 hooks 与展示组件
-  onlyus/           私密情侣应用（自包含，见下方边界约定）
 lib/          博客侧数据访问与工具
   db/         数据访问层，按域拆分（analytics, comments, points, posts, ...）
   db.ts       仅作为 lib/db/* 的 barrel 重新导出
   db-search.ts / db-skills.ts / db-trending.ts / db-works.ts  尚未迁入 db/，计划合入
   data.ts     静态兜底数据（HERO_SLIDES 是 Hero 的 DB 降级兜底，勿整体删除）
 shared/       跨模块通用能力（当前只有 hooks.ts 与 ui/SpriteCanvas.tsx）
-supabase/migrations/   35 个 SQL 文件（OnlyUs 与 Neon 必须分开；056 尚未应用）
+supabase/migrations/   博客历史增量迁移（沿用目录名；056 尚未应用）
 __tests__/   Vitest 用例
 ```
 
 **两条历史文档写错的事实**：`app/(main)/` 这个路由组**并不存在**；
-顶层 `stores/` 已随 Batch 4 清空并删除，zustand store 现全部位于 `features/*/stores/`。
+顶层 `stores/` 已删除。
 
-### 3.1 模块边界（由 ESLint 强制）
+### 3.1 已移除的子应用
 
-`features/onlyus/` 是**自包含模块** —— 独立的数据库（Supabase）、独立的认证
-（HMAC cookie gate）、独立的 store，与博客侧零代码共享。它只允许引用自身与 `@/shared/*`：
+OnlyUs 已于 2026-11-12 按用户要求移出本项目；其路由、模块、门禁、推送云函数、
+专属 Supabase 迁移和依赖已移除，不要从旧记录恢复。`shared/hooks.ts` 与
+`shared/ui/SpriteCanvas.tsx` 仍供博客使用。`public/sw.js` 仅用于清理旧缓存并注销
+历史 Service Worker，不再提供缓存或推送。此次代码移除不操作远端数据库。
 
-| 方向 | 规则 |
-| --- | --- |
-| `features/onlyus/**`、`app/onlyus/**` → 其余任何代码 | **禁止**（`@/components/*` `@/lib/*` `@/stores/*` `@/features/*`；`@/features/onlyus` 自身除外） |
-| 其余任何代码 → `features/onlyus/**` | **禁止** |
+## 4. 三条产品线
 
-需要两方共用时，把代码上提到 `@/shared/`。规则在 `eslint.config.mjs` 的两个路径配置中，
-违反会直接 lint 报错。保持这条边界，将来若要把 onlyus 整体剥离成独立应用，
-只需 `git mv features/onlyus` 加一份 app 外壳，不必再理依赖。
-
-> **`proxy.ts` 仍留在仓库根目录**（Next16使用proxy约定；此前名为middleware.ts）。它的 `matcher` 只有
-> `/onlyus/:path*`，逻辑全部属于 onlyus，内部从 `@/features/onlyus/lib/gate` 取校验函数。
-> 之所以不整体搬进 `features/onlyus/`：若把 `export const config` 改成 re-export，
-> Next 的静态分析读不到 `matcher`，会退化成匹配全部路由。
->
-> **`SiteShell` 的 `isOnlyUs` 分支也必须保留**（`components/layout/SiteShell.tsx:22,80`）。
-> 单站点方案下 onlyus 仍由本应用在 `/onlyus` 提供，而根 `layout.tsx` 的 `SiteShell`
-> 会包裹**所有**子路由，嵌套 layout 无法摘除它。删掉该分支会让博客 Navbar 叠在
-> onlyus 的全屏固定布局上。要真正去掉它，必须先把博客路由收进 `app/(site)/` 路由组
-> （URL 不变，但要移动约 150 个路由文件）—— 属独立议题，不在 Batch 4 范围。
-
-## 4. 四条产品线
-
-项目已从个人博客扩展为四条业务线，改动前先判断自己碰的是哪一条：
+项目已从个人博客扩展为三条业务线，改动前先判断自己碰的是哪一条：
 
 1. **内容站** — `/`（Hero）、`/blog`、`/work`、`/gallery`、`/skills`、`/now`、`/projects`
 2. **用户社区与商店** — `/profile`、`/shop`（积分 + 头像框）、`/notifications`、`/dashboard`
-3. **OnlyUs 私密情侣应用** — `/onlyus/*`，有 proxy gate + zustand + Service Worker 推送
-4. **Research Agent 工作台** — `/skills/research`（`MultiAgentHub.tsx`）
+3. **Research Agent 工作台** — `/skills/research`（`MultiAgentHub.tsx`）
 
 ## 5. 开发约定
 
@@ -137,9 +113,7 @@ __tests__/   Vitest 用例
   `./features/**` 与 `./shared/**` 已加入；漏掉会导致对应目录下**所有 Tailwind 类被 purge**。
 - **ISR**：`lib/db/_core.ts` 的冷启动重试 Proxy 刻意不传 `cache: 'no-store'`，
   否则会触发 `DYNAMIC_SERVER_USAGE` 导致静态导出失败。不要"顺手"加上。
-- **Service Worker**：`public/sw.js` 由 OnlyUs 订阅推送时注册
-  （`features/onlyus/lib/push.ts`），不能删。它用 `NEVER_CACHE_PREFIXES` 排除 `/api`、
-  `/admin`、`/dashboard`、`/profile`、`/onlyus` 等私有/动态路径 —— 改缓存逻辑时这条底线不能破。
+- **Service Worker**：`public/sw.js` 为历史客户端的注销入口，仅清理 `mindstack-v*` 自有缓存；不能新增注册、缓存或推送功能。
 - **Markdown**：`work/[slug]` 与 `skills/[slug]` 各自配置 `marked` 并
   `dangerouslySetInnerHTML`，目前无 sanitizer，是已知的 XSS 风险点（见第 6 节 Batch 5）。
 - **不要提交**：`.env*`、`.claude`、`.trae`、`.workbuddy`、`supabase/.temp/`（已在 `.gitignore`）。
@@ -185,8 +159,11 @@ __tests__/   Vitest 用例
     `@dietrichgebert/ponytail` 移入 devDependencies（仅 `opencode.json` 的 CLI plugin 使用）；
     `@tiptap/pm` 是 Tiptap 必需 peer dep，**不可删**
   - `tsconfig.json` 从 `exclude` 移除 `scripts`，928 行爬虫纳入类型检查
-  - **不要删 `lib/cloudinary-loader.ts`**：静态分析显示零导入，但它是
-    `next.config.js` 的 `loaderFile` 引用，删了图片优化会整体失效
+  - **图片存储（2026-11-12）**：新上传改用 `lib/github-assets.ts`，保持 `uploadLarge` 的调用契约。
+    Next 使用内置图片优化，旧自定义 loader 与上传 SDK 已移除。历史图片及下载只读兼容，
+    不执行旧存储服务的删除，也不批量迁移现有数据库地址。
+    图片/附件存入 `assets/` 专属分支的 `uploads/` 目录，返回固定 Commit SHA 的 Raw URL；
+    `GITHUB_ASSET_TOKEN` 必须留在服务端，资源分支不允许指向 main。
 - **Batch 3（已完成）**
   - Research 收敛到 `features/research/`：`MultiAgentHub.tsx` 负责组装；
     `useResearch.ts` 保留运行状态、积分扣费、WebSocket、历史研报与清理逻辑；
@@ -199,46 +176,23 @@ __tests__/   Vitest 用例
   - 验证：67 个测试、类型检查、ESLint 通过；补齐本地 `.env.local` 后，
     `npm run build` 完整通过，93 个静态页面生成完成；真实登录、资料保存与研究服务
     端到端联调尚未执行。环境文件保持 Git 忽略，不提交密钥
-- **Batch 4（已完成）** OnlyUs 收敛到 `features/onlyus/` + `shared/`
-  - 共搬移 51 个文件（`git mv`，历史保留）：
-    `components/onlyus/`(31) → `features/onlyus/components/`；
-    `stores/onlyus/`(15) → `features/onlyus/stores/`；
-    `lib/onlyus-gate.ts` → `features/onlyus/lib/gate.ts`；
-    `lib/supabase-client.ts` → `features/onlyus/lib/supabase.ts`；
-    `lib/push.ts` → `features/onlyus/lib/push.ts`
-  - **两个"假共享"模块下沉**（引用计数实测：使用者 100% 在 onlyus）：
-    `lib/supabase-client.ts`（17 个使用者）、`lib/push.ts`（唯一使用者
-    `stores/onlyus/pushStore.ts`）—— 它们此前放在公共 `lib/` 顶层，造成"有共享"的假象
-  - **两个真共享模块上提**：`lib/hooks.ts` → `shared/hooks.ts`（onlyus 14 / 博客 5）；
-    `components/ui/SpriteCanvas.tsx` → `shared/ui/SpriteCanvas.tsx`（onlyus 宠物 + 商店光标）
-  - 顶层 `stores/` 搬空后**已删除**（onlyus 是它唯一内容），`npm run lint` 的 `--dir`
-    目标同步去掉 `stores`、补上 `features`/`shared`/`__tests__`（`next lint` 默认不扫这些目录）
-  - **ESLint 双向边界上锁**（见 3.1 节），并用正反两次探针实测：两侧违规均被拦截、
-    `@/shared/*` 正确放行、现有代码零误报
-  - 验证：`tsc --noEmit` 通过；`next lint` 边界规则 0 命中；`npm run build` 通过
+- **Batch 4（历史）** 曾完成独立子应用的模块拆分；该子应用现已移除，见 3.1。
 - **Batch 5（下一步）** 统一 markdown 渲染与消毒到 `shared/markdown/`（顺带修 XSS）；
   `lib/db-{search,skills,trending,works}.ts` 迁入 `lib/db/` 并留 re-export shim；
   跑 Knip；`@types/three` 移到 devDependencies
-- **Batch 6（可选，见 3.1 节）** 把博客路由收进 `app/(site)/` 路由组，
-  使 `SiteShell` 只需包裹内容站、从而删掉 `isOnlyUs` 等特例分支。URL 不变，
-  但涉及约 150 个路由文件移动，风险高于 Batch 4，建议单独一轮做
-
 目标结构：`app/` 只留薄路由；业务收敛到
-`features/{blog,work,gallery,editor,profile,community,shop,research,onlyus}`；
+`features/{blog,work,gallery,editor,profile,community,shop,research}`；
 通用能力到 `shared/{ui,markdown,auth,upload,validation}`；数据访问统一在 `lib/db/`。
 
 ## 7. 已知遗留
 
 按风险从高到低：
 
-1. **迁移编号断层（阻塞级）** — `supabase/migrations/` 下 35 个文件，
-   但编号分两套并行系列：`schema.sql` / `migration.sql` / `_002`~`_009`，
-   以及 `032`~`053`。**`010`~`031` 整段不存在**。现有库是历史增量叠加的产物，
-   **不能把历史文件混排后从零建库**。`schema.sql` 与 032–043 属于 OnlyUs/Supabase，
-   不可当作博客 Neon 基线。博客 public 的实测重建基线在
-   `docs/data/neon-public-baseline.sql`，只用于新建空白隔离库；不得交给旧迁移脚本或生产。
-   054/055 已存在，056 仍未获批；托管 `neon_auth` 与 OnlyUs 独立处理。
-   漂移/恢复证据见 `docs/data/schema-drift-report.md`。
+1. **历史迁移不完整** — `supabase/migrations/` 保留博客增量迁移，沿用旧目录名。
+   已移除独立子应用的 `schema.sql` 与 032–043，不要从旧记录将其当作博客基线。
+   博客 public 的实测重建基线在 `docs/data/neon-public-baseline.sql`，只用于新建空白隔离库；
+   不得交给旧迁移脚本或生产。054/055 已存在，056 仍未获批；托管 `neon_auth` 独立处理。
+   漂移/恢复历史证据见 `docs/data/schema-drift-report.md`，历史审计文件不代表现有模块列表。
 2. **`/admin` 无入口（已修复）** — 此前 `Navbar` 与 `UserMenu` 都没有后台链接，
    只能手敲 URL。现已补：桌面端在 `UserMenu`，移动端抽屉在 `Navbar`
    （均以 `role === 'admin'` 收敛）。
@@ -252,7 +206,7 @@ __tests__/   Vitest 用例
    `dangerouslySetInnerHTML` 渲染 `marked` 输出，无 sanitizer，存在 XSS 风险。
 6. **爬虫无调度** — 已核实：仓库内既无 `.github/workflows/` 也无 `vercel.json`，
    `crawl:skills` / `crawl:trending` 只是手动脚本，「每天 10:00 自动爬取」并未实现。
-7. `README.md` 已覆盖四条产品线；`docs/项目整理计划-2026-09-10.md` 保留了
+7. `README.md` 已覆盖三条产品线；`docs/项目整理计划-2026-09-10.md` 保留了
    本轮审计的完整证据链（导入图分析、双栈数据层、死代码判定依据）。
 
 > 已核实**不成立**、勿再当遗留项的两条旧说法：
@@ -269,7 +223,7 @@ M11 实际核对：Neon `public.notifications`、`research_reports`、`visitor_t
 - 新评论默认 `pending`，由现有管理员评论审核界面批准或拒绝；不要为了恢复自动审核而直接公开未审评论。
 - 每日精读沿用 ChatGPT 08:30 任务；生产写入通道仍阻断，生成不等于发布。收费 OpenAI 手动脚本与 workflow 已撤除，不启用第二调度，不通过密钥绕过安全检查。Web 保留现有严格校验的 HMAC 发布接口，不新增模型调用。
 - `npm run learn:validate -- <candidate.json>` 只做当日候选离线校验，复用 `lib/learn/document.ts` 与 `publication-contract.ts`；不联网、不写库，不是已验证的任务发布适配器。056 仍为候选，生产 DDL 须单独批准，禁止补写或覆盖旧刊。
-- 保留 `/skills/research` 与 OnlyUs 业务，不在此 PR 中删除其独立产品能力。
+- 保留 `/skills/research` 研究工作台。
 
 <!-- BEGIN:nextjs-agent-rules -->
 

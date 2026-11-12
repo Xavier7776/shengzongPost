@@ -48,13 +48,16 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  // 本地阅读预览不遮挡目录进度；编译错误仍在终端和浏览器控制台报告。
+  devIndicators: false,
   // 移除 X-Powered-By: Next.js 响应头，避免暴露技术栈
   poweredByHeader: false,
   // 隐藏版本信息
   productionBrowserSourceMaps: false,
   images: {
-    // 自定义 loader：Cloudinary 图片注入 f_auto/q_auto/宽度参数，自动 AVIF/WebP + 响应式
-    loaderFile: './lib/cloudinary-loader.ts',
+    // GitHub Raw 图片使用 Next 内置优化；历史图片来源继续可读。
+    // 本机代理可能将公网域名解析为保留 IP，开发时直接由浏览器加载，保留服务端 SSRF 防护。
+    unoptimized: process.env.NODE_ENV === 'development' && Boolean(process.env.HTTPS_PROXY || process.env.HTTP_PROXY),
     // 优先输出 AVIF/WebP，体积更小、加载更快
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
@@ -87,7 +90,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:section(admin|dashboard|profile|onlyus|notifications|login|register|verify)/:path*',
+        source: '/:section(admin|dashboard|profile|notifications|login|register|verify)/:path*',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
       {

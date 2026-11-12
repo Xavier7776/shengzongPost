@@ -56,7 +56,7 @@ function ImgUploadButton({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        title="上传图片到 Cloudinary"
+        title="上传图片到 GitHub"
         className={`flex items-center gap-1 shrink-0 border border-gray-200 hover:border-blue-400 hover:text-blue-600 text-gray-400 rounded-lg transition-colors disabled:opacity-50 ${
           compact ? 'px-2 py-1.5 text-[10px]' : 'px-3 py-2 text-xs font-bold'
         }`}

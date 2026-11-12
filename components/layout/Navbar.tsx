@@ -45,6 +45,7 @@ export default function Navbar() {
   const [progress,   setProgress]   = useState(0)       // 页面阅读进度
   const [hydrated,   setHydrated]   = useState(false)
   const pathname  = usePathname()
+  const isArticleReader = hydrated && /^\/blog\/[^/]+/.test(pathname)
   const router    = useRouter()
   const drawerRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
@@ -152,6 +153,7 @@ export default function Navbar() {
 
   const navCls = isWorkDetail
     ? 'relative bg-white border-b border-gray-100 py-4'
+    : isArticleReader ? 'reader-site-nav fixed top-0 left-0 right-0 z-50'
     : [
         'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
         hidden && !menuOpen ? '-translate-y-full' : 'translate-y-0',
@@ -170,7 +172,7 @@ export default function Navbar() {
             style={{ width: `${progress * 100}%`, opacity: progress > 0.005 ? 1 : 0 }}
           />
         )}
-        <div className={`${pathname === '/gallery' ? 'relative px-5 sm:px-8 lg:px-12' : 'max-w-6xl mx-auto px-6'} flex items-center justify-between`}>
+        <div className={`${isArticleReader ? 'reader-site-nav-inner' : pathname === '/gallery' ? 'relative px-5 sm:px-8 lg:px-12' : 'max-w-6xl mx-auto px-6'} flex items-center justify-between`}>
 
           {/* Logo */}
           <Link href="/" prefetch={false} className="flex items-center gap-2.5">
@@ -184,10 +186,11 @@ export default function Navbar() {
             <span className={`tracking-tighter text-2xl font-black transition-colors ${isGalleryHero ? 'text-white' : 'text-gray-900'}`}>
               Mind<span className={isGalleryHero ? 'text-white' : 'text-blue-600'}>Stack</span>
             </span>
+            {isArticleReader && <span className="reader-site-label">技术手册</span>}
           </Link>
 
           {/* 桌面端导航 */}
-          <div className={`hidden items-center space-x-10 md:flex ${pathname === '/gallery' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : ''}`}>
+          <div className={`hidden items-center space-x-10 md:flex ${isArticleReader ? 'reader-desktop-links' : ''} ${pathname === '/gallery' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : ''}`}>
             {NAV_ITEMS.map(({ label, href }) => {
               const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
               return (
@@ -225,7 +228,7 @@ export default function Navbar() {
           </div>
 
           {/* 移动端右侧 */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className={`flex md:hidden items-center gap-2 ${isArticleReader ? 'reader-mobile-links' : ''}`}>
             <NotificationBell dark={isGalleryHero} />
             {session ? (
               <Link href={userId ? `/profile/${userId}` : '/profile'}>

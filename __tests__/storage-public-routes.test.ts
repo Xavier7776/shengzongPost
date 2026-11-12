@@ -123,7 +123,7 @@ it('minimizes analytics records and derives signed-in status exclusively from se
   expect(JSON.stringify(mocks.track.mock.calls)).not.toContain('203.0.113.7')
 })
 it('rejects private paths, malformed IDs and oversized tracking before effects, and drops throttled events', async () => {
-  for (const path of ['/admin/reviews', '/onlyus/pet', '/login', '/profile/123', '//evil.test']) {
+  for (const path of ['/admin/reviews', '/dashboard/new', '/login', '/profile/123', '//evil.test']) {
     expect((await analytics(json('/api/analytics/track', { ...tracking, path }))).status).toBe(204)
   }
   expect((await analytics(json('/api/analytics/track', { ...tracking, visitorId: 'forged' }))).status).toBe(204)

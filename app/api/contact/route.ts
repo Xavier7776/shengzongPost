@@ -20,7 +20,7 @@ async function handlePOST(req: NextRequest) {
 
     if (!await allowAuthAttempt(req, 'contact', email)) return NextResponse.json({ error: '发送太频繁，请稍后重试' }, { status: 429 })
     const { error: sendError } = await resend.emails.send({
-      from: 'Xavier <Xavier@zshengzong.top>',
+      from: process.env.EMAIL_FROM ?? 'MindStack <noreply@zshengzong.top>',
       to: '1808571411@qq.com',
       replyTo: email,
       subject: `[ARC Portfolio] 新消息来自 ${name}`,

@@ -1,8 +1,6 @@
 import { logFailure } from '@/lib/security/log'
-import { allowedCloudinaryUrl } from '@/lib/security/remote-assets'
-// Proxy only this site's uploaded Cloudinary assets.
-// The previous hostname.endsWith('cloudinary.com') accepted lookalike attacker domains,
-// HTTP and redirected responses; this route is intentionally fail-closed.
+import { allowedAssetUrl } from '@/lib/security/remote-assets'
+// Only pinned GitHub assets from this repository and allowlisted historical assets.
 import { NextRequest } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -15,7 +13,7 @@ function contentType(filename: string) {
   return 'application/octet-stream'
 }
 
-/** Limit downloaded bytes even when Cloudinary does not provide a Content-Length header. */
+/** Limit downloaded bytes even when the upstream omits Content-Length. */
 function boundedBody(body: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
   const reader = body.getReader()
   let received = 0
@@ -40,11 +38,8 @@ function boundedBody(body: ReadableStream<Uint8Array>): ReadableStream<Uint8Arra
 export async function GET(req: NextRequest) {
   const raw = req.nextUrl.searchParams.get('url')
   if (!raw) return Response.json({ error: '缺少 url 参数' }, { status: 400 })
-  if (!process.env.CLOUDINARY_CLOUD_NAME) {
-    return Response.json({ error: '下载服务暂不可用' }, { status: 503 })
-  }
-  const target = allowedCloudinaryUrl(raw)
-  if (!target) return Response.json({ error: '只允许本站 Cloudinary HTTPS 附件' }, { status: 403 })
+  const target = allowedAssetUrl(raw)
+  if (!target) return Response.json({ error: '只允许本站可信 HTTPS 附件' }, { status: 403 })
   const requestedName = req.nextUrl.searchParams.get('filename') ?? 'attachment'
   const filename = requestedName.slice(0, 180).replace(/[\r\n]/g, '').trim() || 'attachment'
 

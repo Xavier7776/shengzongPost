@@ -77,7 +77,7 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
     router.push('/admin'); router.refresh()
   }
 
-  // ── 添加附件（纯前端 state，无数据库/Cloudinary）────────────────
+  // ── 添加附件（纯前端 state，无数据库/GitHub）────────────────
   function handleAddAttachment() {
     const filename = addAttFilename.trim()
     const url      = addAttUrl.trim()
@@ -89,7 +89,7 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
     setAddAttFilename(''); setAddAttUrl(''); setAddAttOpen(false)
   }
 
-  // ── 上传 md 文件到 Cloudinary（resource_type=raw），成功后追加到 attachments ──
+  // ── 上传 md 文件到 GitHub（resource_type=raw），成功后追加到 attachments ──
   async function handleUploadMd(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = '' // 允许重复选择同一文件

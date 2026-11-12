@@ -497,7 +497,7 @@ body::before {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.3rem 0 1rem;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 .learn-toc-caption {
   font-size: 0.875rem;
@@ -652,4 +652,186 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Technical manual reader — selected concept, scoped to article routes. */
+.technical-reader-page {
+  --reader-ink: #252a34;
+  --reader-muted: #6c7480;
+  --reader-accent: #3858bb;
+  --reader-line: #e5e9f0;
+  --reader-surface: #fff;
+  min-height: 100vh;
+  padding-top: 72px;
+  background: var(--reader-surface);
+  color: var(--reader-ink);
+  font-family: var(--font-switzer), 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+}
+body:has(.technical-reader-page)::before { display: none; }
+.technical-reader-page ::selection { background: #dce4fa; color: #24335a; }
+.reader-title-word { display: inline-block; white-space: nowrap; max-width: 100%; }
+.reader-site-nav { height: 72px; background: #fff; border-bottom: 1px solid #edf0f3; }
+.reader-site-nav-inner { height: 100%; padding-inline: 32px; gap: 20px; }
+.reader-site-label { border-left: 1px solid #dbe0e9; padding-left: 18px; margin-left: 10px; font-size: 17px; font-weight: 650; color: #334155; white-space: nowrap; }
+.reader-site-nav .reader-desktop-links { gap: 25px; }
+.reader-site-nav .reader-desktop-links > * { margin-left: 0; }
+.technical-reader-layout { display: grid; grid-template-columns: minmax(0, 1fr) 136px; gap: 42px; margin-left: 280px; padding: 48px 32px 112px 56px; }
+.reader-article-column { width: 100%; min-width: 0; max-width: 850px; }
+.reader-breadcrumb { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; color: #727984; font-size: 13px; }
+.reader-breadcrumb a:hover { color: #315bea; }
+.reader-breadcrumb > span { color: #315bea; font-weight: 650; }
+.technical-reader-page .reader-title { max-width: 100%; margin: 0 0 23px; font-size: clamp(30px, 2.8vw, 40px); line-height: 1.45; font-weight: 700; letter-spacing: -.028em; color: var(--reader-ink); text-wrap: balance; overflow-wrap: break-word; }
+.reader-meta-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 23px; border-bottom: 1px solid var(--reader-line); }
+.reader-byline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--reader-muted); font-size: 14px; line-height: 1.8; }
+.reader-author-initial { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #eaf0ff; color: #315bea; font-weight: 700; }
+.reader-author-name { color: var(--reader-ink); font-weight: 650; }
+.reader-author-name:hover { color: var(--reader-accent); }
+.reader-meta-dot { color: #9aa4b3; }
+.reader-practice-time { color: var(--reader-muted); }
+.reader-header-actions { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.reader-bookmark, .reader-settings > summary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; min-width: 36px; border-radius: 6px; color: var(--reader-muted); cursor: pointer; }
+.reader-bookmark:hover, .reader-settings > summary:hover { background: #f1f4f8; color: #315bea; }
+.reader-bookmark.is-bookmarked { color: #315bea; background: #edf2ff; }
+.reader-bookmark:disabled { opacity: .45; cursor: wait; }
+.reader-toolbar { position: relative; z-index: 40; font-size: 14px; }
+.reader-settings > summary { padding-inline: 9px; list-style: none; font-size: 17px; }
+.reader-settings > summary::-webkit-details-marker { display: none; }
+.reader-settings-panel { position: absolute; top: 45px; right: 0; width: 270px; padding: 20px; border: 1px solid #dfe5ee; border-radius: 9px; background: #fff; color: #334155; box-shadow: 0 12px 35px rgb(15 23 42 / .10); }
+.reader-settings-title { margin-bottom: 18px; color: #192230; font-weight: 700; }
+.reader-font-controls { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.reader-font-controls > div { display: flex; align-items: center; gap: 12px; }
+.reader-font-controls button { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #dfe5ee; border-radius: 5px; }
+.reader-font-controls button:hover { color: #315bea; background: #f2f5ff; }
+.reader-font-controls button:disabled { opacity: .3; cursor: not-allowed; }
+.reader-font-controls output { min-width: 35px; font-family: var(--font-mono), monospace; font-size: 12px; text-align: center; }
+.reader-settings-label { margin: 18px 0 10px; color: #647084; font-size: 12px; }
+.reader-mode-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.reader-mode-controls button { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 11px 6px; border: 1px solid #e5e9f0; border-radius: 6px; color: #647084; font-size: 12px; }
+.reader-mode-controls button[aria-pressed="true"] { color: #315bea; border-color: #aabdf8; background: #edf2ff; }
+.technical-reader-page .reader-abstract { margin: 28px 0 26px; font-size: 17px; line-height: 1.95; color: var(--reader-ink); overflow-wrap: break-word; }
+.technical-reader-article { --reader-font-size: 18px; color: var(--reader-ink); border-radius: 8px; }
+.technical-reader-page .reader-content { border-radius: 0; }
+.technical-reader-page .reader-content :is(.post-content p, .space-y-5 p, .post-content li) { font-size: var(--reader-font-size, 18px); line-height: 1.95; color: var(--reader-ink); }
+.technical-reader-page .reader-content .post-content > p { margin: 20px 0; }
+.technical-reader-page .reader-content .post-content > h2 { font-size: 25px; font-weight: 650; line-height: 1.65; margin: 48px 0 22px; padding: 0; border: 0; color: var(--reader-ink); letter-spacing: -.02em; }
+.technical-reader-page .reader-content .post-content > h3 { font-size: 21px; line-height: 1.6; margin: 30px 0 14px; color: var(--reader-ink); }
+.technical-reader-page .reader-content :is(h2, h3) { scroll-margin-top: 105px; }
+.technical-reader-page .reader-content :is(.post-content strong, .space-y-5 strong) { color: var(--reader-ink); }
+.technical-reader-page .reader-content .post-content a { color: var(--reader-accent); text-decoration-thickness: 1px; }
+.technical-reader-page .reader-content :is(.post-content blockquote, .space-y-5 blockquote) { margin: 28px 0; padding: 3px 0 3px 20px; border-left: 1px solid #3858bb; border-radius: 0; background: transparent; }
+.technical-reader-page .reader-content blockquote p { color: var(--reader-accent); font-style: normal; font-weight: 600; }
+.technical-reader-page .reader-content .post-content > :is(section, aside, figure) { max-width: 100%; border-radius: 7px; box-shadow: none; }
+.technical-reader-page .reader-content .post-content > p.text-xs { color: var(--reader-muted); font-size: 12px; line-height: 1.8; margin: 12px 0 24px; }
+.technical-reader-page .reader-introduction { margin: 16px 0 8px; padding: 0; color: var(--reader-muted); font-size: 13px; }
+.reader-introduction summary { width: fit-content; cursor: pointer; }
+.reader-introduction[open] summary { margin-bottom: 14px; color: var(--reader-accent); }
+.technical-reader-page .reader-introduction .learn-article-lead { padding: 0; margin: 0; border-radius: 0; background: transparent; font-size: var(--reader-font-size); line-height: 1.95; color: var(--reader-ink); }
+.technical-reader-page .reader-learning-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 12px 0; margin: 8px 0 16px; border: 0; border-bottom: 1px solid var(--reader-line); border-radius: 0; background: transparent; color: var(--reader-muted); font-size: 12px; line-height: 1.7; }
+.reader-learning-progress > p:first-child { margin-right: auto; }
+.technical-reader-page .reader-learning-progress > button { padding: 3px 0; margin: 0; border: 0; border-radius: 0; color: var(--reader-accent); font-size: 12px; font-weight: 600; }
+.reader-progress-details { order: 3; flex-basis: 100%; font-size: 11px; }
+.reader-progress-details > summary { color: var(--reader-muted); cursor: pointer; width: fit-content; }
+.reader-progress-details p { margin-top: 8px; max-width: 720px; line-height: 1.8; }
+.reader-learning-progress > [role="status"] { flex-basis: 100%; color: #9a6700; }
+.technical-reader-page .reader-content .reader-code-block { overflow: hidden; margin: 30px 0; border: 1px solid #26364c; border-radius: 7px; background: #1c293d; }
+.reader-code-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 18px; background: #26354b; color: #ecf1f9; font-size: 13px; }
+.reader-code-heading small { margin-left: 7px; color: #afbdd0; font-size: 11px; }
+.reader-code-heading button { display: inline-flex; align-items: center; gap: 7px; color: #c8d5e7; font-size: 11px; }
+.reader-code-heading button:hover { color: #fff; }
+.technical-reader-page .reader-content .reader-code-block pre { padding: 24px; margin: 0; max-height: 520px; border-radius: 0; background: #1c293d; color: #dce7f6; line-height: 1.85; font-size: 14px; color-scheme: dark; scrollbar-width: thin; scrollbar-color: #53647c #1c293d; }
+.technical-reader-page .reader-content .reader-code-block pre code { color: inherit; font-size: inherit; font-family: var(--font-mono), monospace; }
+.technical-reader-page .reader-content .reader-code-block figcaption { padding: 13px 18px; border-top: 1px solid #34445b; color: #bccade; font-size: 12px; line-height: 1.8; }
+.reader-toc-rail { position: fixed; top: 72px; left: 0; bottom: 0; z-index: 30; width: 280px; background: #f9f9f8; border-right: 1px solid #eeefed; }
+.reader-toc-panel { display: flex; flex-direction: column; height: 100%; padding: 43px 28px 28px; }
+.reader-toc-caption { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 30px; color: #343a43; font-size: 14px; font-weight: 600; }
+.reader-toc-caption > span { color: #646c74; font-size: 11px; font-weight: 400; }
+.reader-toc-groups { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.reader-toc-group { margin-bottom: 12px; padding: 8px 0 16px; border-bottom: 1px solid #e9ebe8; }
+.reader-toc-group:last-child { border-bottom: 0; }
+.reader-toc-group.is-active > .reader-toc-group-title { color: #3858bb; }
+.reader-toc-group-title { display: flex; align-items: center; gap: 13px; width: 100%; padding: 9px 0; color: #353b45; font-size: 16px; font-weight: 550; text-align: left; transition: color 160ms; }
+.reader-toc-index { color: #8b9197; font-size: 11px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.reader-toc-group-title:hover { color: #3858bb; }
+.reader-toc-group-title svg { margin-left: auto; color: #828a91; flex-shrink: 0; transition: transform 150ms; }
+.reader-toc-group-title[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.reader-toc-group ol { list-style: none; padding: 0 0 0 28px; margin: 8px 0 0; border-left: 1px solid #dfe3e8; }
+.reader-toc-group li { margin: 0; }
+.reader-toc-group li > button { width: 100%; padding: 9px 0; color: #6c727b; font-size: 13px; line-height: 1.85; text-align: left; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.reader-toc-group li > button:hover, .reader-toc-group li > button[aria-current="location"] { color: #3858bb; }
+.reader-toc-group li > button[aria-current="location"] { font-weight: 650; }
+.reader-toc-group .reader-toc-subitem { padding-left: 12px; }
+.reader-toc-group .reader-toc-more { color: #315bea; font-size: 11px; }
+.reader-toc-footer { padding: 22px 0 0; border-top: 1px solid #e4e7e3; color: #6c727b; font-size: 12px; }
+.reader-toc-footer > div { display: flex; gap: 6px; align-items: center; }
+.reader-toc-footer strong { color: #315bea; font-weight: 600; font-variant-numeric: tabular-nums; }
+.reader-toc-footer progress { display: block; appearance: none; width: 100%; height: 2px; border: 0; border-radius: 9px; margin: 10px 0 8px; overflow: hidden; background: #dfe6ef; }
+.reader-toc-footer progress::-webkit-progress-bar { background: #dfe6ef; }
+.reader-toc-footer progress::-webkit-progress-value { background: #315bea; border-radius: 9px; }
+.reader-toc-footer progress::-moz-progress-bar { background: #315bea; }
+.reader-toc-footer small { font-size: 11px; color: #626b75; }
+.reader-toc-mobile { display: none; }
+.reader-toc-overlay { display: none; }
+.reader-sources { min-width: 0; align-self: stretch; border-left: 1px solid var(--reader-line); padding: 400px 0 0 20px; }
+.reader-sources-inner { position: sticky; top: 116px; }
+.reader-sources-caption { margin-bottom: 18px; font-size: 12px; letter-spacing: .02em; color: #6c7480; }
+.reader-sources a { display: flex; align-items: baseline; gap: 6px; margin-bottom: 22px; color: #687180; font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.reader-sources a:hover { color: #315bea; }
+.reader-source-number { color: #315bea; flex-shrink: 0; }
+.reader-sources small { display: flex; align-items: center; gap: 3px; margin-top: 5px; color: #677383; font-size: 11px; }
+.reader-correction { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 40px; color: #8a94a4; font-size: 11px; }
+.reader-correction a { color: #647084; text-decoration: underline; text-underline-offset: 3px; }
+.technical-reader-article.reader-mode-dark { --reader-ink: #dce4ee; --reader-muted: #a5b4c7; --reader-line: #374254; --reader-accent: #94adff; background: #1c2430; padding: 24px; }
+.technical-reader-article.reader-mode-sepia { --reader-ink: #514536; --reader-muted: #82715b; --reader-line: #e1d8c8; --reader-accent: #7b582e; background: #faf4e8; padding: 24px; }
+@media (min-width: 1600px) { .technical-reader-layout { max-width: 1220px; margin-left: max(280px, calc((100vw - 1100px) / 2)); padding-left: 56px; padding-right: 48px; } }
+@media (max-width: 1279px) {
+  .technical-reader-layout { grid-template-columns: minmax(0, 1fr); padding-right: 36px; }
+  .reader-sources { display: none; }
+  .reader-site-label { display: none; }
+  .reader-site-nav .reader-desktop-links { gap: 18px; }
+}
+@media (max-width: 1099px) {
+  .reader-toc-rail { display: none; }
+  .technical-reader-layout { margin-left: 0; max-width: 900px; margin-inline: auto; padding: 30px 32px 75px; }
+  .reader-site-nav .reader-desktop-links { display: none; }
+  .reader-site-nav .reader-mobile-links { display: flex; }
+  .reader-site-label { display: inline; }
+  .reader-toc-mobile { position: sticky; top: 72px; z-index: 35; display: block; height: 45px; background: #f7f9fc; border-bottom: 1px solid #e5e9f0; }
+  .reader-toc-mobile:has(.reader-toc-overlay) { z-index: 80; }
+  .reader-toc-trigger { display: inline-flex; align-items: center; gap: 9px; height: 44px; padding-inline: 28px; color: #34445b; font-size: 12px; }
+  .reader-toc-trigger > span { color: #8793a4; font-size: 11px; }
+  .reader-toc-overlay { display: block; position: fixed; inset: 0; z-index: 90; }
+  .reader-toc-scrim { position: absolute; inset: 0; width: 100%; height: 100%; background: rgb(15 23 42 / .35); }
+  .reader-toc-drawer { position: absolute; inset: 0 auto 0 0; display: flex; flex-direction: column; width: min(340px, 90vw); background: #f9f9f8; padding: calc(20px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom)); }
+  .reader-toc-drawer-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; padding: 0 8px; color: #192230; }
+  .reader-toc-drawer-heading > button { display: grid; place-items: center; width: 36px; height: 36px; }
+  .technical-reader-page .reader-content :is(h2, h3) { scroll-margin-top: 135px; }
+}
+@media (max-width: 639px) {
+  .reader-site-nav { height: 64px; }
+  .reader-site-nav-inner { padding-inline: 18px; gap: 8px; }
+  .reader-site-label { display: none; }
+  .reader-site-nav-inner > a { gap: 7px; }
+  .reader-site-nav-inner > a > span { font-size: 22px; }
+  .technical-reader-page { padding-top: 64px; }
+  .reader-toc-mobile { top: 64px; }
+  .reader-toc-trigger { padding-inline: 21px; }
+  .technical-reader-layout { padding: 24px 21px 68px; }
+  .reader-breadcrumb { margin-bottom: 18px; gap: 9px; font-size: 12px; }
+  .technical-reader-page .reader-title { font-size: 28px; line-height: 1.44; margin-bottom: 20px; letter-spacing: -.025em; }
+  .reader-meta-row { align-items: flex-start; gap: 8px; padding-bottom: 18px; }
+  .reader-byline { gap: 5px 8px; font-size: 11px; }
+  .reader-byline time { flex-basis: calc(100% - 100px); }
+  .reader-author-initial { width: 23px; height: 23px; }
+  .reader-meta-dot { display: none; }
+  .reader-practice-time { flex-basis: 100%; }
+  .reader-header-actions { gap: 2px; }
+  .reader-settings-panel { width: 252px; }
+  .technical-reader-page .reader-abstract { font-size: 15px; line-height: 1.9; margin: 20px 0; }
+  .technical-reader-page .reader-content .post-content > h2 { font-size: 23px; margin-top: 32px; }
+  .technical-reader-page .reader-content .post-content > h3 { font-size: 19px; }
+  .technical-reader-page .reader-content :is(.post-content p, .space-y-5 p, .post-content li) { line-height: 1.9; }
+  .reader-code-heading { padding: 11px 13px; }
+  .reader-code-heading small { display: block; margin: 3px 0 0; }
+  .technical-reader-page .reader-content .reader-code-block pre { padding: 16px; font-size: 12px; }
+  .technical-reader-article.reader-mode-dark, .technical-reader-article.reader-mode-sepia { padding: 16px; margin-inline: -10px; }
 }

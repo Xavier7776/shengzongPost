@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import SpriteCSS from '@/components/ui/SpriteCSS'
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
-it.each([['https://res.cloudinary.com/test/image/upload/pet.png', 'anonymous'], ['/cursor-effects/old.webp', undefined]])('sets the correct image request mode for %s before loading', (url, expected) => {
+it.each([['https://res.cloudinary.com/test/image/upload/pet.png', 'anonymous'], ['https://raw.githubusercontent.com/Xavier7776/shengzongPost/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/uploads/pet.png', 'anonymous'], ['/cursor-effects/old.webp', undefined]])('sets the correct image request mode for %s before loading', (url, expected) => {
   const requests: { url: string; crossOrigin?: string }[] = []
   vi.stubGlobal('Image', class {
     crossOrigin?: string

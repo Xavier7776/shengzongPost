@@ -12,7 +12,7 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
 
-describe('Cloudinary-only attachment download proxy', () => {
+describe('GitHub and historical attachment download proxy', () => {
   it('refuses HTTP, credentials, lookalike hostnames and other Cloudinary accounts', async () => {
     const invalid = [
       'http://res.cloudinary.com/portfolio-demo/raw/upload/test.pdf',
@@ -26,10 +26,15 @@ describe('Cloudinary-only attachment download proxy', () => {
     for (const url of invalid) expect((await GET(request(url))).status).toBe(403)
     expect(fetch).not.toHaveBeenCalled()
   })
-  it('refuses unconfigured installations, without upstream requests', async () => {
+  it('downloads pinned GitHub attachments without any upload credentials', async () => {
     vi.stubEnv('CLOUDINARY_CLOUD_NAME', '')
-    expect((await GET(request('https://res.cloudinary.com/portfolio-demo/raw/upload/test.pdf'))).status).toBe(503)
-    expect(fetch).not.toHaveBeenCalled()
+    vi.stubEnv('GITHUB_ASSET_TOKEN', '')
+    vi.mocked(fetch).mockResolvedValue(new Response('markdown'))
+    const url = 'https://raw.githubusercontent.com/Xavier7776/shengzongPost/' + 'a'.repeat(40) + '/uploads/attachments/test.md'
+    const response = await GET(request(url, 'test.md'))
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe('markdown')
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(url, expect.objectContaining({ redirect: 'manual' }))
   })
   it('streams only HTTPS same-cloud content with fixed request redirect policy', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(new Uint8Array([1,2,3]), {

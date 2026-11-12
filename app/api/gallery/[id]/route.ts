@@ -4,7 +4,7 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { deleteGalleryImage, updateGalleryImage } from '@/lib/db'
-import { cloudinary } from '@/lib/cloudinary'
+import { deleteGitHubAsset } from '@/lib/github-assets'
 
 async function handleDELETE(
   _req: NextRequest,
@@ -15,8 +15,8 @@ async function handleDELETE(
     const id = Number((await params).id)
     const publicId = await deleteGalleryImage(id)
 
-    // 同步删除 Cloudinary 上的文件
-    await cloudinary.uploader.destroy(publicId)
+    // Remove new GitHub branch entries; historical provider assets stay available.
+    await deleteGitHubAsset(publicId)
 
     return NextResponse.json({ success: true })
   } catch (err) {

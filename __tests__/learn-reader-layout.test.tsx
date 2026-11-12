@@ -10,6 +10,9 @@ import type { Post } from '@/lib/db/posts'
 vi.mock('@/components/sections/AuthorCard', () => ({
   default: () => <div data-testid="legacy-author-card">Full author card</div>,
 }))
+vi.mock('@/components/sections/PostActions', () => ({
+  default: () => <button aria-label="收藏文章">收藏</button>,
+}))
 
 const post: Post = {
     id: 1, published: true, updated_at: '2026-10-09T01:00:00Z', cover_image: null,
@@ -65,9 +68,10 @@ describe('daily learn layout compatibility', () => {
     expect(screen.queryByText('自动发布')).not.toBeInTheDocument()
   })
 
-  it('keeps the original author card for ordinary blog posts', async () => {
+  it('uses the same compact author profile for ordinary blog posts', async () => {
     render(PostHeader({ post: { ...post, slug: 'normal-post' } }))
-    expect(screen.getByTestId('legacy-author-card')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Xavier' })).toHaveAttribute('href', '/profile/1')
+    expect(screen.queryByTestId('legacy-author-card')).not.toBeInTheDocument()
     expect(screen.queryByText('动手练习约 25 分钟')).not.toBeInTheDocument()
   })
 
@@ -140,12 +144,22 @@ describe('daily learn layout compatibility', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('Denied', 'SecurityError') })
     render(<article><div className="reader-content" /><BlogReaderToolbar variant="learn" /></article>)
     expect(screen.getByText('18px')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('阅读设置'))
     fireEvent.click(screen.getByRole('button', { name: '放大字号' }))
     expect(screen.getByText('20px')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '缩小字号' }))
     expect(screen.getByText('18px')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '深色模式' }))
     expect(document.querySelector('article')).toHaveClass('reader-mode-dark')
+  })
+  it('dismisses reading preferences with Escape and returns focus to its trigger', () => {
+    render(<article><BlogReaderToolbar /></article>)
+    const trigger = screen.getByLabelText('阅读设置')
+    fireEvent.click(trigger)
+    expect(trigger.closest('details')).toHaveAttribute('open')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(trigger.closest('details')).not.toHaveAttribute('open')
+    expect(trigger).toHaveFocus()
   })
   it.each(['getItem', 'setItem'] as const)('skips view counting when session storage %s fails', method => {
     sessionStorage.clear()

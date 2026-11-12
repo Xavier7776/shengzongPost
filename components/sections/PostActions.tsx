@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ThumbsUp, ThumbsDown, Bookmark, BookmarkCheck } from 'lucide-react'
 import { usePointsToast } from '@/components/ui/PointsToast'
 
-interface Props { slug: string }
+interface Props { slug: string; compact?: boolean }
 
 interface ReactionState {
   likes: number
@@ -16,7 +16,7 @@ interface ReactionState {
   loading: boolean
 }
 
-export default function PostActions({ slug }: Props) {
+export default function PostActions({ slug, compact = false }: Props) {
   const { data: session } = useSession()
   const router = useRouter()
   const { showPointsToast } = usePointsToast()
@@ -25,6 +25,15 @@ export default function PostActions({ slug }: Props) {
   })
   const [showBookmarks, setShowBookmarks] = useState(true)
   const [showLikes,     setShowLikes]     = useState(true)
+
+  useEffect(() => {
+    const sync = (event: Event) => {
+      const detail = (event as CustomEvent<{ slug: string; bookmarked: boolean }>).detail
+      if (detail?.slug === slug) setState(previous => ({ ...previous, bookmarked: detail.bookmarked }))
+    }
+    window.addEventListener('mindstack:bookmark-changed', sync)
+    return () => window.removeEventListener('mindstack:bookmark-changed', sync)
+  }, [slug])
 
   useEffect(() => {
     try {
@@ -36,14 +45,14 @@ export default function PostActions({ slug }: Props) {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/reactions?slug=${encodeURIComponent(slug)}`).then(r => r.json()),
+      compact ? Promise.resolve({}) : fetch(`/api/reactions?slug=${encodeURIComponent(slug)}`).then(r => r.json()),
       session
         ? fetch(`/api/bookmarks?slug=${encodeURIComponent(slug)}`).then(r => r.json())
         : Promise.resolve({ bookmarked: false }),
     ]).then(([reactions, bm]) => {
       setState(s => ({ ...s, ...reactions, bookmarked: bm.bookmarked, loading: false }))
-    })
-  }, [slug, session])
+    }).catch(() => setState(previous => ({ ...previous, loading: false })))
+  }, [slug, session, compact])
 
   function requireLogin() { router.push('/login') }
 
@@ -76,11 +85,15 @@ export default function PostActions({ slug }: Props) {
     if (res.ok) {
       const { bookmarked } = await res.json()
       setState(s => ({ ...s, bookmarked }))
+      window.dispatchEvent(new CustomEvent('mindstack:bookmark-changed', { detail: { slug, bookmarked } }))
       if (bookmarked && !wasBookmarked) showPointsToast(1)
       else if (!bookmarked && wasBookmarked) showPointsToast(-1)
     }
   }
 
+  if (compact) return showBookmarks ? <button type="button" className={'reader-bookmark' + (state.bookmarked ? ' is-bookmarked' : '')} onClick={handleBookmark} disabled={state.loading} aria-label={state.bookmarked ? '取消收藏文章' : '收藏文章'} title={state.bookmarked ? '取消收藏文章' : '收藏文章'}>
+    {state.bookmarked ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
+  </button> : null
   if (state.loading) return <div className="h-12" />
 
   const hasAnyButton = showLikes || showBookmarks

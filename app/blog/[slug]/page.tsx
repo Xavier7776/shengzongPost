@@ -2,18 +2,16 @@
 import { notFound } from 'next/navigation'
 import { cache, Suspense } from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { getPostBySlug as readPublishedPost, getAdjacentPosts } from '@/lib/db'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import KeyboardShortcuts from '@/components/sections/KeyboardShortcuts'
-import BackToTop from '@/components/ui/BackToTop'
 import ReadingHistory from '@/components/sections/ReadingHistory'
 import { Skeleton, SkeletonText } from '@/components/ui/Skeleton'
 import PostHeader from './PostHeader'
 import PostContent from './PostContent'
 import PostComments from './PostComments'
-import BlogReaderToolbar from './BlogReaderToolbar'
-import BlogToc from './BlogToc'
+import ReaderSources from './ReaderSources'
 import LearnToc from './LearnToc'
 import type { Metadata } from 'next'
 import { getSiteUrl } from '@/lib/site-url'
@@ -110,50 +108,24 @@ export default async function BlogPostPage({ params }: PageProps) {
     />
     <ReadingProgressBar />
     <KeyboardShortcuts prevSlug={prev?.slug} nextSlug={next?.slug} />
-    <BackToTop />
     <ReadingHistory slug={slug} title={post.title} />
 
-    <div className={isLearnPost ? 'learn-post-page min-h-screen pb-20 pt-24' : 'min-h-screen pt-24 pb-16'}>
-      {isLearnPost ? (
-        <div className="learn-page-container">
-          <Link href="/blog" className="mb-8 inline-flex items-center text-xs font-bold text-gray-600 transition-colors hover:text-blue-600">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            返回博客列表
-          </Link>
-          <div className="learn-post-grid">
-            <div className="learn-post-main min-w-0" id="blog-reader-root">
-              <article>
-                <PostHeader post={post} variant="learn" />
-                <BlogReaderToolbar variant="learn" />
-                <Suspense fallback={<PostContentSkeleton />}>
-                  <PostContent post={post} />
-                </Suspense>
-              </article>
-              <PostComments post={post} prev={prev} next={next} />
-            </div>
-            <LearnToc />
-          </div>
+    <div className="technical-reader-page">
+      <LearnToc study={isLearnPost} />
+      <div className="technical-reader-layout">
+        <div className="reader-article-column" id="blog-reader-root">
+          <nav className="reader-breadcrumb" aria-label="文章位置"><Link href="/blog">博客</Link><ChevronRight size={13} aria-hidden="true" /><span>{isLearnPost ? '技术精读' : post.tags[0] || '技术随笔'}</span></nav>
+          <article className="technical-reader-article">
+            <PostHeader post={post} variant={isLearnPost ? 'learn' : 'standard'} />
+            <Suspense fallback={<PostContentSkeleton />}>
+              <PostContent post={post} />
+            </Suspense>
+          </article>
+          <PostComments post={post} prev={prev} next={next} />
+          <p className="reader-correction"><a href={'mailto:1808571411@qq.com?subject='+encodeURIComponent('文章勘误：'+slug)+'&body='+encodeURIComponent('文章：/blog/'+slug+'\n具体段落或数值：\n问题与原始来源：\n建议更正：')}>发现错误 / 提交勘误</a><span>请注明段落、问题和原始依据。</span></p>
         </div>
-      ) : (
-        <>
-          <BlogToc />
-          <div className="mx-auto max-w-[900px] px-6 lg:px-8" id="blog-reader-root">
-            <Link href="/blog" className="group mb-12 inline-flex items-center text-xs font-bold uppercase tracking-widest text-gray-600 transition-colors hover:text-blue-600">
-              <ArrowLeft className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:-translate-x-2" />
-              返回博客列表
-            </Link>
-            <article>
-              <PostHeader post={post} />
-              <BlogReaderToolbar />
-              <Suspense fallback={<PostContentSkeleton />}>
-                <PostContent post={post} />
-              </Suspense>
-            </article>
-            <PostComments post={post} prev={prev} next={next} />
-          </div>
-        </>
-      )}
-      <p className="mx-auto mt-10 max-w-[900px] px-6 text-sm text-gray-500"><a className="text-blue-700 underline" href={'mailto:1808571411@qq.com?subject='+encodeURIComponent('文章勘误：'+slug)+'&body='+encodeURIComponent('文章：/blog/'+slug+'\n具体段落或数值：\n问题与原始来源：\n建议更正：')}>发现错误 / 提交勘误</a> · 请注明段落、问题和原始依据。</p>
+        <ReaderSources />
+      </div>
     </div>
     </>
   )

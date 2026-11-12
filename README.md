@@ -1,11 +1,10 @@
 # MindStack
 
-一个基于 Next.js 16 (App Router) 构建的全栈站点，已从一个个人作品集/博客扩展为四条产品线：
+一个基于 Next.js 16 (App Router) 构建的全栈站点，已从一个个人作品集/博客扩展为三条产品线：
 
 1. **内容站** — 博客、作品、画廊、Skills 与 GitHub Trending、Now、Projects
 2. **用户社区与积分商店** — 注册登录、关注、通知、编辑申请审核、积分与虚拟商品
-3. **OnlyUs** — 带独立门禁的私密情侣应用（含 Web Push）
-4. **Research Agent** — 多 Agent 协作的深度研究工作区
+3. **Research Agent** — 多 Agent 协作的深度研究工作区
 
 技术细节、开发约定与重构计划见 [AGENTS.md](./AGENTS.md)。
 
@@ -19,17 +18,15 @@
 | 语言 | TypeScript |
 | 样式 | Tailwind CSS 3 |
 | 主数据库 | Neon (PostgreSQL Serverless)，服务端直连；博客授权不依赖历史 RLS |
-| 认证数据库 | Supabase（`@supabase/ssr`），仅用于 OnlyUs 会话刷新 |
 | 认证 | NextAuth.js v4（Credentials + GitHub OAuth，JWT） |
 | 编辑器 | Tiptap + lowlight（代码高亮）；另用 `marked` 渲染 Markdown |
-| 图片存储 | Cloudinary（通过自定义 `next/image` loader 自动 AVIF/WebP + 响应式） |
+| 图片与附件 | GitHub 独立资源分支，固定 Commit SHA 的 Raw URL；图片使用 Next 内置优化 |
 | 邮件服务 | Resend |
 | 每日精读生产 | GitHub Actions 外部 OpenAI API；网站本身不含 AI 模型推理 |
-| 客户端状态 | zustand（目前仅 OnlyUs 使用） |
 | 测试 | Vitest + Testing Library |
 | 部署 | Vercel |
 
-其他运行时依赖：`three`（3D）、`recharts`（图表）、`lucide-react`（图标）、`dayjs`、`qrcode.react`、`bcryptjs`。
+其他运行时依赖：`three`（3D）、`recharts`（图表）、`lucide-react`（图标）、`qrcode.react`、`bcryptjs`。
 
 ---
 
@@ -50,23 +47,13 @@
 ### 用户社区与积分商店
 
 - 邮箱注册 + 邮件验证激活；GitHub OAuth 登录（仅限管理员账号）
-- 头像上传（Cloudinary）
+- 头像上传（GitHub）
 - 文章收藏、点赞/踩、评论（人工审核）
 - 关注/粉丝系统，互相关注标识
 - **通知 `/notifications`** — 未读计数与批量已读
 - **编辑中心 `/dashboard`** — 提交文章编辑申请，查看审核状态与历史
 - **积分商店 `/shop`** — 用积分购买并装备光标特效、头像框、宠物；积分通过互动与每日签到获得
 - **个人资料 `/profile` 与 `/profile/[userId]`** — 头像、简介、关注列表
-
-### OnlyUs `/onlyus`
-
-私密情侣应用。`proxy.ts` 对 `/onlyus/:path*` 做独立门禁：未通过校验一律重定向到 `/onlyus/gate`，通过后跳回原路径。
-
-- 首页、心情、时间线、信件、愿望清单
-- 小工具：日历、纪念日计数器、你画我猜、记账、五子棋、电影记录、宠物、问答、轮盘
-- **Web Push** — 在 `/onlyus/settings` 订阅，由 `public/sw.js` 接收推送。
-  该 Service Worker 只在订阅时注册，并显式排除 `/api`、`/admin`、`/dashboard`、`/profile`、`/onlyus` 等私有/动态路径，绝不会把用户私有数据写入 Cache Storage。
-- 状态全部由 `stores/onlyus/*` 的 zustand store 管理
 
 ### Research Agent `/skills/research`
 
@@ -119,9 +106,12 @@ GITHUB_SECRET=your-github-client-secret
 ADMIN_GITHUB_USERNAME=your-github-username
 
 # ── 图片与邮件 ────────────────────────────────────────
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
+# Fine-grained Token：仅选此仓库，Contents: Read and write，保存在服务端
+GITHUB_ASSET_TOKEN=your-fine-grained-github-token
+GITHUB_ASSET_REPOSITORY=Xavier7776/shengzongPost
+GITHUB_ASSET_BRANCH=assets/daily-learn-covers-20261111
+# 历史图片只读兼容，无需原上传服务的 API Key 或 Secret
+LEGACY_CLOUDINARY_CLOUD_NAMES=dazxe954m
 RESEND_API_KEY=re_xxxxxxxxxxxx
 EMAIL_FROM=MindStack <no-reply@your-domain.com>
 
@@ -138,19 +128,6 @@ GPT_RESEARCHER_URL=http://localhost:8000
 NEXT_PUBLIC_GPT_RESEARCHER_URL=http://localhost:8000
 MINDSTACK_RESEARCH_URL=http://localhost:8001
 
-# ── OnlyUs ───────────────────────────────────────────
-# 门禁口令的 bcrypt 哈希，用于签发 gate token
-ONLYUS_PASSCODE_HASH=$2b$10$...
-ONLYUS_GATE_SECRET=any-random-string
-# Web Push 公钥（配合服务端 VAPID 私钥）
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
-# 电影工具用 TMDB
-NEXT_PUBLIC_TMDB_API_KEY=your-tmdb-key
-
-# ── Supabase（OnlyUs 会话刷新）────────────────────────
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-
 # ── 可选 ─────────────────────────────────────────────
 # 访客统计里 IP 哈希的盐
 ANALYTICS_IP_SALT=any-random-string
@@ -158,17 +135,19 @@ ANALYTICS_IP_SALT=any-random-string
 ADMIN_API_KEY=any-random-string
 ```
 
+上传到 GitHub 后，数据库保存固定 Commit SHA 的 Raw URL，资源更新不会覆盖历史文章的图片。
+删除素材会移除数据库记录和资源分支条目，Git 历史中的固定链接仍可能可访问。
+历史图片保留只读兼容，无需配置旧上传服务的密钥。GitHub Token 过期后需更新
+`.env.local` 的 `GITHUB_ASSET_TOKEN`；部署时同步配置到服务器环境。
+
+开发和启动脚本启用 Node 的系统环境代理支持，沿用已有的 `HTTP_PROXY`、`HTTPS_PROXY`、
+`NO_PROXY`，便于本机访问 GitHub 和邮件接口。
+
 ### 3. 初始化数据库
 
-迁移文件统一放在 `supabase/migrations/`（32 个）。按顺序用脚本应用到 Neon：
-
-```bash
-node scripts/apply-migration.mjs supabase/migrations/schema.sql
-node scripts/apply-migration.mjs supabase/migrations/migration.sql
-# …依次应用其余迁移
-```
-
-脚本会读取 `.env.local` 并按 `;` 拆分执行，单条失败会继续并汇总。
+博客增量迁移保留在 `supabase/migrations/`。现有历史迁移不完整，不要混排后用于从零建库。
+全新空白隔离库使用 `docs/data/neon-public-baseline.sql`，恢复流程见
+[`docs/data/backup-restore-runbook.md`](docs/data/backup-restore-runbook.md)。已有数据库无需为本地启动重新迁移。
 
 ### 4. 启动
 
@@ -234,7 +213,6 @@ shengzongPost/
 │   ├── profile/              用户资料 & 关注列表
 │   ├── dashboard/            用户编辑中心
 │   ├── admin/                管理员后台（含 analytics、shop、reviews、slides）
-│   ├── onlyus/               私密情侣应用的薄路由（实现见 features/onlyus/）
 │   ├── api/                  接口路由
 │   ├── feed.xml/             RSS
 │   └── sitemap.ts / robots.ts
@@ -243,7 +221,8 @@ shengzongPost/
 │   ├── editor/               编辑器内核（与业务无关，可复用）
 │   ├── admin-posts/          管理端发文（AdminPostEditor / AttachmentsPanel）
 │   ├── submissions/          用户投稿发文（UserPostEditor）
-│   └── onlyus/               私密情侣应用（自包含：components / stores / lib）
+│   ├── profile/              用户资料与设置
+│   └── research/             研究工作台
 ├── lib/                      博客侧数据访问与工具
 │   ├── db/                   数据访问层，按域拆分（posts, comments, points, …）
 │   ├── db.ts                 仅作为 lib/db/* 的 barrel 重新导出
@@ -251,23 +230,19 @@ shengzongPost/
 │   │                         尚未迁入 db/，计划合入
 │   ├── auth.ts / authOptions.ts   认证
 │   ├── data.ts               静态兜底数据（Hero 降级用，勿整体删除）
-│   ├── cloudinary*.ts        图片上传与 next/image loader
+│   ├── github-assets.ts      GitHub 图片/附件存储（固定 Commit SHA URL）
 │   └── email.ts / uploadLarge.ts / rate-limit.ts / site-url.ts
 ├── shared/                   跨模块通用能力（hooks.ts / ui/SpriteCanvas.tsx）
 ├── scripts/                  迁移应用与爬虫脚本
-├── supabase/migrations/      32 个 SQL 迁移
+├── supabase/migrations/      博客历史增量迁移（沿用目录名）
 └── __tests__/                Vitest 用例
 ```
 
-> `features/` 已建立（`editor` / `admin-posts` / `submissions` / `onlyus`），`shared/` 已启用。
+> `features/` 已建立（`editor` / `admin-posts` / `submissions` / `profile` / `research`），`shared/` 已启用。
 > 当前重构的目标是把 `app/` 收敛为薄路由，业务收敛到
-> `features/{blog,work,gallery,editor,profile,community,shop,research,onlyus}`，
+> `features/{blog,work,gallery,editor,profile,community,shop,research}`，
 > 通用能力到 `shared/{ui,markdown,auth,upload,validation}`，详见 AGENTS.md。
 >
-> **模块边界**：`features/onlyus/` 是自包含模块（独立 Supabase 库 + 独立 HMAC cookie 认证 +
-> 独立 store），与博客侧**零代码共享**，只允许引用 `@/shared/*`。该边界由 ESLint 双向强制，
-> 违反会直接 lint 报错 —— 这保证了它随时可以整体剥离出去，详见 AGENTS.md 第 3.1 节。
-
 ---
 
 ## 角色权限
@@ -282,7 +257,6 @@ shengzongPost/
 | 新建 / 删除文章 | ❌ | ❌ | ✅ |
 | 审核评论 & 编辑申请 | ❌ | ❌ | ✅ |
 | Gallery / 轮播 / 商店管理 | ❌ | ❌ | ✅ |
-| OnlyUs | 需通过门禁口令 | 需通过门禁口令 | 需通过门禁口令 |
 
 ---
 

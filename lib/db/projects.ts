@@ -115,7 +115,7 @@ export async function updateProject(
   return serializeRow(rows[0] as Record<string, unknown>) as unknown as Project
 }
 
-/** 删除项目，返回 cover_public_id 供 API 层清理 Cloudinary */
+/** 删除项目，返回 cover_public_id 供 API 层清理 GitHub */
 export async function deleteProject(id: number): Promise<string | null> {
   const rows = await sql`DELETE FROM projects WHERE id = ${id} RETURNING cover_public_id`
   return rows[0] ? ((rows[0] as { cover_public_id: string | null }).cover_public_id) : null

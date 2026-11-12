@@ -10,7 +10,7 @@ describe('content invalidation across public entry points',()=>{
     for(const route of ['/','/blog','/learn','/feed.xml','/sitemap.xml','/blog/old','/blog/new'])expect(path).toHaveBeenCalledWith(route)
     expect(path).toHaveBeenCalledWith('/blog/[slug]','page')
     expect(path.mock.calls.filter(([route])=>route==='/blog/old')).toHaveLength(1)
-    expect(path.mock.calls.every(([route,type])=>!route.startsWith('/admin')&&!route.startsWith('/onlyus')&&type!=='layout')).toBe(true)
+    expect(path.mock.calls.every(([route,type])=>!route.startsWith('/admin')&&!route.startsWith('/dashboard')&&type!=='layout')).toBe(true)
   })
   it('reports partial failure while still attempting remaining invalidations',()=>{
     const log=vi.spyOn(console,'error').mockImplementation(()=>{})

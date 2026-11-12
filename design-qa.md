@@ -1,51 +1,65 @@
-# Gallery redesign — design QA
+# 阅读页设计验收 · 2026-11-12
 
 final result: passed
 
-## Visual truth and capture setup
+## 设计依据与证据
 
-- Source visual: `C:\Users\Leonidas\AppData\Local\Temp\codex-clipboard-9cb49d6b-af8e-454b-8e17-7ff6480ef043.png`
-- Source raster: 1487 × 1058 px
-- Implementation route: `http://localhost:3000/gallery`
-- Browser viewport request: 1502 × 1069 CSS px
-- Implementation capture: `C:\Users\Leonidas\.codex\visualizations\2026\08\29\01a04d8c-9549-7740-8810-8a8d5967b6d8\gallery-desktop-final.png`
-- Implementation raster: 1487 × 1059 px; compared at native size without density resampling. The one-pixel height delta is browser capture rounding.
-- Comparison state: initial gallery route, first work active, all categories, empty search, masonry selected, page scroll at zero.
-- Full comparison: `C:\Users\Leonidas\.codex\visualizations\2026\08\29\01a04d8c-9549-7740-8810-8a8d5967b6d8\gallery-comparison-final.png`
-- Focus comparison: `C:\Users\Leonidas\.codex\visualizations\2026\08\29\01a04d8c-9549-7740-8810-8a8d5967b6d8\gallery-focus-comparison-final.png`
-- Mobile capture: `C:\Users\Leonidas\.codex\visualizations\2026\08\29\01a04d8c-9549-7740-8810-8a8d5967b6d8\gallery-mobile-v2.png` at a 390 × 844 requested viewport.
+- 原始视觉方案：`C:/Users/Xavier7/.codex/generated_images/01a1ce9f-ecf0-7e43-9517-bd6abbb68053/exec-66178973-b63f-449b-bcdc-4bfb689213f3.png`（用户选择的第 2 张）。
+- 最新用户反馈：“左边的导航栏太丑了，整体很没有质感”。最终版保留技术手册结构，按反馈重做目录密度、展开方式、字重、留白和颜色。
+- 实现页面：`http://localhost:3000/blog/daily-learn-2026-11-11`。
+- 实现截图：`E:/post/.runtime/reader-qa/desktop-final.jpg`。
+- 同一输入的完整对照：`E:/post/.runtime/reader-qa/comparison-full.png`，左为方案，右为实现。
+- 目录局部对照：`E:/post/.runtime/reader-qa/comparison-toc.png`，左为方案，右为实现。
+- 代码区：`E:/post/.runtime/reader-qa/code-desktop.jpg`。
+- 手机首屏、抽屉：`E:/post/.runtime/reader-qa/mobile-top.jpg`、`E:/post/.runtime/reader-qa/mobile-drawer.jpg`。
+- 普通文章兼容：`E:/post/.runtime/reader-qa/ordinary-mobile.jpg`、`E:/post/.runtime/reader-qa/ordinary-desktop.jpg`，页面 `/blog/transformer-architecture`。
 
-## Comparison history
+浏览器为 Codex 内置浏览器。桌面 CSS 视口 1440×1024，报告的 devicePixelRatio 约 1；浏览器截图输出 1425×1013。源图 1487×1058，按实现截图尺寸归一化后组合比较，约 0.1% 的比例差异不作为设计缺陷。手机 CSS 视口 390×844。均为未登录、浅色、真实文章内容；首屏目录默认仅展开当前组。
 
-### Pass 1
+原始概念图简化了文章内容、将 Python 示例提前，并包含示意性引言。实现保留数据库中的原文顺序、完整摘要、真实出处、练习与学习记录，没有用概念图的示例文案覆盖文章。目录的逐组展开、较轻的标题和暖灰侧栏属于用户最新反馈要求的调整。
 
-- P2 layout: desktop navigation was right-weighted rather than optically centered. Fixed by centering the desktop navigation group independently of the logo and account controls.
-- P2 color: the image overlay was darker and heavier than the airy reference. Reduced the base, vertical, and horizontal overlay opacities while preserving text contrast.
-- P3 spacing: previews and bottom toolbar sat slightly low/high relative to the reference. Aligned preview and toolbar bottom offsets.
-- P2 responsive imagery: the bird was clipped at the mobile right edge. Added an art-directed mobile object position while retaining the desktop crop.
+## 问题与修复记录
 
-### Final pass
+1. **P1 · 目录密度与层级**：第一轮实现 248px 的目录栏挤入多个分组预览，12px 的子标题与大片选中底色使视觉拥挤。改为 280px 栏宽、16px 分组标题、13px 子目录；单组展开，移除块状选中底纹，以低饱和蓝色、细线和留白区分层级。最终完整截图和目录局部对照确认修复。
+2. **P2 · 中英标题断行**：长标题曾在“揭示”词中间断行。使用中文词语边界布局，并为标题保留完整无间隔的可访问名称。最终桌面与手机截图确认没有该断词。
+3. **P1 · 手机目录关闭按钮被顶栏覆盖**：首轮抽屉受主内容层级限制。通过 portal 放入 document.body；关闭按钮、遮罩、Escape 和焦点恢复均已验证。最终手机抽屉截图确认关闭按钮可见。
+4. **P2 · 代码滚动条破坏深色背景**：改为深色色彩方案和细滚动条，同时增大桌面代码字号。最终代码截图确认修复，复制按钮显示成功反馈。
+5. **P2 · 重复回顶控件**：文章和站点外壳同时渲染回到顶部按钮。保留站点级按钮，去除文章内重复项；手机和桌面均使用一个入口。
+6. **P2 · 路由相关导航 hydration**：回归测试发现新增文章导航样式在服务端与重写后的浏览器路径间不一致。使用原有 hydrated 状态控制路径样式，相关 hydration 测试通过；最终刷新后的控制台没有新增错误。
 
-- No P0, P1, or P2 findings remain.
-- P3 image fidelity: the live gallery uses the existing real gallery asset and database content, so the exact bird scale, title, likes, category language, and thumbnail crops differ from the generated selection mock. The subject, winter palette, visual hierarchy, and composition intent are preserved without replacing user content.
-- P3 console: zero runtime errors. Next.js development mode reports an existing `/logo.png` custom-loader width warning and can report a non-blocking LCP priority warning after scrolling into the legacy archive components; neither affects layout or interaction.
+最终对照未发现尚需修复的 P0/P1/P2 问题。原始方案与最终版的目录底色、展开密度和标题字重差异，是依据最新用户反馈作出的明确调整。
 
-## Surface checks
+## 五个必查表面
 
-- Typography: display title scale, heavy weight, compact tracking, mono eyebrow, metadata hierarchy, and muted navigation treatment match the reference intent. Dynamic Chinese titles wrap safely within the left content column.
-- Spacing and layout: full-viewport hero, left editorial hierarchy, centered desktop navigation, right numbered index, side previews, and floating rounded toolbar align with the selected composition. No desktop horizontal overflow.
-- Colors and tokens: cool winter image, softened charcoal overlays, blue accent, white type, translucent borders, and black glass toolbar are consistent and maintain readable contrast.
-- Image quality: real gallery images remain source-of-truth assets. Desktop and mobile use separate object positions for intentional subject framing; no placeholder, CSS art, or replacement illustration is used.
-- Copy and content: all artwork metadata comes from the current database. Interface labels are concise Chinese with the selected English archive eyebrow.
-- Icons: all visible controls use the existing Lucide icon family at consistent stroke weights and alignment.
-- Responsiveness: verified at desktop and 390 × 844 mobile. Mobile hides side previews and the numbered rail, preserves the content hierarchy, stacks the toolbar controls, and has no horizontal overflow.
-- Accessibility: semantic buttons and labels cover artwork navigation, search, filters, likes, view switching, and lightbox controls; keyboard arrow navigation and reduced-motion behavior are present.
+| 表面 | 核查结果 |
+| --- | --- |
+| 字体与排版 | 保留项目的 next/font DM Sans 与 DM Mono，阅读区域补齐中文回退字体。标题上限 40px、700 字重，正文精读默认 18px、1.95 行高，代码 14px。标题、章节、元数据和出处形成独立层级；手机标题 28px。 |
+| 间距与结构 | 72px 桌面顶栏、280px 目录栏、正文最大 850px、正文左留白 56px；手机改为顶部章节入口与抽屉，无横向页面溢出。完整对照检查主区域比例，局部对照检查目录行距和细分隔线。 |
+| 颜色与样式 | 正文近白、侧栏暖灰 #f9f9f8、墨色 #252a34、低饱和蓝 #3858bb；移除阅读页全局噪点，代码使用深蓝底。调深小字颜色，深色/护眼模式文字与设置入口仍可读。 |
+| 图像与资产 | 使用现有 MindStack logo 和 Lucide 图标；无新增装饰插图或占位图。历史文章图片沿用原有 URL。代码和图表保持可选择、可访问的真实内容。 |
+| 文案与内容 | 原文、摘要、来源、教学声明、学习记录说明、自测与实践全部保留。目录仅整理显示层级；没有改动数据库内容。普通文章作者链接仍指向真实个人页。 |
 
-## Interaction and browser verification
+## 交互与工程验证
 
-- Numbered index changed the active work from `独钓寒江雪` to `微小的发现` and updated `aria-current`.
-- Hero opened the matching lightbox, synchronized `?image=5`, and the close control removed the query parameter.
-- Search for `田园风景` reduced the hero to one work and clear-search restored the full collection.
-- Film-strip selection changed the archive heading to `胶片带` and scrolled to the archive section; masonry was restored for the final deliverable state.
-- Final route identity: `http://localhost:3000/gallery`, `视觉存档.`, first work active, scroll position zero.
+- 实际浏览器：分组展开、章节定位与选中状态、手机抽屉开关及 Escape 焦点恢复、字号增减、护眼/默认模式、代码复制、普通文章与精读文章适配。
+- 目录通过异步内容扫描保留原有锚点；普通文章导航保留章节顺序。
+- 537 项完整测试通过。最终目录展开微调后补跑 18 项相关回归测试通过；导航 hydration、代码复制成功/失败及学习来源兼容另有回归覆盖。
+- TypeScript 检查、ESLint 检查、`git diff --check` 通过；隔离数据库的 `npm run build:ci` 构建通过。
+- 刷新后浏览器控制台未发现新的应用错误。开发热更新中变更 effect 依赖数量产生的提示，经刷新消失。
+- 未执行登录后的收藏写入，也未更改真实文章、自测答案或完成状态。现有学习记录逻辑及相关回归测试保留。
+- 实际点击未登录的文章收藏入口，确认到达 `/login`，随后返回阅读页；最终预览已保留，并恢复浏览器默认视口，窄面板自动使用顶部章节入口。
 
+## 后续微调
+
+- P3：结构化教学代码目前保留清晰的纯文本代码样式，语法配色可作为独立的小迭代；复制保留原始缩进及内容。
+- 真实内容比概念图摘要更长，首屏正文位置相应更低；没有为匹配图片而删改文章。
+
+## 实施检查
+
+- [x] 桌面完整对照与目录局部对照
+- [x] 手机首屏与抽屉复查
+- [x] 普通文章兼容
+- [x] 主要阅读交互与回归验证
+- [x] 无未解决的 P0/P1/P2 问题
+
+final result: passed
