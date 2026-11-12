@@ -50,8 +50,7 @@ try {
       CI_DATABASE_ENDPOINT: `http://127.0.0.1:${server.address().port}`,
       NODE_OPTIONS: `--require ${JSON.stringify(resolve('scripts/ci/neon-preload.cjs'))}`,
       NEXTAUTH_SECRET: 'ci-placeholder-only', NEXTAUTH_URL: 'http://localhost:3000',
-      NEXT_PUBLIC_SITE_URL: 'https://example.invalid', NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'ci-placeholder-only', RESEND_API_KEY: 're_ci_placeholder',
+      NEXT_PUBLIC_SITE_URL: 'https://example.invalid', RESEND_API_KEY: 're_ci_placeholder',
       GITHUB_ID: 'ci-placeholder', GITHUB_SECRET: 'ci-placeholder', ADMIN_API_KEY: '',
       TMP: tmp, TEMP: tmp, NEXT_TELEMETRY_DISABLED: '1' }
     const code = await new Promise((r, reject) => {

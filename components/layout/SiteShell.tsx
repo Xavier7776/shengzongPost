@@ -16,10 +16,10 @@ const DistortionEffect = dynamic(() => import('@/components/sections/DistortionE
 export default function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdmin = pathname.startsWith('/admin')
+  const isArticleReader = /^\/blog\/[^/]+/.test(pathname)
   const isDashboardEditor =
     pathname.startsWith('/dashboard/new') ||
     pathname.startsWith('/dashboard/edit')
-  const isOnlyUs = pathname.startsWith('/onlyus')
   // /skills/research 有自己的工具栏（含用户头像菜单），跳过全局 Navbar/Footer
   const isResearch = pathname.startsWith('/skills/research')
   // /work/[slug] 详情页有自己的顶部导航条（普通文档流，跟随滚动）
@@ -77,14 +77,14 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (isAdmin || isDashboardEditor || isOnlyUs || isResearch) {
+  if (isAdmin || isDashboardEditor || isResearch) {
     return <div className="min-h-screen">{children}</div>
   }
 
   return (
     <div
-      className="min-h-screen flex flex-col overflow-x-hidden"
-      style={{ background: '#FAFAF8' }}
+      className={`min-h-screen flex flex-col${isArticleReader ? '' : ' overflow-x-hidden'}`}
+      style={{ background: isArticleReader ? '#fff' : '#FAFAF8' }}
     >
       <Navbar />
       <main className="relative z-10 flex-1">{children}</main>

@@ -9,11 +9,11 @@
   "packageManager": "npm@11.6.0",
   "scripts": {
     "learn:validate": "tsx scripts/validate-learn-edition.ts",
-    "dev": "next dev",
+    "dev": "node --use-env-proxy ./node_modules/next/dist/bin/next dev",
     "build": "next build --webpack",
     "build:ci": "node scripts/ci-build.mjs",
-    "start": "next start",
-    "lint": "eslint app components lib features shared __tests__ proxy.ts --ext .js,.jsx,.ts,.tsx",
+    "start": "node --use-env-proxy ./node_modules/next/dist/bin/next start",
+    "lint": "eslint app components lib features shared __tests__ --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -24,8 +24,6 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.105.4",
     "@tiptap/extension-character-count": "3.31.4",
     "@tiptap/extension-code-block-lowlight": "3.31.4",
     "@tiptap/extension-image": "3.31.4",
@@ -37,8 +35,6 @@
     "@tiptap/starter-kit": "3.31.4",
     "@tiptap/suggestion": "3.31.4",
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.9.0",
-    "dayjs": "^1.11.20",
     "dotenv": "^17.4.2",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.475.0",
@@ -51,8 +47,8 @@
     "react-dom": "^19.3.0",
     "recharts": "^3.8.1",
     "resend": "^6.12.0",
-    "three": "^0.184.0",
-    "zustand": "^5.0.13"
+    "sharp": "0.35.5",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@dietrichgebert/ponytail": "^4.9.0",

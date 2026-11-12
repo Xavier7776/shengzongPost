@@ -97,7 +97,7 @@ export default function AnalyticsTracker() {
 
   useEffect(() => {
     if (!pathname) return
-    if (/^\/(api|admin|dashboard|profile|onlyus|login|register|forgot-password|reset-password)(\/|$)/i.test(pathname)) return
+    if (/^\/(api|admin|dashboard|profile|login|register|forgot-password|reset-password)(\/|$)/i.test(pathname)) return
     const visitorId = getOrCreateVisitorId()
     const sessionId = getOrCreateSessionId()
     track(pathname, visitorId, sessionId)

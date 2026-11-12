@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import cloudinaryLoader from '@/lib/cloudinary-loader'
 
 function imageVariant(src: string, width: number) {
   if (src.startsWith('https://images.unsplash.com/')) {
@@ -13,7 +12,7 @@ function imageVariant(src: string, width: number) {
     url.searchParams.set('auto','format')
     return url.href
   }
-  return cloudinaryLoader({src,width})
+  return src
 }
 
 interface Slide {

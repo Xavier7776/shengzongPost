@@ -8,7 +8,7 @@ import { notFound } from 'next/navigation'
 import { getProjectBySlug, getAllProjects } from '@/lib/db-works'
 import PrintClient from './PrintClient'
 import { renderMarkdown } from '@/shared/markdown/render'
-import { allowedCloudinaryUrl, readRemoteBytes } from '@/lib/security/remote-assets'
+import { allowedAssetUrl, readRemoteBytes } from '@/lib/security/remote-assets'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +36,7 @@ export default async function PdfPage({
 
   if (mdAttachment) {
     try {
-      if (allowedCloudinaryUrl(mdAttachment.url)) {
+      if (allowedAssetUrl(mdAttachment.url)) {
         pdfContent = new TextDecoder().decode(await readRemoteBytes(mdAttachment.url, 10 * 1024 * 1024))
       }
     } catch (e) {

@@ -1,5 +1,6 @@
 'use client'
 import { Fragment, useState, type ReactNode } from 'react'
+import ReaderCodeBlock from './ReaderCodeBlock'
 import { headingId } from '@/shared/markdown/heading-id'
 import type { Block, Edition, Evidence as EvidenceData } from '@/lib/learn/document'
 type HeadingInfo = { id: string; legacy: string }
@@ -27,16 +28,16 @@ function View({b,e,quiz,info}:{b:Block;e:Edition;quiz?:QuizControl;info?:Heading
  case 'callout':return <aside className={'my-6 rounded-xl border-l-4 p-5 '+(b.tone==='warning'?'border-amber-400 bg-amber-50':'border-blue-400 bg-blue-50')}><strong>{b.title}</strong><p className="mt-2 leading-8">{b.text}<Evidence ids={b.sourceIds} e={e}/></p></aside>
  case 'diagram':return <figure className="my-8 rounded-xl border p-5"><Heading info={info!} text={b.title}/><ol className="mt-4 grid gap-3 sm:grid-cols-2">{b.steps.map((s,i)=><li key={i} className="rounded-lg bg-gray-50 p-4"><span className="block text-xs text-blue-600">步骤 {i+1}</span><strong>{s.title}</strong><p className="mt-2 text-sm leading-6">{s.description}</p></li>)}</ol><figcaption className="mt-4 text-sm text-gray-500">{b.caption}<Evidence ids={b.sourceIds} e={e}/></figcaption></figure>
  case 'chart':return <Chart b={b} e={e} info={info!}/>
- case 'code':return <figure className="my-8 overflow-hidden rounded-xl border"><div className="bg-gray-100 px-4 py-2 text-xs">{b.language} · 示例代码（未执行）</div><pre className="overflow-auto bg-gray-950 p-5 text-sm leading-6 text-green-300"><code>{b.code}</code></pre><figcaption className="p-4 text-sm">{b.caption}</figcaption></figure>
+ case 'code':return <ReaderCodeBlock language={b.language} code={b.code} caption={b.caption}/>
  case 'quiz':return <Quiz b={b} progress={quiz} info={info!}/>
  }}
-export default function LearnInteractive({edition:e,quizProgress,practiceControls}:{edition:Edition;quizProgress?:{answers:Record<string,number>;onAnswer:(index:number,answer:number)=>void};practiceControls?:ReactNode}){
+export default function LearnInteractive({edition:e,quizProgress,practiceControls,compactLead=false}:{edition:Edition;compactLead?:boolean;quizProgress?:{answers:Record<string,number>;onAnswer:(index:number,answer:number)=>void};practiceControls?:ReactNode}){
  const used=new Set<string>();let index=0
  const anchor=(text:string):HeadingInfo=>({id:headingId(text,used),legacy:'learn-section-'+index++})
  const blockInfo=e.blocks.map(b=>b.type==='heading'?anchor(b.text):b.type==='diagram'||b.type==='chart'?anchor(b.title):b.type==='quiz'?anchor(b.question):undefined)
  const practiceTitle=e.practice.title+' · '+e.practice.minutes+' 分钟'
  const tail=[practiceTitle,'三个关键收获','职业方向','其他进展','原始出处',...(e.version===2?['版本与更正说明']:[])].map(anchor)
- return <div className="post-content learn-article text-gray-800"><p className="learn-article-lead my-6 rounded-xl bg-indigo-50 p-5 leading-8">{e.lead}</p>{e.version===2&&<Declaration value={e.evidence} e={e}/>}<p className="text-xs leading-6 text-gray-500">来源链接与结构校验不等于独立复现。教学示意、作者报告和本站实测分别标注。</p>{e.blocks.map((b,i)=><Fragment key={i}><View b={b} e={e} info={blockInfo[i]} quiz={quizProgress?{answer:quizProgress.answers[i]??null,onAnswer:answer=>quizProgress.onAnswer(i,answer)}:undefined}/>{e.version===2&&b.type!=='heading'&&b.type!=='code'&&'evidenceType' in b&&b.type!=='chart'&&<Declaration value={b} e={e}/>}</Fragment>)}
+ return <div className="post-content learn-article text-gray-800"><>{compactLead ? <details className="reader-introduction"><summary>阅读导言</summary><p className="learn-article-lead">{e.lead}</p></details> : <p className="learn-article-lead my-6 rounded-xl bg-indigo-50 p-5 leading-8">{e.lead}</p>}</>{e.version===2&&<Declaration value={e.evidence} e={e}/>}<p className="text-xs leading-6 text-gray-500">来源链接与结构校验不等于独立复现。教学示意、作者报告和本站实测分别标注。</p>{e.blocks.map((b,i)=><Fragment key={i}><View b={b} e={e} info={blockInfo[i]} quiz={quizProgress?{answer:quizProgress.answers[i]??null,onAnswer:answer=>quizProgress.onAnswer(i,answer)}:undefined}/>{e.version===2&&b.type!=='heading'&&b.type!=='code'&&'evidenceType' in b&&b.type!=='chart'&&<Declaration value={b} e={e}/>}</Fragment>)}
  <section className="my-10 rounded-xl border p-6"><Heading info={tail[0]} text={practiceTitle} level={2} className="text-xl font-bold"/><ol className="mt-4 list-decimal space-y-2 pl-5">{e.practice.steps.map((s,i)=><li key={i}>{s}</li>)}</ol><p className="mt-4"><strong>验收：</strong>{e.practice.acceptance}</p>{practiceControls}</section>
  <Heading info={tail[1]} text="三个关键收获" level={2} className="mt-10 text-xl font-bold"/><ul className="my-4 list-disc space-y-2 pl-5">{e.takeaways.map((t,i)=><li key={i}>{t}</li>)}</ul>
  <Heading info={tail[2]} text="职业方向" level={2} className="mt-10 text-xl font-bold"/><p className="my-4 leading-8">{e.careerTip}</p>

@@ -137,7 +137,7 @@ function ProjectForm({
     setAddAttFilename(''); setAddAttUrl(''); setAddAttOpen(false)
   }
 
-  // ── 上传 md 文件到 Cloudinary ──
+  // ── 上传 md 文件到 GitHub ──
   async function handleUploadMd(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -454,7 +454,7 @@ function ProjectCard({
   }
 
   async function handleDelete() {
-    if (!confirm(`确认删除项目「${project.name}」？此操作不可撤销，封面图也会从 Cloudinary 删除。`)) return
+    if (!confirm(`确认删除项目「${project.name}」？将移除项目及资源分支条目；历史固定图片链接仍可能可访问。`)) return
     setDeleting(true)
     try {
       const res = await fetch(`/api/projects/${project.id}`, { method: 'DELETE' })

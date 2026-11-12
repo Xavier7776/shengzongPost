@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { uploadLarge } from '@/lib/uploadLarge'
 
-// POST /api/projects/upload 上传项目封面图（仅上传到 Cloudinary，不写库）
+// POST /api/projects/upload 上传项目封面图（仅上传到 GitHub，不写库）
 async function handlePOST(req: NextRequest) {
   const session = await requireAdminApi()
   if (!session) return NextResponse.json({ error: '无权限' }, { status: 401 })

@@ -140,7 +140,7 @@ export default function DistortionEffect() {
       logLine([['$ ', C.green], ['mindstack --status', C.white]])
       ly += lineH * 0.3
       logLine([['[INFO]', C.cyan], [' Stack: ', C.muted], ['Next.js 16 · React 19', C.yellow]])
-      logLine([['         ', C.dim], ['Tailwind 4 · Supabase · Three.js', C.dim]])
+      logLine([['         ', C.dim], ['Tailwind 3 · Neon · Three.js', C.dim]])
       ly += lineH * 0.3
       logLine([['[INFO]', C.cyan], [' Sections: ', C.muted], ['Blog · Trending · Projects', C.white]])
       logLine([['[INFO]', C.cyan], [' Features: ', C.muted], ['Cursor Pets · Avatar Frames', C.white]])

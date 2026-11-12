@@ -3,8 +3,8 @@ import { allowAuthAttempt } from '@/lib/auth-rate-limit'
 import { isRasterImage } from '@/lib/security/image'
 import { withWriteGuard } from '@/lib/security/write-guard'
 // app/api/user/upload/route.ts
-// POST /api/user/upload  → 登录用户上传图片到 Cloudinary（供编辑请求使用）
-// 统一走 lib/uploadLarge（分片上传 + 重试），与其他上传接口保持一致
+// POST /api/user/upload  → 登录用户上传图片到 GitHub（供编辑请求使用）
+// 统一走 lib/uploadLarge（固定 Commit 的资源上传），与其他上传接口保持一致
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

@@ -4,7 +4,7 @@ const { admin, create, update, remove, invalidate } = vi.hoisted(() => ({ admin:
 vi.mock('@/lib/auth', () => ({ requireAdminApi: admin }))
 vi.mock('@/lib/db', () => ({ createProject: create, updateProject: update, deleteProject: remove, getEnabledProjects: vi.fn(), getAllProjectsAdmin: vi.fn() }))
 vi.mock('@/lib/content-cache', () => ({ invalidatePublishedContent: invalidate }))
-vi.mock('@/lib/cloudinary', () => ({ cloudinary: { uploader: { destroy: vi.fn() } } }))
+vi.mock('@/lib/github-assets', () => ({ deleteGitHubAsset: vi.fn() }))
 import { POST } from '@/app/api/projects/route'
 import { PATCH, DELETE } from '@/app/api/projects/[id]/route'
 const req = (method: string, body?: unknown) => new NextRequest('https://site.example/api/projects/1', { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })

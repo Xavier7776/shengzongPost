@@ -6,13 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/auth'
 import { createPostImage, getPostImages, deletePostImage, getAdminUserId } from '@/lib/db'
 import { uploadLarge } from '@/lib/uploadLarge'
-import { v2 as cloudinary } from 'cloudinary'
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
+import { deleteGitHubAsset } from '@/lib/github-assets'
 
 export async function GET(req: NextRequest) {
   const session = await requireAdminApi()
@@ -84,7 +78,7 @@ async function handleDELETE(req: NextRequest) {
   try {
     const deleted = await deletePostImage(id)
     if (!deleted) return NextResponse.json({ error: '记录不存在' }, { status: 404 })
-    await cloudinary.uploader.destroy(deleted.public_id).catch(e =>
+    await deleteGitHubAsset(deleted.public_id).catch(e =>
       logFailure('app/api/posts/image', e)
     )
     return NextResponse.json({ ok: true })

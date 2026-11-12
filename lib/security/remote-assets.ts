@@ -1,14 +1,33 @@
+import { assetRepository } from '@/lib/asset-config'
+
+export function allowedGitHubAssetUrl(input: string): URL | null {
+  try {
+    const target = new URL(input)
+    if (target.protocol !== 'https:' || target.hostname !== 'raw.githubusercontent.com' ||
+        target.port || target.username || target.password || target.hash || target.search) return null
+    const prefix = `/${assetRepository()}/`
+    if (!target.pathname.startsWith(prefix)) return null
+    const path = target.pathname.slice(prefix.length)
+    if (!/^[a-f0-9]{40}\/(uploads|covers)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+$/.test(path) || path.includes('..')) return null
+    return target
+  } catch { return null }
+}
+
+/** Historical read compatibility only; no SDK, upload credentials, or deletion calls. */
 export function allowedCloudinaryUrl(input: string): URL | null {
   try {
     const target = new URL(input)
-    const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim()
-    if (!cloud || !/^[a-zA-Z0-9_-]{1,100}$/.test(cloud)) return null
+    const clouds = (process.env.LEGACY_CLOUDINARY_CLOUD_NAMES || process.env.CLOUDINARY_CLOUD_NAME || 'dazxe954m').split(',').map(cloud => cloud.trim())
     if (target.protocol !== 'https:' || target.hostname !== 'res.cloudinary.com' ||
         target.port || target.username || target.password || target.hash) return null
     const match = /^\/([a-zA-Z0-9_-]+)\/(raw|image|video)\/upload\/(.+)$/.exec(target.pathname)
-    if (!match || match[1] !== cloud || match[3].length > 1800) return null
+    if (!match || !clouds.includes(match[1]) || match[3].length > 1800) return null
     return target
   } catch { return null }
+}
+
+export function allowedAssetUrl(input: string): URL | null {
+  return allowedGitHubAssetUrl(input) || allowedCloudinaryUrl(input)
 }
 
 /** Callers must validate a fixed HTTPS origin before this read; redirects are never followed. */

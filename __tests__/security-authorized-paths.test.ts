@@ -8,7 +8,7 @@ vi.mock('@/lib/authOptions', () => ({ authOptions: {} }))
 vi.mock('@/lib/auth-rate-limit', () => ({ allowAuthAttempt: mocks.quota }))
 vi.mock('@/lib/uploadLarge', () => ({ uploadLarge: mocks.upload }))
 vi.mock('@/lib/db', () => ({ sql: mocks.sql, createGalleryImage: mocks.gallery, getResearchReportById: mocks.report, deleteResearchReport: mocks.remove, getEditRequestById: mocks.edit, createPostImage: mocks.image, getAdminUserId: mocks.adminId, getPostImages: vi.fn(), deletePostImage: vi.fn() }))
-vi.mock('cloudinary', () => ({ v2: { config: vi.fn(), uploader: { destroy: vi.fn() } } }))
+vi.mock('@/lib/github-assets', () => ({ deleteGitHubAsset: vi.fn() }))
 import { POST as galleryUpload } from '@/app/api/gallery/upload/route'
 import { POST as postUpload } from '@/app/api/posts/image/route'
 import { PATCH as profile } from '@/app/api/user/profile/route'

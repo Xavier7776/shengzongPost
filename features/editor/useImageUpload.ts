@@ -8,7 +8,7 @@ const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
 export interface UseImageUploadOptions {
   editor: Editor | null
-  /** 封面上传成功后回调（用户投稿编辑器用它记录 Cloudinary public id） */
+  /** 封面上传成功后回调（用户投稿编辑器用它记录 GitHub public id） */
   onCoverUploaded?: (data: { url?: string; id?: number }) => void
   /** 重新上传封面前先删除上一张（仅用户投稿编辑器需要） */
   deletePreviousCover?: () => void

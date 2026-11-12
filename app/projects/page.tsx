@@ -124,9 +124,9 @@ export default async function ProjectsPage() {
                     {website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
-                <Link href="/onlyus" className="flex items-center text-gray-500 text-sm font-medium hover:text-blue-600 transition-colors">
+                <div className="flex items-center text-gray-500 text-sm font-medium">
                   <MapPin className="w-4 h-4 mr-3 text-blue-600" />{location}
-                </Link>
+                </div>
               </div>
             </div>
 

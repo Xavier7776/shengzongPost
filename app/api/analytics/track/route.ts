@@ -28,7 +28,7 @@ async function handlePOST(req: NextRequest) {
     }
 
     const safePath = new URL(path,'https://analytics.invalid').pathname.slice(0,500)
-    if (/^\/(api|admin|dashboard|profile|onlyus|login|register|forgot-password|reset-password)(\/|$)/i.test(safePath)) return new NextResponse(null,{status:204})
+    if (/^\/(api|admin|dashboard|profile|login|register|forgot-password|reset-password)(\/|$)/i.test(safePath)) return new NextResponse(null,{status:204})
     if (!await allowAuthAttempt(req,'analytics',visitorId)) return new NextResponse(null,{status:204})
     let safeReferrer: string | null = null
     if (typeof referrer==='string' && referrer) {

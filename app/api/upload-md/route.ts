@@ -43,7 +43,7 @@ async function handlePOST(req: NextRequest) {
     }
 
     // 生成带 .md 后缀的 public_id，确保下载 URL 带后缀（浏览器才能识别文件类型）
-    // Cloudinary public_id 仅允许字母数字 / 连字符 / 下划线，故对原始文件名做净化
+    // 对原始文件名做净化；GitHub 存储层会为其生成唯一资源路径
     const sanitized = file.name
       .replace(/\.md$/i, '')
       .replace(/[^a-zA-Z0-9-_]/g, '-')

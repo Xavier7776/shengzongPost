@@ -19,7 +19,7 @@ import { withWriteGuard } from '@/lib/security/write-guard'
 // 1. 从 URL 解析 key 或直接用 body.key
 // 2. 调 codex-pets.net/api/pets?search=<key> 拉取元数据
 // 3. 下载并校验 sprite sheet/poster
-// 4. 保存到 Cloudinary 持久存储，不变换图像几何
+// 4. 保存到 GitHub 持久存储，不变换图像几何
 // 5. 写入 cursor_effects 表（key 已存在则更新 sprite_url/poster_url）
 // 6. 返回 { pet: {...}, spriteUrl, posterUrl, dbId, mode: 'insert'|'update' }
 import { NextRequest, NextResponse } from 'next/server'
