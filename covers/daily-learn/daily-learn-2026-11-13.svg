@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="ZoomGain global-to-zoom perception cover">
+<defs>
+<linearGradient id="bg" x2="1" y2="1"><stop stop-color="#08172e"/><stop offset=".56" stop-color="#163a78"/><stop offset="1" stop-color="#24134f"/></linearGradient>
+<radialGradient id="glow"><stop stop-color="#13cfea" stop-opacity=".37"/><stop offset="1" stop-color="#13cfea" stop-opacity="0"/></radialGradient>
+<linearGradient id="shimmer"><stop stop-color="#40fbff"/><stop offset="1" stop-color="#b188ff"/></linearGradient>
+<filter id="f"><feGaussianBlur stdDeviation="18"/></filter>
+<filter id="light"><feGaussianBlur stdDeviation="4"/></filter>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<circle cx="1115" cy="380" r="510" fill="url(#glow)"/>
+<g stroke="#b8e4ff" stroke-opacity=".055">
+<path d="M0 0V900"/><path d="M80 0V900"/><path d="M160 0V900"/><path d="M240 0V900"/><path d="M320 0V900"/><path d="M400 0V900"/><path d="M480 0V900"/><path d="M560 0V900"/><path d="M640 0V900"/><path d="M720 0V900"/><path d="M800 0V900"/><path d="M880 0V900"/><path d="M960 0V900"/><path d="M1040 0V900"/><path d="M1120 0V900"/><path d="M1200 0V900"/><path d="M1280 0V900"/><path d="M1360 0V900"/><path d="M1440 0V900"/><path d="M1520 0V900"/><path d="M1600 0V900"/><path d="M1680 0V900"/><path d="M1760 0V900"/><path d="M1840 0V900"/>
+<path d="M0 0H1600"/><path d="M0 75H1600"/><path d="M0 150H1600"/><path d="M0 225H1600"/><path d="M0 300H1600"/><path d="M0 375H1600"/><path d="M0 450H1600"/><path d="M0 525H1600"/><path d="M0 600H1600"/><path d="M0 675H1600"/><path d="M0 750H1600"/><path d="M0 825H1600"/><path d="M0 900H1600"/><path d="M0 975H1600"/>
+</g>
+<g fill="#56d5fc" opacity=".48"><circle cx="37" cy="19" r="1"/><circle cx="154" cy="168" r="2"/><circle cx="271" cy="317" r="3"/><circle cx="388" cy="466" r="1"/><circle cx="505" cy="615" r="2"/><circle cx="622" cy="764" r="3"/><circle cx="739" cy="13" r="1"/><circle cx="856" cy="162" r="2"/><circle cx="973" cy="311" r="3"/><circle cx="1090" cy="460" r="1"/><circle cx="1207" cy="609" r="2"/><circle cx="1324" cy="758" r="3"/><circle cx="1441" cy="7" r="1"/><circle cx="1558" cy="156" r="2"/><circle cx="75" cy="305" r="3"/><circle cx="192" cy="454" r="1"/><circle cx="309" cy="603" r="2"/><circle cx="426" cy="752" r="3"/><circle cx="543" cy="1" r="1"/><circle cx="660" cy="150" r="2"/><circle cx="777" cy="299" r="3"/><circle cx="894" cy="448" r="1"/><circle cx="1011" cy="597" r="2"/><circle cx="1128" cy="746" r="3"/><circle cx="1245" cy="895" r="1"/><circle cx="1362" cy="144" r="2"/><circle cx="1479" cy="293" r="3"/><circle cx="1596" cy="442" r="1"/><circle cx="113" cy="591" r="2"/><circle cx="230" cy="740" r="3"/><circle cx="347" cy="889" r="1"/><circle cx="464" cy="138" r="2"/><circle cx="581" cy="287" r="3"/><circle cx="698" cy="436" r="1"/><circle cx="815" cy="585" r="2"/><circle cx="932" cy="734" r="3"/><circle cx="1049" cy="883" r="1"/><circle cx="1166" cy="132" r="2"/><circle cx="1283" cy="281" r="3"/><circle cx="1400" cy="430" r="1"/><circle cx="1517" cy="579" r="2"/><circle cx="34" cy="728" r="3"/><circle cx="151" cy="877" r="1"/><circle cx="268" cy="126" r="2"/><circle cx="385" cy="275" r="3"/><circle cx="502" cy="424" r="1"/><circle cx="619" cy="573" r="2"/><circle cx="736" cy="722" r="3"/><circle cx="853" cy="871" r="1"/><circle cx="970" cy="120" r="2"/><circle cx="1087" cy="269" r="3"/><circle cx="1204" cy="418" r="1"/><circle cx="1321" cy="567" r="2"/><circle cx="1438" cy="716" r="3"/></g>
+<path d="M94 130H1512" stroke="#7befff" stroke-opacity=".28" stroke-width="2"/>
+<rect x="95" y="160" width="310" height="60" rx="30" fill="#47e4fa" fill-opacity=".12" stroke="#50dff7" stroke-width="2"/>
+<text x="120" y="199" font-family="Arial,sans-serif" font-size="29" fill="#c3f7ff" letter-spacing="2" font-weight="700">VISUAL EVIDENCE</text>
+<text x="98" y="324" font-family="PingFang SC, Noto Sans SC, Microsoft YaHei, sans-serif" font-size="74" font-weight="800" fill="#f8fdff">全图看不见</text>
+<text x="98" y="430" font-family="PingFang SC, Noto Sans SC, Microsoft YaHei, sans-serif" font-size="74" font-weight="800" fill="#f8fdff">放大后才看清</text>
+<text x="102" y="505" font-family="Arial,sans-serif" font-size="30" fill="#b7defb">GLOBAL VIEW  /  LOCAL ZOOM  /  VERIFY</text>
+<rect x="105" y="532" width="488" height="5" rx="3" fill="url(#shimmer)"/>
+<g>
+<rect x="854" y="252" width="253" height="357" rx="33" fill="#061a39" stroke="#3fe7f6" stroke-width="7"/>
+<rect x="891" y="290" width="177" height="277" rx="16" fill="#c7e7ff" fill-opacity=".16"/>
+<rect x="928" y="313" width="102" height="133" rx="9" fill="#6ecff4" fill-opacity=".62"/>
+<path d="M942 330V426 M966 330V426 M988 330V426 M1014 330V426" stroke="#11306f" stroke-width="9"/>
+<g stroke="#e4faff" stroke-opacity=".8" stroke-width="4"><path d="M916 474H1040 M916 496H1040 M916 517H1005"/></g>
+<rect x="910" y="451" width="149" height="93" rx="10" fill="none" stroke="#63fcf4" stroke-width="6" stroke-dasharray="13 8"/>
+</g>
+<g>
+<rect x="1248" y="220" width="263" height="332" rx="26" fill="#081a40" stroke="#b590ff" stroke-width="7"/>
+<rect x="1281" y="256" width="195" height="252" rx="14" fill="#b6dfff" fill-opacity=".17"/>
+<rect x="1305" y="292" width="147" height="170" rx="8" fill="#6aeafa" fill-opacity=".76"/>
+<g stroke="#102958" stroke-width="10"><path d="M1329 319V437 M1352 309V447 M1376 306V444 M1402 309V443 M1428 320V436"/></g>
+<rect x="1260" y="243" width="238" height="277" rx="24" stroke="#b5ecff" stroke-width="4" fill="none" opacity=".2"/>
+</g>
+<path d="M1119 433H1220" stroke="#48f6ff" stroke-width="23" stroke-linecap="round" opacity=".18" filter="url(#f)"/>
+<path d="M1124 433H1215" stroke="#81ecff" stroke-width="8" stroke-linecap="round"/>
+<path d="M1198 418L1219 433L1198 448" stroke="#81ecff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(1130 582)"><rect width="364" height="86" rx="29" fill="#08294a" stroke="#58e1e5" stroke-width="4"/><circle cx="58" cy="43" r="27" fill="#38d8fd" fill-opacity=".18" stroke="#48e9ff" stroke-width="4"/><path d="M44 43L54 54L75 31" stroke="#a8fff3" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="110" y="53" font-size="28" font-family="Arial,sans-serif" fill="#dcfafa" font-weight="600">VERIFY</text></g>
+<rect x="76" y="735" width="1448" height="101" rx="29" fill="#071529" fill-opacity=".78" stroke="#d0f5ff" stroke-opacity=".22" stroke-width="2"/>
+<text x="116" y="796" font-family="PingFang SC, Noto Sans SC, Microsoft YaHei, sans-serif" font-size="32" font-weight="700" fill="#f8fcff">AI 技术图解深度学习</text>
+<circle cx="610" cy="784" r="5" fill="#5bedf8"/>
+<text x="634" y="797" font-family="Arial,sans-serif" font-size="27" fill="#bfd7f9">2026.11.13</text>
+<text x="1210" y="799" font-family="Arial,sans-serif" font-size="27" letter-spacing="2" fill="#80f2ff" font-weight="700">ZOOMGAIN</text>
+</svg>
