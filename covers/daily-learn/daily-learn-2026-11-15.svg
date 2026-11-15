@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900"><defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081632"/><stop offset=".52" stop-color="#18275d"/><stop offset="1" stop-color="#092739"/></linearGradient>
+<radialGradient id="halo"><stop stop-color="#41b6e8" stop-opacity=".38"/><stop offset="1" stop-color="#41b6e8" stop-opacity="0"/></radialGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="10"/></filter></defs>
+<rect width="1600" height="900" fill="url(#bg)"/><circle cx="1330" cy="420" r="520" fill="url(#halo)"/><circle cx="500" cy="780" r="350" fill="#593bb9" opacity=".1"/>
+<g stroke="#a9def7" stroke-opacity=".052"><path d="M0 0V900"/><path d="M100 0V900"/><path d="M200 0V900"/><path d="M300 0V900"/><path d="M400 0V900"/><path d="M500 0V900"/><path d="M600 0V900"/><path d="M700 0V900"/><path d="M800 0V900"/><path d="M900 0V900"/><path d="M1000 0V900"/><path d="M1100 0V900"/><path d="M1200 0V900"/><path d="M1300 0V900"/><path d="M1400 0V900"/><path d="M1500 0V900"/><path d="M1600 0V900"/><path d="M0 0H1600"/><path d="M0 100H1600"/><path d="M0 200H1600"/><path d="M0 300H1600"/><path d="M0 400H1600"/><path d="M0 500H1600"/><path d="M0 600H1600"/><path d="M0 700H1600"/><path d="M0 800H1600"/><path d="M0 900H1600"/></g>
+<path d="M92 117 H1510" stroke="#a7dffe" stroke-opacity=".25" stroke-width="2"/>
+<rect x="93" y="155" width="525" height="70" rx="35" fill="#ffffff" fill-opacity=".07" stroke="#41c6f5" stroke-opacity=".7" stroke-width="2"/>
+<text x="127" y="201" fill="#d8eeff" font-family="Arial,sans-serif" font-size="32" letter-spacing="4" font-weight="700">AI TECH DEEP DIVE</text>
+<text x="97" y="300" fill="#59e2db" font-family="Arial,sans-serif" font-size="26" letter-spacing="2" font-weight="700">RAG / EVIDENCE GROUNDED</text>
+<text x="94" y="405" fill="#ffffff" font-size="60" font-weight="800" font-family="Noto Sans SC,Microsoft YaHei,Arial,sans-serif">引用越多，越可靠吗？</text>
+<text x="96" y="488" fill="#dbeaff" font-size="50" font-weight="700" font-family="Noto Sans SC,Microsoft YaHei,Arial,sans-serif">先拆问题，再核对证据</text>
+<rect x="96" y="525" width="445" height="6" rx="3" fill="#4be4df"/>
+<text x="97" y="581" fill="#bedcf8" font-size="26" font-family="Arial,sans-serif">QUESTION / RETRIEVAL / CITATION</text>
+<circle cx="823" cy="406" r="65" fill="#172c60" stroke="#6fc3fb" stroke-width="5"/>
+<text x="823" y="423" font-family="Arial,sans-serif" font-size="65" text-anchor="middle" fill="#d8f7ff">?</text>
+<g fill="none" stroke-width="5" stroke-linecap="round"><path d="M888 405 C951 405 929 304 1010 304" stroke="#60dff8"/><path d="M888 406 H1010" stroke="#a78aff"/><path d="M888 407 C951 407 929 507 1010 507" stroke="#62e4b5"/></g>
+<g><rect x="1020" y="271" width="176" height="66" rx="21" fill="#102d4b" stroke="#60dff8" stroke-width="3.4"/><circle cx="1056" cy="304" r="12" fill="#60dff8" opacity=".8"/><rect x="1083" y="288" width="73" height="9" rx="5" fill="#60dff8" opacity=".9"/><rect x="1083" y="307" width="51" height="7" rx="4" fill="#d0e7ff" opacity=".52"/></g><g><rect x="1020" y="373" width="176" height="66" rx="21" fill="#102d4b" stroke="#a78aff" stroke-width="3.4"/><circle cx="1056" cy="406" r="12" fill="#a78aff" opacity=".8"/><rect x="1083" y="390" width="73" height="9" rx="5" fill="#a78aff" opacity=".9"/><rect x="1083" y="409" width="51" height="7" rx="4" fill="#d0e7ff" opacity=".52"/></g><g><rect x="1020" y="474" width="176" height="66" rx="21" fill="#102d4b" stroke="#62e4b5" stroke-width="3.4"/><circle cx="1056" cy="507" r="12" fill="#62e4b5" opacity=".8"/><rect x="1083" y="491" width="73" height="9" rx="5" fill="#62e4b5" opacity=".9"/><rect x="1083" y="510" width="51" height="7" rx="4" fill="#d0e7ff" opacity=".52"/></g>
+<g fill="none" stroke="#7bd6f0" stroke-width="4"><path d="M1196 304 C1270 304 1270 385 1337 385"/><path d="M1196 406 H1337"/><path d="M1196 507 C1270 507 1270 426 1337 426"/></g>
+<rect x="1337" y="335" width="203" height="145" rx="25" fill="#0d3547" stroke="#73f5c8" stroke-width="5"/>
+<path d="M1373 408l37 36 78 -88" fill="none" stroke="#73f5c8" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<g opacity=".82"><circle cx="823" cy="658" r="14" fill="#60dff8"/><circle cx="963" cy="658" r="14" fill="#a994f8"/><circle cx="1103" cy="658" r="14" fill="#60dff8"/><circle cx="1243" cy="658" r="14" fill="#a994f8"/><circle cx="1383" cy="658" r="14" fill="#60dff8"/></g>
+<path d="M823 658H1383" stroke="#60dff8" stroke-opacity=".6" stroke-width="4" stroke-dasharray="12 16"/>
+<rect x="73" y="744" width="1450" height="108" rx="29" fill="#071c32" fill-opacity=".8" stroke="#bfe8fa" stroke-opacity=".2" stroke-width="2"/>
+<text x="116" y="810" fill="#f6fbff" font-size="35" font-weight="700" font-family="Noto Sans SC,Microsoft YaHei,Arial,sans-serif">AI 技术图解深度学习</text>
+<circle cx="622" cy="797" r="5" fill="#74f3ce"/>
+<text x="647" y="809" fill="#ceeaff" font-size="29" font-family="Arial,sans-serif">2026.11.15</text>
+<text x="1280" y="809" fill="#64e6d6" font-size="29" font-weight="700" font-family="Arial,sans-serif" letter-spacing="4">QDRAG</text></svg>
