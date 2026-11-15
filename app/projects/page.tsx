@@ -143,6 +143,13 @@ export default async function ProjectsPage() {
         {/* 右侧：数据统计 + 精选博文 */}
         <div className="lg:col-span-2 space-y-10">
 
+          <Link href="/skills/research?view=sheets" className="group block rounded-2xl border border-blue-100 bg-blue-50 p-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+            <p className="text-xs font-semibold tracking-wider text-blue-600 mb-2">RESEARCH WORKSPACE</p>
+            <h3 className="text-xl font-bold text-gray-900">Research 研究工作台</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">深度研究、资料整理与电子表格。编辑数据和公式，保存后随时继续。</p>
+            <span className="mt-4 flex items-center gap-2 text-sm font-semibold text-blue-700">打开研究表格 <ArrowRight className="h-4 w-4" /></span>
+          </Link>
+
           {/* 数据统计卡片 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {statItems.map(({ label, value, icon: Icon, color }) => (

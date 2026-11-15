@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { LayoutDashboard, Sliders, ListTodo, FileText, Settings, ArrowRight, Microscope, Coins, RefreshCw } from 'lucide-react'
+import { LayoutDashboard, Sliders, ListTodo, FileText, Settings, ArrowRight, Microscope, Coins, RefreshCw, Table2 } from 'lucide-react'
 import type { ResearchState } from '../useResearch'
 import { FLOW_NODES, RESEARCH_COST } from '@/features/research/lib/research'
 
@@ -23,7 +23,7 @@ export default function ResearchSidebar({
   canUsePoints, points, session,
 }: Props) {
   return (
-    <aside className="w-full lg:w-64 bg-white border-r border-gray-100 flex flex-col justify-between shrink-0">
+    <aside className="w-full min-w-0 lg:w-64 bg-white border-r border-gray-100 flex flex-col justify-between shrink-0">
       <div>
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-gray-50 gap-2.5">
@@ -33,9 +33,10 @@ export default function ResearchSidebar({
           <span className="font-bold text-base text-gray-800">深度研究</span>
         </div>
 
-        <nav className="mt-5 px-3 space-y-1">
+        <nav aria-label="Research 工作区" className="mt-3 lg:mt-5 px-3 flex gap-1 overflow-x-auto pb-2 lg:block lg:space-y-1 lg:pb-0">
           {[
             { id: '工作台' as const, label: '工作台', icon: LayoutDashboard },
+            { id: '电子表格' as const, label: '电子表格', icon: Table2 },
             { id: '配置中心' as const, label: '配置中心', icon: Sliders },
             { id: '历史研报' as const, label: '历史研报', icon: ListTodo },
             { id: '运行日志' as const, label: '运行日志', icon: FileText },
@@ -46,8 +47,9 @@ export default function ResearchSidebar({
             return (
               <button
                 key={item.id}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => setActiveMenu(item.id)}
-                className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`shrink-0 lg:w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? 'bg-blue-50 text-blue-600'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
@@ -61,19 +63,19 @@ export default function ResearchSidebar({
         </nav>
 
         {/* 返回 Trending */}
-        <div className="mt-6 px-3">
+        <div className="mt-2 lg:mt-6 px-3 pb-3 lg:pb-0">
           <Link
-            href="/skills"
+            href="/projects"
             className="w-full flex items-center px-4 py-2.5 rounded-xl text-xs font-medium text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all"
           >
             <ArrowRight className="w-3.5 h-3.5 mr-2 rotate-180" />
-            返回 Trending
+            返回关于
           </Link>
         </div>
       </div>
 
       {/* 系统状态卡片 */}
-      <div className="p-4 border-t border-gray-50">
+      <div className="hidden lg:block p-4 border-t border-gray-50">
         <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">系统状态</span>

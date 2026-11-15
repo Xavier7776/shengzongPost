@@ -18,7 +18,6 @@ const NAV_ITEMS = [
   { label: '热门',     href: '/skills' },
   { label: '个人项目', href: '/work' },
   { label: '关于',     href: '/projects' },
-  { label: 'Now',      href: '/now' },
 ]
 
 export default function Navbar() {

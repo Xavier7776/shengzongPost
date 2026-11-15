@@ -2,7 +2,7 @@
 
 一个基于 Next.js 16 (App Router) 构建的全栈站点，已从一个个人作品集/博客扩展为三条产品线：
 
-1. **内容站** — 博客、作品、画廊、Skills 与 GitHub Trending、Now、Projects
+1. **内容站** — 博客、作品、画廊、Skills 与 GitHub Trending、关于
 2. **用户社区与积分商店** — 注册登录、关注、通知、编辑申请审核、积分与虚拟商品
 3. **Research Agent** — 多 Agent 协作的深度研究工作区
 
@@ -54,7 +54,6 @@ npm run web:guidance -- retrieve "dialog"
 - **画廊 `/gallery`** — 分类图片瀑布流，点赞
 - **Projects `/projects`** — 项目卡片、技术栈标签、GitHub / Demo 链接
 - **Skills `/skills`** — AI Agent Skills 列表（`/skills/[slug]` 详情页）+ GitHub Trending；按 5 类分类（coding / research / creative / automation / productivity），关键词自动分类，按 `source_url` 去重，ISR 60 秒
-- **Now `/now`** — nownownow.com 惯例的「最近在做什么」
 - **Newsletter** — 邮件订阅
 - **SEO** — `/sitemap.xml`、`/robots.txt`、`/feed.xml`
 
@@ -74,6 +73,12 @@ npm run web:guidance -- retrieve "dialog"
 6 个 AI Agent 协同工作（浏览 → 规划 → 研究 → 撰写 → 审校 → 发布）。
 通过 `/api/research/ws-url` 获取 WebSocket 地址，连接外部 GPT-Researcher / MindStack Research 后端（`GPT_RESEARCHER_URL` / `MINDSTACK_RESEARCH_URL`）。
 研究报告落库，可在 `/api/research/reports` 与 `/api/research/reports/[id]` 读写。
+
+关于页面 `/projects` 提供 Research 工作台入口，可直接打开电子表格。
+表格采用开源 Univer Sheets 1.5.0，支持编辑、公式、手动云端保存和重新打开恢复。
+每个登录账号拥有一份独立工作簿（可含多个工作表），切换工作台分区保留当前编辑内容；退出页面前请保存。
+`/api/research/workbook` 提供 GET / PUT，使用账号会话鉴权和版本冲突检查，单次保存上限 4 MB。
+表结构见 `supabase/migrations/057_research_workbooks.sql`。JSON 副本可下载；当前不包含 Excel 文件转换与多人实时协作。
 
 ### 管理员后台 `/admin`
 
@@ -220,7 +225,6 @@ shengzongPost/
 │   ├── projects/             项目展示
 │   ├── skills/               Skills + Trending，以及 research/ 研究工作区
 │   ├── shop/                 积分商店
-│   ├── now/                  Now 页面
 │   ├── search/               搜索
 │   ├── notifications/        通知
 │   ├── login/ register/ verify/   登录注册与邮箱验证

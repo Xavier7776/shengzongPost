@@ -94,9 +94,15 @@ OnlyUs 已于 2026-11-12 按用户要求移出本项目；其路由、模块、�
 
 项目已从个人博客扩展为三条业务线，改动前先判断自己碰的是哪一条：
 
-1. **内容站** — `/`（Hero）、`/blog`、`/work`、`/gallery`、`/skills`、`/now`、`/projects`
+1. **内容站** — `/`（Hero）、`/blog`、`/work`、`/gallery`、`/skills`、`/projects`
 2. **用户社区与商店** — `/profile`、`/shop`（积分 + 头像框）、`/notifications`、`/dashboard`
 3. **Research Agent 工作台** — `/skills/research`（`MultiAgentHub.tsx`）
+
+关于 `/projects` 提供 Research 电子表格入口 `/skills/research?view=sheets`。
+Univer 开源表格仅在进入电子表格分区后加载；账号独立工作簿存储于 `research_workbooks`（迁移 057），
+GET / PUT `/api/research/workbook` 使用服务端会话和 revision 乐观锁，保存上限 4 MB。
+057 已在隔离 Neon 分支完成浏览器保存恢复与冲突验证，并于 2026-11-15 应用至主库，仅新增表。
+切换分区保留编辑器，切换账号销毁旧实例。无商业插件、Office 文件转换或协作服务依赖。
 
 ## 5. 开发约定
 
@@ -196,10 +202,7 @@ OnlyUs 已于 2026-11-12 按用户要求移出本项目；其路由、模块、�
 2. **`/admin` 无入口（已修复）** — 此前 `Navbar` 与 `UserMenu` 都没有后台链接，
    只能手敲 URL。现已补：桌面端在 `UserMenu`，移动端抽屉在 `Navbar`
    （均以 `role === 'admin'` 收敛）。
-3. **`/now` 保留说明** — `app/now/page.tsx` 在 mainline 上是可达的
-   （`NAV_ITEMS` 有 `Now` 入口），内容停在 2026-08-22。曾一度被判定为死代码，
-   实为在「已先行移除导航入口的工作区」上做的误判，**已恢复保留**。
-   若要下线该页，需同时删除 `NAV_ITEMS` 中的 `Now` 项与 `app/now/page.tsx`。
+3. **Now 已移除（2026-11-15）** — 按用户要求删除 `/now` 页面和导航项，不再恢复该板块。
 4. **爬虫无调度** — `crawl:skills` / `crawl:trending` 只提供了 npm 脚本，
    尚未接入任何定时调度（原 `AGENTS.md` 声称的「每天 10:00 自动爬取」并不存在）。
 5. **markdown 无消毒** — `work/[slug]` 与 `skills/[slug]` 用
