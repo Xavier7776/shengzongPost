@@ -1,4 +1,6 @@
 'use client'
+
+import { useJsonResource } from '@/shared/use-json-resource'
 // app/admin/projects/ProjectsAdminClient.tsx
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
@@ -593,28 +595,9 @@ function ProjectCard({
 
 // ── 主客户端组件 ───────────────────────────────────────────────
 export default function ProjectsAdminClient() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: projects, loading, error, reload: fetchProjects } = useJsonResource<Project[]>('/api/projects?admin=1', [])
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
-
-  async function fetchProjects() {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/projects?admin=1')
-      if (!res.ok) throw new Error('加载失败')
-      const data = await res.json()
-      setProjects(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { fetchProjects() }, [])
 
   async function handleCreate(data: Record<string, unknown>) {
     setCreating(true)

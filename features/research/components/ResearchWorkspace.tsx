@@ -18,14 +18,15 @@ type Props = Pick<ResearchState,
   | 'formatTime'
   | 'elapsedTime'
   | 'getTaskStatus'
-  | 'nodeStartTimesRef'
+  | 'nodeStartTimes'
+  | 'nodeClock'
   | 'logs'
   | 'logsEndRef'
 >
 
 export default function ResearchWorkspace({
   errorMsg, isFinished, setShowReportModal, runStage, setActiveMenu, isRunning, setViewMode,
-  viewMode, handleCancel, currentNodeIdx, formatTime, elapsedTime, getTaskStatus, nodeStartTimesRef,
+  viewMode, handleCancel, currentNodeIdx, formatTime, elapsedTime, getTaskStatus, nodeStartTimes, nodeClock,
   logs, logsEndRef,
 }: Props) {
   return (
@@ -269,10 +270,10 @@ export default function ResearchWorkspace({
                       const baseProgress = (taskNodeIdx / TASK_ROWS.length) * 100
                       const nextBaseProgress = ((taskNodeIdx + 1) / TASK_ROWS.length) * 100
                       const nodeName = FLOW_NODES[taskNodeIdx].id
-                      const startTime = nodeStartTimesRef.current[nodeName]
+                      const startTime = nodeStartTimes[nodeName]
                       if (startTime) {
                         // 该节点已运行秒数
-                        const nodeElapsed = Math.floor((Date.now() - startTime) / 1000)
+                        const nodeElapsed = Math.max(0, Math.floor((nodeClock - startTime) / 1000))
                         // 每个节点预期 90 秒完成，进度从 baseProgress 增长到 nextBaseProgress - 3
                         const expectedDuration = 90
                         const ratio = Math.min(nodeElapsed / expectedDuration, 1)

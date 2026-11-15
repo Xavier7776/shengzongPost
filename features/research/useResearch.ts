@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useJsonResource } from '@/shared/use-json-resource'
 import {
   LANGUAGE_OPTIONS, FLOW_NODES, CONTENT_TO_NODE, inferNodeFromOutput, LogEntry, RunStage,
   HistoryReport, RESEARCH_COST, fetchWsUrl,
 } from '@/features/research/lib/research'
+
+const EMPTY_POINTS: { points: number | null } = { points: null }
+const EMPTY_REPORTS: { reports: HistoryReport[] } = { reports: [] }
 
 type ResearchMenu = '工作台' | '电子表格' | '配置中心' | '历史研报' | '运行日志' | '设置'
 
@@ -42,13 +46,17 @@ export function useResearch(openSheets = false) {
   const [errorMsg, setErrorMsg] = useState('')
 
   // ── 积分状态 ──
-  const [points, setPoints] = useState<number | null>(null)
-  const [pointsLoading, setPointsLoading] = useState(false)
+  const authScope = (session?.user as { id?: string } | undefined)?.id ?? ''
+  const { data: pointData, setData: setPointData, loading: fetchingPoints, reload: fetchPoints } = useJsonResource(session?.user ? '/api/research/points' : null, EMPTY_POINTS, authScope)
+  const points = pointData.points
+  const setPoints = useCallback((value: number) => setPointData({ points: value }), [setPointData])
+  const [chargingPoints, setPointsLoading] = useState(false)
+  const pointsLoading = fetchingPoints || chargingPoints
   const [showInsufficientModal, setShowInsufficientModal] = useState(false)
 
   // ── 历史研报状态 ──
-  const [historyReports, setHistoryReports] = useState<HistoryReport[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
+  const { data: historyData, setData: setHistoryData, loading: historyLoading, reload: fetchHistoryReports } = useJsonResource(session?.user && (activeMenu === '历史研报' || isProjectDropdownOpen) ? '/api/research/reports' : null, EMPTY_REPORTS, authScope)
+  const historyReports = Array.isArray(historyData.reports) ? historyData.reports : []
   const [viewingReport, setViewingReport] = useState<HistoryReport | null>(null)
   const [viewingLoading, setViewingLoading] = useState(false)
 
@@ -71,13 +79,15 @@ export function useResearch(openSheets = false) {
   // 保存最新的报告内容（避免 WebSocket onmessage 闭包捕获旧 state）
   const reportContentRef = useRef('')
   // 记录每个节点的开始时间，用于动态计算进度条
-  const nodeStartTimesRef = useRef<Record<string, number>>({})
+  const [nodeStartTimes, setNodeStartTimes] = useState<Record<string, number>>({})
+  const [nodeClock, setNodeClock] = useState(0)
 
   // ── 计时器 ──
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     setElapsedTime(0)
-    timerRef.current = setInterval(() => setElapsedTime(t => t + 1), 1000)
+    setNodeClock(Date.now())
+    timerRef.current = setInterval(() => { setElapsedTime(t => t + 1); setNodeClock(Date.now()) }, 1000)
   }, [])
   const stopTimer = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
@@ -93,61 +103,14 @@ export function useResearch(openSheets = false) {
   const setNodeActive = useCallback((nodeName: string) => {
     const idx = FLOW_NODES.findIndex(n => n.id === nodeName)
     if (idx < 0) return
-    setCurrentNodeIdx(prev => {
-      if (idx > prev) {
-        // 进入新节点，记录开始时间（用于动态进度条）
-        nodeStartTimesRef.current[nodeName] = Date.now()
-      }
-      return Math.max(prev, idx)
-    })
+    const startedAt = Date.now()
+    setCurrentNodeIdx(prev => Math.max(prev, idx))
+    setNodeStartTimes(previous => previous[nodeName] ? previous : { ...previous, [nodeName]: startedAt })
   }, [])
 
   // ── 人类反馈状态 ──
   const [humanFeedbackPrompt, setHumanFeedbackPrompt] = useState('')
   const [humanFeedbackInput, setHumanFeedbackInput] = useState('')
-
-  // ── 获取积分 ──
-  const fetchPoints = useCallback(async () => {
-    if (!session?.user) return
-    setPointsLoading(true)
-    try {
-      const res = await fetch('/api/research/points', { cache: 'no-store' })
-      if (res.ok) {
-        const data = await res.json()
-        setPoints(data.points)
-      }
-    } catch (err) {
-      console.error('[fetchPoints]', err)
-    } finally {
-      setPointsLoading(false)
-    }
-  }, [session])
-
-  useEffect(() => {
-    fetchPoints()
-  }, [fetchPoints])
-
-  // ── 获取历史研报列表 ──
-  const fetchHistoryReports = useCallback(async () => {
-    if (!session?.user) return
-    setHistoryLoading(true)
-    try {
-      const res = await fetch('/api/research/reports', { cache: 'no-store' })
-      if (res.ok) {
-        const data = await res.json()
-        setHistoryReports(data.reports || [])
-      }
-    } catch (err) {
-      console.error('[fetchHistoryReports]', err)
-    } finally {
-      setHistoryLoading(false)
-    }
-  }, [session])
-
-  // ── 切换到历史研报时自动加载列表 ──
-  useEffect(() => {
-    if (activeMenu === '历史研报') fetchHistoryReports()
-  }, [activeMenu, fetchHistoryReports])
 
   // ── 保存研报到数据库（生成完成后调用） ──
   const saveReportToDB = useCallback(async () => {
@@ -203,7 +166,7 @@ export function useResearch(openSheets = false) {
       if (res.ok) {
         addLog('研报已删除', 'success')
         // 从列表中移除
-        setHistoryReports(prev => prev.filter(r => r.id !== reportId))
+        setHistoryData(previous => ({ reports: (previous.reports || []).filter(r => r.id !== reportId) }))
         // 如果正在查看的就是被删除的研报，关闭 Modal
         setViewingReport(prev => prev?.id === reportId ? null : prev)
       } else {
@@ -213,7 +176,7 @@ export function useResearch(openSheets = false) {
       console.error('[deleteHistoryReport]', err)
       addLog('删除失败', 'error')
     }
-  }, [addLog])
+  }, [addLog, setHistoryData])
 
   // ── WebSocket 消息处理 ──
   const handleMessage = useCallback((data: any) => {
@@ -365,7 +328,7 @@ export function useResearch(openSheets = false) {
     // 2. 启动生成
     setReportContent('')
     reportContentRef.current = ''
-    nodeStartTimesRef.current = {}
+    setNodeStartTimes({})
     setPlanContent('')
     setLogs([])
     setCurrentNodeIdx(-1)
@@ -492,7 +455,7 @@ export function useResearch(openSheets = false) {
     activeMenu, setActiveMenu, isRunning, isFinished, currentNodeIdx, fetchPoints, pointsLoading,
     canUsePoints, points, session, setIsProjectDropdownOpen, isProjectDropdownOpen,
     fetchHistoryReports, selectedProject, historyReports, setRunStage, setCurrentNodeIdx,
-    setReportContent, reportContentRef, nodeStartTimesRef, setPlanContent, setLogs, setErrorMsg,
+    setReportContent, reportContentRef, nodeStartTimes, setNodeStartTimes, nodeClock, setPlanContent, setLogs, setErrorMsg,
     setHumanFeedbackPrompt, setHumanFeedbackInput, stopTimer, setElapsedTime, setTaskTopic,
     setSelectedModel, setSelectedLanguage, setSelectedProject, addLog, setIsNotifyOpen, isNotifyOpen,
     logs, errorMsg, setShowReportModal, runStage, setViewMode, viewMode, handleCancel, formatTime,

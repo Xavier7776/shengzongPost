@@ -6,6 +6,7 @@
 // - 仅影响文章正文区域（.reader-content）
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Minus, Plus, Sun, BookOpen, Moon, ChevronDown } from 'lucide-react'
+import { useHydrated, useStoredString, notifyStorageChange } from '@/shared/browser-state'
 
 const FONT_KEY = 'blog-reader-font-size'
 const MODE_KEY = 'blog-reader-mode'
@@ -24,27 +25,22 @@ const MODES: { value: Mode; label: string; icon: typeof Sun }[] = [
   { value: 'dark', label: '深色', icon: Moon },
 ]
 
-export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 'standard' | 'learn' }) {
+export default function BlogReaderToolbar(props: { variant?: 'standard' | 'learn' }) {
+  return <ReaderPreferences key={props.variant ?? 'standard'} {...props} />
+}
+
+function ReaderPreferences({ variant = 'standard' }: { variant?: 'standard' | 'learn' }) {
   const storageKey = variant === 'learn' ? 'learn-reader-font-size' : FONT_KEY
   const initialFont = variant === 'learn' ? LEARN_DEFAULT_FONT : DEFAULT_FONT
-  const [fontSize, setFontSize] = useState(initialFont)
-  const [mode, setMode] = useState<Mode>('default')
-  const [mounted, setMounted] = useState(false)
+  const [fontOverride, setFontSize] = useState<number | null>(null)
+  const [modeOverride, setMode] = useState<Mode | null>(null)
+  const savedFont = useStoredString(storageKey)
+  const savedMode = useStoredString(MODE_KEY)
+  const n = savedFont ? Number(savedFont) : initialFont
+  const fontSize = fontOverride ?? (Number.isFinite(n) && n >= MIN_FONT && n <= MAX_FONT ? n : initialFont)
+  const mode: Mode = modeOverride ?? (savedMode === 'sepia' || savedMode === 'dark' ? savedMode : 'default')
+  const mounted = useHydrated()
   const toolbar = useRef<HTMLDivElement>(null)
-
-  // 初始化：从 localStorage 读取用户偏好
-  useEffect(() => {
-    try {
-      const savedFont = localStorage.getItem(storageKey)
-      const n = savedFont ? Number(savedFont) : initialFont
-      setFontSize(Number.isFinite(n) && n >= MIN_FONT && n <= MAX_FONT ? n : initialFont)
-      const savedMode = localStorage.getItem(MODE_KEY) as Mode | null
-      if (savedMode && ['default', 'sepia', 'dark'].includes(savedMode)) {
-        setMode(savedMode)
-      }
-    } catch { /* Keep default reader controls when storage is blocked. */ }
-    setMounted(true)
-  }, [storageKey, initialFont])
 
   // The article shell has hydrated; its streamed reader content may still be pending.
   useEffect(() => {
@@ -56,26 +52,17 @@ export default function BlogReaderToolbar({ variant = 'standard' }: { variant?: 
     article.classList.add('reader-mode-' + mode)
   }, [fontSize, mode, mounted])
 
-  const decreaseFont = useCallback(() => {
-    setFontSize(prev => {
-      const next = Math.max(MIN_FONT, prev - STEP)
-      try { localStorage.setItem(storageKey, String(next)) } catch { /* The current page remains adjustable. */ }
-      return next
-    })
-  }, [storageKey])
-
-  const increaseFont = useCallback(() => {
-    setFontSize(prev => {
-      const next = Math.min(MAX_FONT, prev + STEP)
-      try { localStorage.setItem(storageKey, String(next)) } catch { /* The current page remains adjustable. */ }
-      return next
-    })
-  }, [storageKey])
-
-  const changeMode = useCallback((m: Mode) => {
-    setMode(m)
-    try { localStorage.setItem(MODE_KEY, m) } catch { /* The current page remains adjustable. */ }
-  }, [])
+  const changeFont = useCallback((delta: number) => {
+    const next = Math.max(MIN_FONT, Math.min(MAX_FONT, fontSize + delta))
+    setFontSize(next)
+    try { localStorage.setItem(storageKey, String(next)); notifyStorageChange() } catch { /* Keep the current controls usable. */ }
+  }, [fontSize, storageKey])
+  const decreaseFont = () => changeFont(-STEP)
+  const increaseFont = () => changeFont(STEP)
+  const changeMode = (next: Mode) => {
+    setMode(next)
+    try { localStorage.setItem(MODE_KEY, next); notifyStorageChange() } catch { /* Keep the current controls usable. */ }
+  }
 
   useEffect(() => {
     const close = (event: PointerEvent | KeyboardEvent) => {

@@ -30,17 +30,17 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
 
   // 用 IntersectionObserver 检测哨兵元素是否进入视口，只在页脚即将可见时才渲染
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const [showFooter, setShowFooter] = useState(false)
+  const [footerPath, setFooterPath] = useState<string | null>(null)
+  const showFooter = footerPath === pathname
 
   useEffect(() => {
-    setShowFooter(false)
     const el = sentinelRef.current
     if (!el) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setShowFooter(true)
+          setFooterPath(pathname)
           observer.disconnect()
         }
       },

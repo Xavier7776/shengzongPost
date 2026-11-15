@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useId } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -9,22 +9,7 @@ import { Menu, X, LogOut, User, PenLine, ChevronRight, Search, Bell, LayoutDashb
 import UserMenu from '@/components/layout/UserMenu'
 import RoleBadge from '@/components/ui/RoleBadge'
 import NotificationBell from '@/components/layout/NotificationBell'
-
-// Logo 摇摆动画样式（注入全局，只执行一次）
-const SWING_STYLE = `
-@keyframes logo-swing {
-  0%   { transform: rotate(0deg); }
-  15%  { transform: rotate(12deg); }
-  35%  { transform: rotate(-8deg); }
-  55%  { transform: rotate(5deg); }
-  70%  { transform: rotate(-3deg); }
-  85%  { transform: rotate(1.5deg); }
-  100% { transform: rotate(0deg); }
-}
-.logo-swing {
-  animation: logo-swing 0.7s ease-out;
-  transform-origin: 50% 85%;
-}`
+import { useHydrated } from '@/shared/browser-state'
 
 const NAV_ITEMS = [
   { label: '首页',     href: '/' },
@@ -38,36 +23,45 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [menuOpen,   setMenuOpen]   = useState(false)
-  const [visible,    setVisible]    = useState(false)
   const [swinging,   setSwinging]   = useState(false)
   const [hidden,     setHidden]     = useState(false)   // 下滚隐藏、上滚出现
-  const [progress,   setProgress]   = useState(0)       // 页面阅读进度
-  const [hydrated,   setHydrated]   = useState(false)
+  const hydrated = useHydrated()
   const pathname  = usePathname()
   const isArticleReader = hydrated && /^\/blog\/[^/]+/.test(pathname)
   const router    = useRouter()
-  const drawerRef = useRef<HTMLDivElement>(null)
+  const drawerRef = useRef<HTMLDialogElement>(null)
+  const progressRef = useRef<HTMLDivElement>(null)
+  const drawerId = useId()
+  const pressedOutside = useRef(false)
   const { data: session } = useSession()
 
-  // 注入摇摆动画 CSS
-  useEffect(() => {
-    setHydrated(true)
-    if (document.getElementById('logo-swing-style')) return
-    const style = document.createElement('style')
-    style.id = 'logo-swing-style'
-    style.textContent = SWING_STYLE
-    document.head.appendChild(style)
+  const handleClose = useCallback(async () => {
+    const drawer = drawerRef.current
+    if (!drawer?.open || drawer.hasAttribute('data-closing')) return
+    // Keep the native modal active until its exit completes, including on Safari/Firefox.
+    drawer.setAttribute('data-closing', '')
+    await Promise.allSettled(drawer.getAnimations({ subtree: true }).map(animation => animation.finished))
+    if (drawer.isConnected && drawer.hasAttribute('data-closing')) {
+      drawer.close()
+      drawer.removeAttribute('data-closing')
+    }
   }, [])
 
   useEffect(() => {
     let lastY = window.scrollY
-    const handler = () => {
+    let frame: number | null = null
+    const update = () => {
+      frame = null
       const y = window.scrollY
       setIsScrolled(y > 20)
 
       // 阅读进度：当前屏占比
       const total = document.documentElement.scrollHeight - window.innerHeight
-      setProgress(total > 0 ? Math.min(1, y / total) : 0)
+      const progress = total > 0 ? Math.max(0, Math.min(1, y / total)) : 0
+      if (progressRef.current) {
+        progressRef.current.style.transform = `scaleX(${progress})`
+        progressRef.current.style.opacity = progress > 0.005 ? '1' : '0'
+      }
 
       // 方向感知：下滚且离开顶部时隐藏，上滚或回到顶部时出现；抽屉打开时不隐藏
       if (!menuOpen) {
@@ -76,25 +70,24 @@ export default function Navbar() {
       }
       lastY = y
     }
+    const handler = () => { if (frame === null) frame = requestAnimationFrame(update) }
+    update()
     window.addEventListener('scroll', handler, { passive: true })
-    return () => window.removeEventListener('scroll', handler)
-  }, [menuOpen])
+    window.addEventListener('resize', handler)
+    return () => {
+      window.removeEventListener('scroll', handler)
+      window.removeEventListener('resize', handler)
+      if (frame !== null) cancelAnimationFrame(frame)
+    }
+  }, [menuOpen, pathname])
 
   // 路由变化时触发 Logo 摇摆
   useEffect(() => {
-    setSwinging(false)
-    requestAnimationFrame(() => setSwinging(true))
+    const frame = requestAnimationFrame(() => setSwinging(true))
     const t = setTimeout(() => setSwinging(false), 700)
-    handleClose()
-    return () => clearTimeout(t)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose() }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [])
+    void handleClose()
+    return () => { cancelAnimationFrame(frame); clearTimeout(t) }
+  }, [pathname, handleClose])
 
   // Cmd/Ctrl + K 唤起搜索
   useEffect(() => {
@@ -109,35 +102,18 @@ export default function Navbar() {
   }, [router])
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [menuOpen])
-
-  useEffect(() => {
-    if (!menuOpen) return
-    const previous = document.activeElement as HTMLElement | null
-    const drawer = drawerRef.current
-    if (!drawer) return
-    const controls = () => Array.from(drawer.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input,select,[tabindex="0"]'))
-    controls()[0]?.focus()
-    const trap = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return
-      const items = controls(), first = items[0], last = items[items.length-1]
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
-    }
-    drawer.addEventListener('keydown', trap)
-    return () => { drawer.removeEventListener('keydown', trap); if (previous?.isConnected) previous.focus() }
-  }, [menuOpen])
+    const desktop = window.matchMedia('(min-width: 768px)')
+    const sync = () => { if (desktop.matches) void handleClose() }
+    desktop.addEventListener('change', sync)
+    return () => desktop.removeEventListener('change', sync)
+  }, [handleClose])
 
   function handleOpen() {
+    const drawer = drawerRef.current
+    if (!drawer) return
+    drawer.removeAttribute('data-closing')
+    drawer.showModal()
     setMenuOpen(true)
-    requestAnimationFrame(() => setVisible(true))
-  }
-
-  function handleClose() {
-    setVisible(false)
-    setTimeout(() => setMenuOpen(false), 250)
   }
 
   const name    = session?.user?.name ?? ''
@@ -164,11 +140,11 @@ export default function Navbar() {
   return (
     <>
       {/* ── 顶栏 ── */}
-      <nav className={navCls} onMouseEnter={() => setHidden(false)}>
+      <nav className={navCls} onMouseEnter={() => setHidden(false)} onFocusCapture={() => setHidden(false)} aria-label="主导航">
         {/* 阅读进度条 */}
-        {!isWorkDetail && isScrolled && (
-          <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-blue-600 to-sky-400 transition-[width] duration-150 ease-out"
-            style={{ width: `${progress * 100}%`, opacity: progress > 0.005 ? 1 : 0 }}
+        {!isWorkDetail && (
+          <div ref={progressRef} aria-hidden="true" className="absolute bottom-0 left-0 right-0 h-[2px] origin-left bg-gradient-to-r from-blue-600 to-sky-400"
+            style={{ transform: 'scaleX(0)', opacity: 0 }}
           />
         )}
         <div className={`${isArticleReader ? 'reader-site-nav-inner' : pathname === '/gallery' ? 'relative px-5 sm:px-8 lg:px-12' : 'max-w-6xl mx-auto px-6'} flex items-center justify-between`}>
@@ -197,6 +173,7 @@ export default function Navbar() {
                   key={href}
                   href={href}
                   prefetch={false}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
                     isGalleryHero
                       ? isActive ? 'text-white' : 'text-white/65 hover:text-white'
@@ -249,6 +226,8 @@ export default function Navbar() {
               onClick={handleOpen}
               className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${isGalleryHero ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
               aria-label="打开菜单"
+              aria-expanded={menuOpen}
+              aria-controls={drawerId}
             >
               <Menu className={`w-5 h-5 ${isGalleryHero ? 'text-white' : 'text-gray-700'}`} />
             </button>
@@ -257,19 +236,26 @@ export default function Navbar() {
       </nav>
 
       {/* ── 移动端抽屉 ── */}
-      {menuOpen && (
-        <>
-          {/* 遮罩 */}
-          <div
-            className={`fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] transition-opacity duration-[250ms] ${visible ? 'opacity-100' : 'opacity-0'}`}
-            onClick={handleClose}
-          />
-
-          {/* 抽屉 */}
-          <div
+          <dialog
             ref={drawerRef}
-            role="dialog" aria-modal="true" aria-label="站点导航"
-            className={`fixed top-0 right-0 bottom-0 z-[70] w-[280px] bg-white shadow-2xl flex flex-col transition-transform duration-[250ms] ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
+            id={drawerId}
+            aria-label="站点导航"
+            closedby="any"
+            className="site-drawer"
+            onClose={() => setMenuOpen(false)}
+            onCancel={event => { if (event.cancelable) { event.preventDefault(); void handleClose() } }}
+            onPointerDown={event => {
+              if ('closedBy' in HTMLDialogElement.prototype) return
+              const rect = event.currentTarget.getBoundingClientRect()
+              pressedOutside.current = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom
+            }}
+            onPointerUp={event => {
+              if ('closedBy' in HTMLDialogElement.prototype) return
+              const rect = event.currentTarget.getBoundingClientRect()
+              const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom
+              if (pressedOutside.current && outside) void handleClose()
+              pressedOutside.current = false
+            }}
           >
             {/* 抽屉顶部 */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50">
@@ -282,6 +268,7 @@ export default function Navbar() {
               <button
                 onClick={handleClose}
                 aria-label="关闭导航"
+                autoFocus
                 className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
               >
                 <X className="w-4 h-4 text-gray-500" />
@@ -289,7 +276,7 @@ export default function Navbar() {
             </div>
 
             {/* 导航 + 账号 */}
-            <div className="flex-1 overflow-y-auto py-4 px-3">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 px-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-3 mb-2">导航</p>
               {NAV_ITEMS.map(({ label, href }) => {
                 const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
@@ -299,6 +286,7 @@ export default function Navbar() {
                     href={href}
                     prefetch={false}
                     onClick={handleClose}
+                    aria-current={isActive ? 'page' : undefined}
                     className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-colors ${
                       isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'
                     }`}
@@ -407,9 +395,7 @@ export default function Navbar() {
                 </Link>
               </div>
             )}
-          </div>
-        </>
-      )}
+          </dialog>
     </>
   )
 }

@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ProfileData, FollowCounts, FollowUser } from './settings-types'
+import { usePreferences } from '@/shared/use-preferences'
 
 export function useProfileSettings() {
   const { data: session, status, update } = useSession()
@@ -37,16 +38,7 @@ export function useProfileSettings() {
   const [showPw, setShowPw]       = useState(false)
 
   // 偏好
-  const [showBookmarks, setShowBookmarks] = useState(true)
-  const [showLikes,     setShowLikes]     = useState(true)
-
-  useEffect(() => {
-    try {
-      const p = JSON.parse(localStorage.getItem('arc_prefs') ?? '{}')
-      if (typeof p.showBookmarks === 'boolean') setShowBookmarks(p.showBookmarks)
-      if (typeof p.showLikes     === 'boolean') setShowLikes(p.showLikes)
-    } catch {}
-  }, [])
+  const { showBookmarks, showLikes, savePreferences } = usePreferences()
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login?callbackUrl=/profile')
@@ -170,16 +162,13 @@ export function useProfileSettings() {
     setFollowListLoading(false)
   }
 
-  function savePrefs(next: { showBookmarks: boolean; showLikes: boolean }) {
-    localStorage.setItem('arc_prefs', JSON.stringify(next))
-  }
   function toggleBookmarks() {
     const next = { showBookmarks: !showBookmarks, showLikes }
-    setShowBookmarks(!showBookmarks); savePrefs(next)
+    savePreferences(next)
   }
   function toggleLikes() {
     const next = { showBookmarks, showLikes: !showLikes }
-    setShowLikes(!showLikes); savePrefs(next)
+    savePreferences(next)
   }
 
   function addTechSkill() {

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { sql, history } = vi.hoisted(() => ({sql:vi.fn(),history:vi.fn()}))
 vi.mock('@/lib/db/_core', () => ({sql}))
-vi.mock('@/components/sections/ReadingHistory', () => ({getReadingHistory:history}))
+vi.mock('@/components/sections/ReadingHistory', () => ({getReadingHistory:history, useReadingHistory: history}))
 import LearnIndex from '@/app/learn/page'
 const article = {
   slug:'daily-learn-2026-10-09',

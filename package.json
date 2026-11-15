@@ -13,14 +13,16 @@
     "build": "next build --webpack",
     "build:ci": "node scripts/ci-build.mjs",
     "start": "node --use-env-proxy ./node_modules/next/dist/bin/next start",
-    "lint": "eslint app components lib features shared __tests__ --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint app components lib features shared __tests__ --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "crawl:skills": "tsx scripts/crawl-skills.ts",
     "crawl:trending": "tsx scripts/crawl-trending.ts",
     "db:apply": "node scripts/apply-migration.mjs",
-    "cursor:fetch": "node scripts/fetch-cursor-sprites.mjs && node scripts/fetch-cursor-posters.mjs"
+    "cursor:fetch": "node scripts/fetch-cursor-sprites.mjs && node scripts/fetch-cursor-posters.mjs",
+    "web:guidance": "modern-web-guidance",
+    "web:scan": "modern-web-guidance legacy-scan . --json"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -41,7 +43,7 @@
     "lowlight": "^3.3.0",
     "lucide-react": "^0.475.0",
     "marked": "^18.0.4",
-    "next": "^16.4.0",
+    "next": "^16.4.6",
     "next-auth": "^4.24.15",
     "parse5": "^8.0.1",
     "qrcode.react": "^4.2.0",
@@ -65,15 +67,21 @@
     "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.0.1",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.6",
     "jsdom": "^29.1.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.22.4",
     "typescript": "^5",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12",
+    "modern-web-guidance": "1.0.0"
   },
   "allowScripts": {
     "esbuild@0.28.1": true
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
   }
 }

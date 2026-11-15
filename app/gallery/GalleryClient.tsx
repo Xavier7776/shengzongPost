@@ -8,20 +8,13 @@ import FilmStrip from '@/components/sections/FilmStrip'
 import Lightbox from './Lightbox'
 import MasonryGrid from './MasonryGrid'
 import type { GalleryItem, GalleryView } from './types'
+import { useHydrated, useStoredString, notifyStorageChange } from '@/shared/browser-state'
 
 const VIEW_KEY = 'gallery_view'
 const LIKED_KEY = 'gallery_liked_ids'
 
 function padIndex(index: number) {
   return String(index + 1).padStart(2, '0')
-}
-
-function storedLikedIds() {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(LIKED_KEY) || '[]') as number[])
-  } catch {
-    return new Set<number>()
-  }
 }
 
 export default function GalleryClient({
@@ -43,21 +36,23 @@ export default function GalleryClient({
     ? initialImageId
     : images[0]?.id ?? null
 
-  const [view, setView] = useState<GalleryView>('masonry')
-  const [mounted, setMounted] = useState(false)
+  const [viewOverride, setView] = useState<GalleryView | null>(null)
+  const savedView = useStoredString(VIEW_KEY)
+  const view = viewOverride ?? (savedView === 'film' ? 'film' : 'masonry')
+  const mounted = useHydrated()
   const [category, setCategory] = useState('ALL')
   const [tag, setTag] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [activeId, setActiveId] = useState<number | null>(initialId)
-  const [likedIds, setLikedIds] = useState<Set<number>>(new Set())
+  const [likedOverride, setLikedIds] = useState<Set<number> | null>(null)
+  const rawLikes = useStoredString(LIKED_KEY)
+  const likedIds = useMemo(() => {
+    try {
+      const stored: unknown = JSON.parse(rawLikes || '[]')
+      return new Set([...(Array.isArray(stored) ? stored.filter((id): id is number => typeof id === 'number') : []), ...(likedOverride ?? [])])
+    } catch { return likedOverride ?? new Set<number>() }
+  }, [rawLikes, likedOverride])
   const [lightboxId, setLightboxId] = useState<number | null>(initialImageId ? initialId : null)
-
-  useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem(VIEW_KEY)
-    if (saved === 'film' || saved === 'masonry') setView(saved)
-    setLikedIds(storedLikedIds())
-  }, [])
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -107,7 +102,7 @@ export default function GalleryClient({
 
   const switchView = (nextView: GalleryView) => {
     setView(nextView)
-    localStorage.setItem(VIEW_KEY, nextView)
+    try { localStorage.setItem(VIEW_KEY, nextView); notifyStorageChange() } catch { /* Keep this visit's selection. */ }
     requestAnimationFrame(() => {
       document.getElementById('gallery-archive')?.scrollIntoView({ behavior: 'smooth' })
     })
@@ -141,7 +136,7 @@ export default function GalleryClient({
     if (!activeImage || likedIds.has(activeImage.id)) return
     const nextLikedIds = new Set(likedIds).add(activeImage.id)
     setLikedIds(nextLikedIds)
-    localStorage.setItem(LIKED_KEY, JSON.stringify(Array.from(nextLikedIds)))
+    try { localStorage.setItem(LIKED_KEY, JSON.stringify(Array.from(nextLikedIds))); notifyStorageChange() } catch { /* Keep optimistic feedback. */ }
     try {
       await fetch(`/api/gallery/${activeImage.id}/like`, { method: 'POST' })
     } catch {

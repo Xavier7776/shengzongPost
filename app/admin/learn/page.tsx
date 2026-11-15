@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+// Request-scoped measurement belongs to data preparation, outside the JSX render.
+async function checkPublications(rows: PublicationRow[]) {
+  const started = performance.now()
+  const checked = rows.map(row => ({ ...row, audit: auditPublication(row) }))
+  return { checked, duration: Math.round(performance.now() - started) }
+}
+
 export default async function AdminLearnPage() {
   await requireAdmin() // privilege check before any database read
   let rows:Record<string,unknown>[]=[]
@@ -31,9 +38,7 @@ export default async function AdminLearnPage() {
     console.error('[learn] database observation failed', {category:'database_unavailable'})
   }
   const observedAt=new Date()
-  const started=performance.now()
-  const checked = (rows as unknown as PublicationRow[]).map(row => ({ ...row, audit: auditPublication(row) }))
-  const duration=Math.round(performance.now()-started)
+  const { checked, duration } = await checkPublications(rows as unknown as PublicationRow[])
   const summary=publicationSummary(checked)
   const latest=checked.find(row=>row.edition_date===summary.latestDate && row.audit.code==='ok')
   const publicCheck=latest?.slug?{slug:latest.slug,status:await publicVisibility(latest.document as Edition)}:undefined

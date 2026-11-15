@@ -8,6 +8,20 @@
 
 技术细节、开发约定与重构计划见 [AGENTS.md](./AGENTS.md)。
 
+### Modern Web Guidance
+
+已将 Google Chrome 的 [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance-src) CLI 固定为开发依赖，用于检索 Web 平台指南和检查旧交互模式；它不会作为运行时脚本发送到浏览器，也不会自动修改应用。
+
+```bash
+npm run web:scan
+npm run web:guidance -- search "navigation drawer"
+npm run web:guidance -- retrieve "dialog"
+```
+
+扫描仅覆盖约 20% 指南中可静态识别的模式，结果需结合代码核查和浏览器验证。CLI 可离线检索，不需要 API 密钥；设置环境变量 `DISABLE_TELEMETRY=1` 可关闭其匿名遥测。
+
+`npm run lint` 使用 Next.js 默认的 React 检查，并要求 0 条警告；不再将 Compiler 诊断降级。开发依赖中的 `minimatch` 修复通过 `overrides` 限定在 `@typescript-eslint/typescript-estree` 下（上游目前仍要求 10.x），升级 ESLint 工具链后应结合 `npm audit` 检查是否可移除此覆盖。
+
 ---
 
 ## 技术栈

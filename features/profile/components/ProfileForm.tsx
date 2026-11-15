@@ -222,7 +222,12 @@ export default function ProfileForm({
           <input
             value={techInput}
             onChange={e => { setTechInput(e.target.value); setError('') }}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTechSkill() } }}
+            onKeyDown={e => {
+              if (e.key !== 'Enter') return
+              e.preventDefault()
+              if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return
+              addTechSkill()
+            }}
             maxLength={30}
             placeholder="输入技术标签，按回车添加"
             className="flex-1 px-5 py-3 bg-slate-50/60 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none text-sm"

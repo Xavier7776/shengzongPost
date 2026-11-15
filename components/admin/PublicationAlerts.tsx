@@ -1,9 +1,14 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useHydrated } from '@/shared/browser-state'
 export default function PublicationAlerts({alerts}:{alerts:{key:string;text:string}[]}) {
-  const [visible,setVisible]=useState<typeof alerts>([])
-  useEffect(()=>{
-    const now=Date.now()
+  const hydrated = useHydrated()
+  return hydrated ? <AlertVisit alerts={alerts} /> : null
+}
+
+function AlertVisit({ alerts }: { alerts: { key: string; text: string }[] }) {
+  const [now] = useState(() => Date.now())
+  const [seen] = useState(() => {
     // shortcut: browser-only cooldown; cross-device delivery needs the approved persistent audit.
     let seen:Record<string,number>={}
     try {
@@ -12,11 +17,14 @@ export default function PublicationAlerts({alerts}:{alerts:{key:string;text:stri
         seen=Object.fromEntries(Object.entries(parsed).filter(([,at])=>typeof at==='number' && Number.isFinite(at) && at<=now && now-at<2*86400000)) as Record<string,number>
       }
     } catch { /* Storage unavailable: still show actionable observations on this visit. */ }
-    const next=alerts.filter(alert=>!seen[alert.key]||now-seen[alert.key]>=86400000)
-    setVisible(next)
-    for(const alert of next)seen[alert.key]=now
-    try {localStorage.setItem('learn-alert-cooldown',JSON.stringify(seen))} catch { /* No durable delivery claim. */ }
-  },[alerts])
+    return seen
+  })
+  const visible = useMemo(() => alerts.filter(alert => !seen[alert.key] || now - seen[alert.key] >= 86400000), [alerts, seen, now])
+  useEffect(() => {
+    const next = { ...seen }
+    for (const alert of visible) next[alert.key] = now
+    try { localStorage.setItem('learn-alert-cooldown', JSON.stringify(next)) } catch { /* No durable delivery claim. */ }
+  }, [visible, seen, now])
   if(!visible.length)return null
   return <aside role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
     <strong>出版巡检提醒</strong>
