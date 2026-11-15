@@ -55,7 +55,6 @@ export default function CursorFollower() {
     if (status !== 'authenticated') return
     // 触屏 / 无精确指针设备不渲染
     if (typeof window !== 'undefined' && !window.matchMedia('(pointer: fine)').matches) {
-      setReady(true)
       return
     }
 
@@ -202,7 +201,6 @@ function FollowerLayer({ effect }: { effect: EquippedEffect }) {
       document.removeEventListener('visibilitychange', onVis)
       cancelAnimationFrame(rafRef.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effect])
 
   const hasSprite = !!effect.sprite_url

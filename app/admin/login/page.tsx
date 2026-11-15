@@ -3,13 +3,16 @@
 
 import { signIn } from 'next-auth/react'
 import { Github, Zap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 const isDev = process.env.NODE_ENV === 'development'
 
 export default function LoginPage() {
+  const router = useRouter()
   async function handleDevBypass() {
     await fetch('/api/auth/dev-bypass', { method: 'POST' })
-    window.location.href = '/admin'
+    router.push('/admin')
+    router.refresh()
   }
 
   return (

@@ -10,7 +10,7 @@ import {
   ArrowUpDown, Tag, ArrowRight, Flame, FileText, Hash, Layers,
 } from 'lucide-react'
 import SectionHeading from '@/components/ui/SectionHeading'
-import { hasRead } from '@/components/sections/ReadingHistory'
+import { useReadingHistory } from '@/components/sections/ReadingHistory'
 
 interface PostMeta {
   slug: string
@@ -366,8 +366,7 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
 
 // ── 最新文章行（精简：序号 + 标题 + 日期） ────────────────────────
 function LatestPostRow({ post, rank }: { post: PostMeta; rank: number }) {
-  const [read, setRead] = useState(false)
-  useEffect(() => { setRead(hasRead(post.slug)) }, [post.slug])
+  const read = useReadingHistory().some(item => item.slug === post.slug)
 
   return (
     <li>
@@ -411,8 +410,7 @@ function LatestPostRow({ post, rank }: { post: PostMeta; rank: number }) {
 
 // ── 热门文章行（带封面缩略图） ────────────────────────────────────
 function PopularPostRow({ post, rank }: { post: PostMeta; rank: number }) {
-  const [read, setRead] = useState(false)
-  useEffect(() => { setRead(hasRead(post.slug)) }, [post.slug])
+  const read = useReadingHistory().some(item => item.slug === post.slug)
 
   return (
     <li>
@@ -464,9 +462,7 @@ function PopularPostRow({ post, rank }: { post: PostMeta; rank: number }) {
 function ArticleListItem({ post, index, highlightQuery }: { post: PostMeta; index: number; highlightQuery?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const [read, setRead] = useState(false)
-
-  useEffect(() => { setRead(hasRead(post.slug)) }, [post.slug])
+  const read = useReadingHistory().some(item => item.slug === post.slug)
 
   useEffect(() => {
     const el = ref.current

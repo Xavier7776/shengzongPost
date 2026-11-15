@@ -140,7 +140,12 @@ function MasonryCard({
 // ── 瀑布流主体 ────────────────────────────────────────────────────────────────
 const BATCH = 24 // 首批渲染数与每次增量：避免大图库一次性渲染全部节点
 
-export default function MasonryGrid({
+type MasonryProps = { images: GalleryItem[]; onOpen: (id: number) => void }
+export default function MasonryGrid(props: MasonryProps) {
+  return <MasonryCollection key={props.images.map(image => image.id).join(',')} {...props} />
+}
+
+function MasonryCollection({
   images,
   onOpen,
 }: {
@@ -167,7 +172,6 @@ export default function MasonryGrid({
     return () => observer.disconnect()
   }, [images.length])
 
-  useEffect(() => { setVisibleCount(BATCH) }, [images])
 
   // 尺寸回填：旧数据加载后更新比例，触发重排
   const [dims, setDims] = useState<Record<number, { w: number; h: number }>>({})

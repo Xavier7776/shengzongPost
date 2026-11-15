@@ -178,7 +178,6 @@ export default function SpriteCanvas({ sprite, row, isPaused, width, height }: P
       img.onload = null
     }
     // row / isPaused 故意不进依赖（通过 ref 读取），方向切换不重载图片
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sprite.url, sprite.cols, sprite.rows, sprite.fps, width, height])
 
   return (

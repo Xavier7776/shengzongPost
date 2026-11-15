@@ -47,11 +47,18 @@ const STALE_TIME = 5 * 60 * 1000  // 5 分钟
 const MAX_AGE = 60 * 60 * 1000     // 1 小时内可立即显示旧数据
 const cache = new Map<string, { items: TrendingItem[]; crawledAt: string | null; ts: number }>()
 
-export default function TrendingList({ period }: TrendingListProps) {
+export default function TrendingList(props: TrendingListProps) {
+  return <TrendingPeriod key={props.period} {...props} />
+}
+
+function TrendingPeriod({ period }: TrendingListProps) {
   // lazy initializer：首次渲染直接命中缓存，避免 loading 闪烁
   const [items, setItems] = useState<TrendingItem[]>(() => cache.get(period)?.items ?? [])
   const [loading, setLoading] = useState(() => !cache.has(period))
-  const [refreshing, setRefreshing] = useState(false)
+  const [refreshing, setRefreshing] = useState(() => {
+    const cached = cache.get(period)
+    return Boolean(cached && Date.now() - cached.ts >= STALE_TIME)
+  })
   const [error, setError] = useState<string | null>(null)
   const [crawledAt, setCrawledAt] = useState<string | null>(() => cache.get(period)?.crawledAt ?? null)
   // 防止 StrictMode 双调用 + 竞态
@@ -61,26 +68,7 @@ export default function TrendingList({ period }: TrendingListProps) {
     const cached = cache.get(period)
     const now = Date.now()
 
-    // 命中缓存：立即展示，避免 loading 闪烁
-    if (cached) {
-      setItems(cached.items)
-      setCrawledAt(cached.crawledAt)
-      setError(null)
-
-      // 仍在新鲜期内：无需任何网络请求
-      if (now - cached.ts < STALE_TIME) {
-        setLoading(false)
-        setRefreshing(false)
-        return
-      }
-      // 已过期但未超 maxAge：立即显示旧数据 + 后台静默刷新
-      setLoading(false)
-      setRefreshing(true)
-    } else {
-      // 无缓存：显示 loading
-      setLoading(true)
-      setRefreshing(false)
-    }
+    if (cached && now - cached.ts < STALE_TIME) return
 
     // 取消上一次未完成的请求（竞态保护）
     if (inflight.current) inflight.current.abort()

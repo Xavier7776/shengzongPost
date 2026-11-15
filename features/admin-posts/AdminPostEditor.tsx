@@ -52,7 +52,7 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
   })
 
   const dialogs = useEditorDialogs(editor)
-  const upload = useImageUpload({ editor })
+  const { imgFileRef, coverFileRef, uploadingImg, imgUploadError, setImgUploadError, handleImgUpload, uploadingCover, coverUploadError, setCoverUploadError, handleCoverUpload } = useImageUpload({ editor })
   function handleTitleChange(val: string) {
     setTitle(val)
     if (mode === 'new' && !slug)
@@ -122,11 +122,11 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
         <h1 className="text-sm font-black text-gray-600 tracking-widest uppercase flex-1 min-w-0 truncate">
           {mode === 'new' ? '新建文章' : '编辑文章'}
         </h1>
-        <button onClick={() => { upload.setImgUploadError(''); upload.imgFileRef.current?.click() }} disabled={upload.uploadingImg}
+        <button onClick={() => { setImgUploadError(''); imgFileRef.current?.click() }} disabled={uploadingImg}
           className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
-          {upload.uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
+          {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
         </button>
-        <input ref={upload.imgFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={upload.handleImgUpload} />
+        <input ref={imgFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleImgUpload} />
         {/* ── 附件添加按钮 ── */}
         <button onClick={() => { setAddAttOpen(v => !v); setAddAttError('') }}
           className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${addAttOpen ? 'bg-orange-100 text-orange-700' : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'}`}>
@@ -156,11 +156,11 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
         excerpt={excerpt} onExcerptChange={setExcerpt}
         coverImage={coverImage}
         onCoverClear={() => setCoverImage('')}
-        coverFileRef={upload.coverFileRef}
-        onCoverFileChange={upload.handleCoverUpload}
-        uploadingCover={upload.uploadingCover}
-        coverUploadError={upload.coverUploadError}
-        onPickCover={() => { upload.setCoverUploadError(''); upload.coverFileRef.current?.click() }}
+        coverFileRef={coverFileRef}
+        onCoverFileChange={handleCoverUpload}
+        uploadingCover={uploadingCover}
+        coverUploadError={coverUploadError}
+        onPickCover={() => { setCoverUploadError(''); coverFileRef.current?.click() }}
       >
         {(attachments.length > 0 || addAttOpen || mdUploading) && (
           <AttachmentsPanel
@@ -181,9 +181,9 @@ export default function AdminPostEditor({ mode, initialData }: Props) {
         <EditorBody
           editor={editor}
           dialogs={dialogs}
-          uploadingImg={upload.uploadingImg}
-          imgUploadError={upload.imgUploadError}
-          onDismissImgError={() => upload.setImgUploadError('')}
+          uploadingImg={uploadingImg}
+          imgUploadError={imgUploadError}
+          onDismissImgError={() => setImgUploadError('')}
         />
         {preview && <EditorPreview title={title} routeLabel={slug} html={previewHtml} />}
       </div>

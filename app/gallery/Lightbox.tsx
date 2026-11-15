@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, ChevronLeft, ChevronRight, Heart, Share2, Info, Maximize2 } from 'lucide-react'
 import { blurPlaceholder, type GalleryItem } from './types'
+import { useStoredString, notifyStorageChange } from '@/shared/browser-state'
 
 const LIKED_KEY = 'gallery_liked_ids'
 const MIN_SCALE = 1
@@ -20,7 +21,13 @@ function getLikedIds(): Set<number> {
   }
 }
 
-export default function Lightbox({
+type LightboxProps = { images: GalleryItem[]; currentId: number; onClose: () => void; onNavigate: (id: number) => void }
+
+export default function Lightbox(props: LightboxProps) {
+  return <LightboxImage key={props.currentId} {...props} />
+}
+
+function LightboxImage({
   images,
   currentId,
   onClose,
@@ -38,26 +45,21 @@ export default function Lightbox({
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [showInfo, setShowInfo] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [dragging, setDragging] = useState(false)
   const [likes, setLikes] = useState(img?.likes ?? 0)
-  const [liked, setLiked] = useState(false)
+  const rawLikes = useStoredString(LIKED_KEY)
+  const [likePending, setLiked] = useState(false)
+  let liked = likePending
+  try { liked ||= (JSON.parse(rawLikes || '[]') as number[]).includes(img?.id) } catch { /* Invalid local history. */ }
   const [copied, setCopied] = useState(false)
   const imageRef = useRef<HTMLImageElement>(null)
   const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null)
   const touchRef = useRef<{ x: number; y: number } | null>(null)
 
-  const imgId = img?.id
+  // A cached image may finish loading before the listener is attached.
   useEffect(() => {
-    if (imgId !== undefined) setLiked(getLikedIds().has(imgId))
-  }, [imgId])
-
-  // 切换图片时重置变换
-  useEffect(() => {
-    setScale(MIN_SCALE)
-    setOffset({ x: 0, y: 0 })
-    // A cached image can fire load before this passive effect runs.
     setLoaded(Boolean(imageRef.current?.complete && imageRef.current.naturalWidth > 0))
-    setLikes(images[index]?.likes ?? 0)
-  }, [index, images])
+  }, [])
 
   const go = useCallback(
     (delta: number) => {
@@ -130,6 +132,7 @@ export default function Lightbox({
   // 拖拽平移（放大时）
   const onMouseDown = (e: React.MouseEvent) => {
     if (scale <= MIN_SCALE) return
+    setDragging(true)
     dragRef.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y }
   }
   const onMouseMove = (e: React.MouseEvent) => {
@@ -137,7 +140,7 @@ export default function Lightbox({
     if (!d) return
     setOffset(clampOffset({ x: d.ox + (e.clientX - d.x), y: d.oy + (e.clientY - d.y) }, scale))
   }
-  const endDrag = () => { dragRef.current = null }
+  const endDrag = () => { dragRef.current = null; setDragging(false) }
 
   // 触摸滑动（未放大时翻页）
   const onTouchStart = (e: React.TouchEvent) => {
@@ -159,6 +162,7 @@ export default function Lightbox({
     const ids = getLikedIds()
     ids.add(img.id)
     localStorage.setItem(LIKED_KEY, JSON.stringify(Array.from(ids)))
+    notifyStorageChange()
     setLiked(true)
     setLikes(l => l + 1)
     try {
@@ -253,7 +257,7 @@ export default function Lightbox({
           className={`max-h-[74vh] max-w-[88vw] object-contain rounded-lg shadow-2xl transition-transform duration-200 ease-out ${loaded ? 'opacity-100' : 'opacity-0'}`}
           style={{
             transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
-            transitionProperty: dragRef.current ? 'none' : undefined,
+            transitionProperty: dragging ? 'none' : undefined,
             cursor: scale > MIN_SCALE ? 'grabbing' : 'zoom-in',
           }}
         />

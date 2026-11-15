@@ -2,142 +2,67 @@
 
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { useParams, useSearchParams } from 'next/navigation'
-import { getReadingHistory } from '@/components/sections/ReadingHistory'
-import type { UserInfo, FollowInfo, FollowUser, Post, ProfileTab, HistoryItem } from './types'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useReadingHistory } from '@/components/sections/ReadingHistory'
+import { useJsonResource } from '@/shared/use-json-resource'
+import type { UserInfo, FollowInfo, FollowUser, Post, ProfileTab } from './types'
+
+const EMPTY_FOLLOW: FollowInfo = { isFollowing: false, isMutual: false, following: 0, followers: 0 }
 
 export function useUserProfile() {
-  const { userId }        = useParams<{ userId: string }>()
-  const searchParams      = useSearchParams()
+  const { userId } = useParams<{ userId: string }>()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const myId     = session ? Number((session.user as { id?: string }).id) : null
+  const myId = session ? Number((session.user as { id?: string } | undefined)?.id) : null
   const targetId = Number(userId)
-  const isMe     = myId === targetId
-
-  const [user, setUser]     = useState<UserInfo | null>(null)
-  const [follow, setFollow] = useState<FollowInfo>({
-    isFollowing: false, isMutual: false, following: 0, followers: 0,
-  })
-  const [loadingUser,   setLoadingUser]   = useState(true)
+  const isMe = myId === targetId
+  const scope = String(myId ?? '')
   const [loadingFollow, setLoadingFollow] = useState(false)
-  const [points, setPoints] = useState(0)
-  const [frameCssKey, setFrameCssKey] = useState<string | null>(null)
-
-  // Tab 状态
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts')
-  const [posts, setPosts]         = useState<Post[]>([])
-  const [bookmarks, setBookmarks] = useState<Post[]>([])
-  const [likedPosts, setLikedPosts] = useState<Post[]>([])
-  const [loadingPosts,     setLoadingPosts]     = useState(false)
-  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
-  const [loadingLikedPosts, setLoadingLikedPosts] = useState(false)
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
-
-  // 显示更多状态（默认只展示5篇）
   const [showAllPosts, setShowAllPosts] = useState(false)
   const [showAllLikes, setShowAllLikes] = useState(false)
   const [showAllBookmarks, setShowAllBookmarks] = useState(false)
   const INITIAL_POST_COUNT = 5
+  const initialFollowTab = searchParams.get('tab') === 'following' ? 'following' : 'followers'
+  const [showList, setShowList] = useState(Boolean(searchParams.get('tab')))
+  const [followTab, setFollowTab] = useState<'followers' | 'following'>(initialFollowTab)
 
-  // 关注列表折叠状态
-  const initTab = (searchParams.get('tab') as 'followers' | 'following') ?? 'followers'
-  const [showList, setShowList]   = useState(!!searchParams.get('tab'))
-  const [followTab, setFollowTab] = useState<'followers' | 'following'>(initTab)
-  const [list, setList]           = useState<FollowUser[]>([])
-  const [loadingList, setLoadingList] = useState(false)
+  const { data: user, loading: loadingUser } = useJsonResource<(UserInfo & { equipped_frame_css_key?: string | null }) | null>(`/api/user/profile?id=${targetId}`, null, scope)
+  const { data: follow, setData: setFollow } = useJsonResource(`/api/follows?targetId=${targetId}`, EMPTY_FOLLOW, scope)
+  const { data: pointData, reload: refreshPoints } = useJsonResource<{ points?: number }>(`/api/points?userId=${targetId}`, {})
+  const { data: postData, loading: loadingPosts } = useJsonResource<Post[]>(`/api/user/posts?userId=${targetId}`, [])
+  const { data: bookmarkData, loading: loadingBookmarks } = useJsonResource<Post[]>(isMe && activeTab === 'bookmarks' ? '/api/bookmarks' : null, [], scope)
+  const { data: likedData, loading: loadingLikedPosts } = useJsonResource<Post[]>(activeTab === 'likes' ? `/api/user/liked-posts?userId=${targetId}` : null, [])
+  const { data: listData, loading: loadingList } = useJsonResource<FollowUser[]>(showList ? `/api/follows?userId=${targetId}&list=${followTab}` : null, [])
+  const posts = Array.isArray(postData) ? postData : []
+  const bookmarks = Array.isArray(bookmarkData) ? bookmarkData : []
+  const likedPosts = Array.isArray(likedData) ? likedData : []
+  const list = Array.isArray(listData) ? listData : []
+  const history = useReadingHistory(isMe)
+  const historyItems = isMe ? history : []
+  const points = pointData.points ?? 0
+  const frameCssKey = user?.equipped_frame_css_key ?? null
 
-  // 加载用户信息 + 关注状态
   useEffect(() => {
-    setLoadingUser(true)
-    fetch(`/api/user/profile?id=${targetId}`)
-      .then(r => r.json())
-      .then(d => { setUser(d); setFrameCssKey(d.equipped_frame_css_key ?? null); setLoadingUser(false) })
-      .catch(() => setLoadingUser(false))
-
-    fetch(`/api/follows?targetId=${targetId}`)
-      .then(r => r.json())
-      .then(d => setFollow(d))
-
-    fetch(`/api/points?userId=${targetId}`)
-      .then(r => r.json())
-      .then(d => setPoints(d.points ?? 0))
-      .catch(() => {})
-  }, [targetId, myId])
-
-  // 页面重新可见时刷新积分
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        fetch(`/api/points?userId=${targetId}`)
-          .then(r => r.json())
-          .then(d => setPoints(d.points ?? 0))
-          .catch(() => {})
-      }
-    }
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshPoints() }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [targetId])
-
-  // 加载文章
-  useEffect(() => {
-    setLoadingPosts(true)
-    fetch(`/api/user/posts?userId=${targetId}`)
-      .then(r => r.json())
-      .then(d => { setPosts(Array.isArray(d) ? d : []); setLoadingPosts(false) })
-      .catch(() => setLoadingPosts(false))
-  }, [targetId])
-
-  // 加载收藏（只有自己才能看）
-  useEffect(() => {
-    if (!isMe || activeTab !== 'bookmarks') return
-    setLoadingBookmarks(true)
-    fetch('/api/bookmarks')
-      .then(r => r.json())
-      .then(d => { setBookmarks(Array.isArray(d) ? d : []); setLoadingBookmarks(false) })
-      .catch(() => setLoadingBookmarks(false))
-  }, [isMe, activeTab])
-
-  // 加载点赞
-  useEffect(() => {
-    if (activeTab !== 'likes') return
-    setLoadingLikedPosts(true)
-    fetch(`/api/user/liked-posts?userId=${targetId}`)
-      .then(r => r.json())
-      .then(d => { setLikedPosts(Array.isArray(d) ? d : []); setLoadingLikedPosts(false) })
-      .catch(() => setLoadingLikedPosts(false))
-  }, [targetId, activeTab])
-
-  // 加载浏览记录（仅自己可见）
-  useEffect(() => {
-    if (isMe) {
-      setHistoryItems(getReadingHistory())
-    }
-  }, [isMe])
-
-  // 关注列表
-  useEffect(() => {
-    if (!showList) return
-    setLoadingList(true)
-    fetch(`/api/follows?userId=${targetId}&list=${followTab}`)
-      .then(r => r.json())
-      .then(d => { setList(Array.isArray(d) ? d : []); setLoadingList(false) })
-      .catch(() => setLoadingList(false))
-  }, [targetId, followTab, showList])
+  }, [refreshPoints])
 
   async function handleFollow() {
-    if (!session) { window.location.href = '/login'; return }
+    if (!session) { router.push('/login'); return }
     setLoadingFollow(true)
-    const res = await fetch('/api/follows', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetId }),
-    })
-    if (res.ok) setFollow(await res.json())
-    setLoadingFollow(false)
+    try {
+      const res = await fetch('/api/follows', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetId }),
+      })
+      if (res.ok) setFollow(await res.json())
+    } finally { setLoadingFollow(false) }
   }
 
-  function openFollowTab(t: 'followers' | 'following') {
-    setFollowTab(t)
+  function openFollowTab(tab: 'followers' | 'following') {
+    setFollowTab(tab)
     setShowList(true)
   }
   return {

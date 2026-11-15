@@ -3,8 +3,12 @@ import { getDiscoveryContent } from '@/lib/db/discovery'
 import { postSeries, publicDiscoveryPosts, relatedPosts } from '@/lib/content-discovery'
 
 export default async function RelatedContent({ slug, projectSlug }: { slug?: string; projectSlug?: string }) {
-  try {
-    const { posts, projects } = await getDiscoveryContent()
+  const discovery = await getDiscoveryContent().catch(() => {
+    console.error('[discovery] related content unavailable')
+    return null
+  })
+  if (!discovery) return null
+    const { posts, projects } = discovery
     const current = slug ? publicDiscoveryPosts(posts).find(post => post.slug === slug) : undefined
     if (slug && !current) return null
     const suggestions = relatedPosts(posts, current, projectSlug)
@@ -21,5 +25,4 @@ export default async function RelatedContent({ slug, projectSlug }: { slug?: str
       </ul>
       {projectLinks.length > 0 && <nav aria-label="相关作品集" className="mt-5 flex flex-wrap gap-3">{projectLinks.map(project => <Link className="rounded-lg border px-4 py-2 text-sm font-semibold text-blue-700 hover:border-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600" href={'/work/'+encodeURIComponent(project.slug)} key={project.slug}>工程案例 · {project.name}</Link>)}</nav>}
     </section>
-  } catch { console.error('[discovery] related content unavailable'); return null }
 }

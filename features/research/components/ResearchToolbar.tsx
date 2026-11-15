@@ -16,7 +16,7 @@ type Props = Pick<ResearchState,
   | 'setCurrentNodeIdx'
   | 'setReportContent'
   | 'reportContentRef'
-  | 'nodeStartTimesRef'
+  | 'setNodeStartTimes'
   | 'setPlanContent'
   | 'setLogs'
   | 'setErrorMsg'
@@ -38,7 +38,7 @@ type Props = Pick<ResearchState,
 export default function ResearchToolbar({
   setIsProjectDropdownOpen, isProjectDropdownOpen, fetchHistoryReports, selectedProject,
   historyReports, setActiveMenu, setRunStage, setCurrentNodeIdx, setReportContent, reportContentRef,
-  nodeStartTimesRef, setPlanContent, setLogs, setErrorMsg, setHumanFeedbackPrompt,
+  setNodeStartTimes, setPlanContent, setLogs, setErrorMsg, setHumanFeedbackPrompt,
   setHumanFeedbackInput, stopTimer, setElapsedTime, setTaskTopic, setSelectedModel,
   setSelectedLanguage, setSelectedProject, addLog, points, setIsNotifyOpen, isNotifyOpen, logs,
 }: Props) {
@@ -82,7 +82,7 @@ export default function ResearchToolbar({
                       setCurrentNodeIdx(-1)
                       setReportContent('')
                       reportContentRef.current = ''
-                      nodeStartTimesRef.current = {}
+                      setNodeStartTimes({})
                       setPlanContent('')
                       setLogs([])
                       setErrorMsg('')

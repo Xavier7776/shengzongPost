@@ -1,7 +1,8 @@
 'use client'
 
 // app/admin/post-images/page.tsx — 博文插图管理台
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
+import { useJsonResource } from '@/shared/use-json-resource'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -154,28 +155,14 @@ function ImageCard({
 }
 
 export default function PostImagesPage() {
-  const [images, setImages]     = useState<PostImage[]>([])
-  const [loading, setLoading]   = useState(true)
   const [query, setQuery]       = useState('')
   const [slugFilter, setSlugFilter] = useState('')
   const [uploading, setUploading]   = useState(false)
   const [uploadErr, setUploadErr]   = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const url = slugFilter
-        ? `/api/posts/image?slug=${encodeURIComponent(slugFilter)}`
-        : '/api/posts/image'
-      const res = await fetch(url)
-      if (res.ok) setImages(await res.json())
-    } finally {
-      setLoading(false)
-    }
-  }, [slugFilter])
-
-  useEffect(() => { load() }, [load])
+  const imageUrl = slugFilter ? `/api/posts/image?slug=${encodeURIComponent(slugFilter)}` : '/api/posts/image'
+  const { data: images, setData: setImages, loading, reload: load } = useJsonResource<PostImage[]>(imageUrl, [])
 
   // 搜索过滤（客户端）
   const filtered = images.filter(img => {

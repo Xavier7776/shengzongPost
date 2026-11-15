@@ -6,6 +6,7 @@ import {
   Table, ImagePlus, Youtube,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
+import type { KeyboardEvent } from 'react'
 import type { useEditorDialogs } from './useEditorDialogs'
 
 type Dialogs = ReturnType<typeof useEditorDialogs>
@@ -20,11 +21,22 @@ function TB({ onClick, active, disabled, title, children }: {
   onClick: () => void; active?: boolean; disabled?: boolean; title: string; children: React.ReactNode
 }) {
   return (
-    <button type="button" onMouseDown={e => { e.preventDefault(); onClick() }} disabled={disabled} title={title}
+    <button type="button" onMouseDown={e => e.preventDefault()} onClick={onClick} disabled={disabled} title={title} aria-label={title}
       className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} disabled:opacity-30`}>
       {children}
     </button>
   )
+}
+
+function handleDialogKeyDown(event: KeyboardEvent<HTMLDivElement>, apply: () => void, close: () => void) {
+  if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
+    event.preventDefault()
+    // Safari can deliver compositionend before the confirming Enter keydown.
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
+    apply()
+  } else if (event.key === 'Escape' && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
+    close()
+  }
 }
 
 export function EditorToolbar({ editor, dialogs }: Props) {
@@ -55,7 +67,7 @@ export function EditorToolbar({ editor, dialogs }: Props) {
       {/* ── 链接弹窗 ── */}
       {dialogs.link.open && (
         <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 w-80"
-          onKeyDown={e => { if (e.key === 'Enter') dialogs.link.apply(); if (e.key === 'Escape') dialogs.link.setOpen(false) }}>
+          onKeyDown={e => handleDialogKeyDown(e, dialogs.link.apply, () => dialogs.link.setOpen(false))}>
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">插入链接</p>
           <input autoFocus value={dialogs.link.url} onChange={e => dialogs.link.setUrl(e.target.value)}
             placeholder="https://example.com"
@@ -64,13 +76,13 @@ export function EditorToolbar({ editor, dialogs }: Props) {
             placeholder="显示文字（留空则包裹选区）"
             className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-3 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
           <div className="flex gap-2">
-            <button onClick={dialogs.link.apply}
+            <button type="button" onClick={dialogs.link.apply}
               className="flex-1 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition">确认</button>
             {editor?.isActive('link') && (
-              <button onClick={() => { editor.chain().focus().unsetLink().run(); dialogs.link.setOpen(false) }}
+              <button type="button" onClick={() => { editor.chain().focus().unsetLink().run(); dialogs.link.setOpen(false) }}
                 className="text-xs font-black text-red-500 hover:text-red-700 px-3 py-2 rounded-xl hover:bg-red-50 transition">移除</button>
             )}
-            <button onClick={() => dialogs.link.setOpen(false)}
+            <button type="button" onClick={() => dialogs.link.setOpen(false)}
               className="text-xs font-black text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-100 transition">取消</button>
           </div>
         </div>
@@ -79,7 +91,7 @@ export function EditorToolbar({ editor, dialogs }: Props) {
       {/* ── 表格弹窗 ── */}
       {dialogs.table.open && (
         <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 w-64"
-          onKeyDown={e => { if (e.key === 'Enter') dialogs.table.apply(); if (e.key === 'Escape') dialogs.table.setOpen(false) }}>
+          onKeyDown={e => handleDialogKeyDown(e, dialogs.table.apply, () => dialogs.table.setOpen(false))}>
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">插入表格</p>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
@@ -99,9 +111,9 @@ export function EditorToolbar({ editor, dialogs }: Props) {
             包含表头行
           </label>
           <div className="flex gap-2">
-            <button onClick={dialogs.table.apply}
+            <button type="button" onClick={dialogs.table.apply}
               className="flex-1 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition">插入</button>
-            <button onClick={() => dialogs.table.setOpen(false)}
+            <button type="button" onClick={() => dialogs.table.setOpen(false)}
               className="text-xs font-black text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-100 transition">取消</button>
           </div>
         </div>
@@ -110,7 +122,7 @@ export function EditorToolbar({ editor, dialogs }: Props) {
       {/* ── 图片 URL 弹窗 ── */}
       {dialogs.imgUrl.open && (
         <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 w-80"
-          onKeyDown={e => { if (e.key === 'Enter') dialogs.imgUrl.apply(); if (e.key === 'Escape') dialogs.imgUrl.setOpen(false) }}>
+          onKeyDown={e => handleDialogKeyDown(e, dialogs.imgUrl.apply, () => dialogs.imgUrl.setOpen(false))}>
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">插入图片</p>
           <input autoFocus value={dialogs.imgUrl.url} onChange={e => dialogs.imgUrl.setUrl(e.target.value)}
             placeholder="图片 URL（https://...）"
@@ -120,9 +132,9 @@ export function EditorToolbar({ editor, dialogs }: Props) {
             className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-1 focus:outline-none focus:border-blue-400 focus:bg-white transition" />
           <p className="text-[10px] text-gray-400 mb-3">或使用顶部「插图」按钮上传本地文件</p>
           <div className="flex gap-2">
-            <button onClick={dialogs.imgUrl.apply}
+            <button type="button" onClick={dialogs.imgUrl.apply}
               className="flex-1 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition">插入</button>
-            <button onClick={() => dialogs.imgUrl.setOpen(false)}
+            <button type="button" onClick={() => dialogs.imgUrl.setOpen(false)}
               className="text-xs font-black text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-100 transition">取消</button>
           </div>
         </div>

@@ -16,6 +16,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); document.body.inn
 
 it('hydrates route-dependent active links consistently and then tracks the browser route', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 0 })
   const errors: unknown[] = []
   const consoleError = vi.spyOn(console, 'error').mockImplementation((...args) => errors.push(args))

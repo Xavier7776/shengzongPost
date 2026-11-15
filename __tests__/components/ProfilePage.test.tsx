@@ -15,7 +15,7 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('@/components/shop/FrameSelector', () => ({ default: () => null }))
 vi.mock('@/components/shop/CursorSelector', () => ({ default: () => null }))
-vi.mock('@/components/sections/ReadingHistory', () => ({ getReadingHistory: () => [{ slug: 'read-post', title: '我的浏览记录', readAt: '2026-10-01' }] }))
+vi.mock('@/components/sections/ReadingHistory', () => ({ useReadingHistory: () => [{ slug: 'read-post', title: '我的浏览记录', readAt: '2026-10-01' }] }))
 
 const fetchMock = vi.fn()
 beforeEach(() => {
@@ -76,8 +76,8 @@ describe('Profile 路由拆分回归', () => {
     await screen.findAllByRole('heading', { name: '测试用户' })
     expect(screen.queryByRole('button', { name: '收藏夹' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '浏览记录' })).not.toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledWith('/api/follows?userId=8&list=followers')
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/bookmarks')
+    expect(fetchMock).toHaveBeenCalledWith('/api/follows?userId=8&list=followers', expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/bookmarks')).toBe(false)
     expect(screen.queryByText('我的浏览记录')).not.toBeInTheDocument()
   })
 
@@ -85,7 +85,7 @@ describe('Profile 路由拆分回归', () => {
     render(<UserProfilePage />)
     await screen.findAllByRole('heading', { name: '测试用户' })
     fireEvent.click(screen.getAllByRole('button', { name: '收藏夹' })[0])
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/bookmarks'))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/bookmarks', expect.objectContaining({ signal: expect.any(AbortSignal) })))
     fireEvent.click(screen.getAllByRole('button', { name: '浏览记录' })[0])
     expect(screen.getAllByRole('link', { name: /我的浏览记录/ })[0]).toHaveAttribute('href', '/blog/read-post')
   })

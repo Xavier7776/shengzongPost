@@ -55,7 +55,7 @@ export default function UserPostEditor({ mode, fromId, initialData }: Props) {
   })
 
   const dialogs = useEditorDialogs(editor)
-  const upload = useImageUpload({
+  const { imgFileRef, coverFileRef, uploadingImg, imgUploadError, setImgUploadError, handleImgUpload, uploadingCover, coverUploadError, setCoverUploadError, handleCoverUpload } = useImageUpload({
     editor,
     onCoverUploaded: data => { setCoverImage(data.url ?? ''); if (data.id) setCoverImageId(data.id) },
     deletePreviousCover: () => {
@@ -135,11 +135,11 @@ export default function UserPostEditor({ mode, fromId, initialData }: Props) {
           {mode === 'new' ? '新建文章' : '编辑文章'}
           <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md normal-case tracking-normal">提交后需管理员审核</span>
         </h1>
-        <button onClick={() => { upload.setImgUploadError(''); upload.imgFileRef.current?.click() }} disabled={upload.uploadingImg}
+        <button onClick={() => { setImgUploadError(''); imgFileRef.current?.click() }} disabled={uploadingImg}
           className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-emerald-600 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50">
-          {upload.uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
+          {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}插图
         </button>
-        <input ref={upload.imgFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={upload.handleImgUpload} />
+        <input ref={imgFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleImgUpload} />
         <button onClick={() => setPreview(v => !v)}
           className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${preview ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}>
           {preview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}{preview ? '关闭预览' : '分屏预览'}
@@ -171,20 +171,20 @@ export default function UserPostEditor({ mode, fromId, initialData }: Props) {
         excerpt={excerpt} onExcerptChange={setExcerpt}
         coverImage={coverImage}
         onCoverClear={() => setCoverImage('')}
-        coverFileRef={upload.coverFileRef}
-        onCoverFileChange={upload.handleCoverUpload}
-        uploadingCover={upload.uploadingCover}
-        coverUploadError={upload.coverUploadError}
-        onPickCover={() => { upload.setCoverUploadError(''); upload.coverFileRef.current?.click() }}
+        coverFileRef={coverFileRef}
+        onCoverFileChange={handleCoverUpload}
+        uploadingCover={uploadingCover}
+        coverUploadError={coverUploadError}
+        onPickCover={() => { setCoverUploadError(''); coverFileRef.current?.click() }}
       />
 
       <div className="flex-1 flex overflow-hidden">
         <EditorBody
           editor={editor}
           dialogs={dialogs}
-          uploadingImg={upload.uploadingImg}
-          imgUploadError={upload.imgUploadError}
-          onDismissImgError={() => upload.setImgUploadError('')}
+          uploadingImg={uploadingImg}
+          imgUploadError={imgUploadError}
+          onDismissImgError={() => setImgUploadError('')}
         />
         {preview && <EditorPreview title={title} routeLabel={`/blog/${slug}`} html={previewHtml} />}
       </div>

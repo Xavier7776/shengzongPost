@@ -33,6 +33,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Research 路由拆分回归', () => {
+  it('loads history when opening quick recall outside the history workspace', async () => {
+    fetchMock.mockImplementation(async (url) => url === '/api/research/reports'
+      ? response({ reports: [{ id: 1, topic: '已保存研究', model: 'test', language: '中文' }] })
+      : response({ points: 5000 }))
+    const { unmount } = render(<ResearchPage />)
+    fireEvent.click(screen.getAllByRole('button', { name: '新建研报' })[0])
+    expect(await screen.findByText('已保存研究')).toBeInTheDocument()
+    unmount()
+  })
   it('reuses the charge key after an ambiguous network error and blocks duplicate in-flight clicks', async () => {
     const consoleError = vi.spyOn(console,'error').mockImplementation(() => {})
     let attempts = 0

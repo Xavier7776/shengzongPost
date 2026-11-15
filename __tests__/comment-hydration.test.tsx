@@ -6,6 +6,7 @@ import CommentSection from '@/components/sections/CommentSection'
 
 const auth = vi.hoisted(() => ({ status: 'loading', data: null }))
 vi.mock('next-auth/react', () => ({ useSession: () => auth }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 afterEach(() => vi.restoreAllMocks())
 
 it('hydrates streamed comments when the session has already resolved', async () => {

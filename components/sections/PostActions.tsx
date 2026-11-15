@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { ThumbsUp, ThumbsDown, Bookmark, BookmarkCheck } from 'lucide-react'
 import { usePointsToast } from '@/components/ui/PointsToast'
+import { usePreferences } from '@/shared/use-preferences'
 
 interface Props { slug: string; compact?: boolean }
 
@@ -23,8 +24,7 @@ export default function PostActions({ slug, compact = false }: Props) {
   const [state, setState] = useState<ReactionState>({
     likes: 0, dislikes: 0, userReaction: null, bookmarked: false, loading: true,
   })
-  const [showBookmarks, setShowBookmarks] = useState(true)
-  const [showLikes,     setShowLikes]     = useState(true)
+  const { showBookmarks, showLikes } = usePreferences()
 
   useEffect(() => {
     const sync = (event: Event) => {
@@ -34,14 +34,6 @@ export default function PostActions({ slug, compact = false }: Props) {
     window.addEventListener('mindstack:bookmark-changed', sync)
     return () => window.removeEventListener('mindstack:bookmark-changed', sync)
   }, [slug])
-
-  useEffect(() => {
-    try {
-      const p = JSON.parse(localStorage.getItem('arc_prefs') ?? '{}')
-      if (typeof p.showBookmarks === 'boolean') setShowBookmarks(p.showBookmarks)
-      if (typeof p.showLikes     === 'boolean') setShowLikes(p.showLikes)
-    } catch {}
-  }, [])
 
   useEffect(() => {
     Promise.all([

@@ -6,13 +6,13 @@
 
 | 项 | 实际版本 | 备注 |
 | --- | --- | --- |
-| Next.js | `^16.4.0` | App Router；请求参数、cookies/headers 使用异步 API |
+| Next.js | `^16.4.6` | App Router；请求参数、cookies/headers 使用异步 API |
 | React | `^19.3.0` | React DOM 与配套类型保持19；未启用 React Compiler |
 | Tailwind CSS | `^3.4.1` | **不是** Tailwind 4；配置见 `tailwind.config.ts` |
 | 主数据库 | Neon PostgreSQL（`@neondatabase/serverless`） | 服务端直连；博客授权不依赖 RLS，见第 7 节 |
 | 认证 | NextAuth v4（GitHub OAuth + credentials），JWT | `session.user.id` 是真实 DB id |
 | 编辑器 | Tiptap + lowlight（CodeBlockLowlight） | 另有 `marked` 做 markdown → HTML |
-| 测试 | Vitest + Testing Library | 配置见 `vitest.config.ts` |
+| 测试 | Vitest + Testing Library | 配置见 `vitest.config.mts` |
 
 其他运行时依赖：`three`、`recharts`、`lucide-react`、`sharp`、`resend`、`qrcode.react`、`bcryptjs`。
 

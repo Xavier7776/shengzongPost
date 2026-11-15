@@ -77,8 +77,7 @@ function FrameCard({
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    if (!editing) {
+  function startEditing() {
       setForm({
         name: frame.name,
         description: frame.description ?? '',
@@ -87,8 +86,8 @@ function FrameCard({
         css_key: frame.css_key,
         enabled: frame.enabled,
       })
-    }
-  }, [frame, editing])
+    setEditing(true)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -193,7 +192,7 @@ function FrameCard({
         {!editing && (
           <div className="flex-shrink-0 flex gap-1">
             <button
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               className="shrink-0 text-gray-300 hover:text-gray-600 p-1.5 rounded-lg transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />

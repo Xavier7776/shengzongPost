@@ -2,7 +2,9 @@
 // app/search/SearchClient.tsx
 // 全站搜索客户端组件：搜索框 + 分类 Tab + 结果列表
 // 增强：关键词高亮、搜索历史、空结果推荐
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useStoredString, notifyStorageChange } from '@/shared/browser-state'
+import { useJsonResource } from '@/shared/use-json-resource'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, Loader2, FileText, Code2, Image as ImageIcon, X, Clock, TrendingUp } from 'lucide-react'
@@ -98,9 +100,13 @@ interface RecommendPost {
 }
 
 export default function SearchClient() {
+  const urlState = useSearchParams().toString()
+  return <SearchSession key={urlState} urlState={urlState} />
+}
+
+function SearchSession({ urlState }: { urlState: string }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const urlState = searchParams.toString()
+  const searchParams = new URLSearchParams(urlState)
   let state
   let parameterError = ''
   try {
@@ -112,20 +118,25 @@ export default function SearchClient() {
   const { q, type: activeType, sort, page } = state
   const [query, setQuery] = useState(q)
   const [data, setData] = useState<SearchResponse | null>(null)
-  const [loading, setLoading] = useState(Boolean(q))
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(Boolean(q) && !parameterError)
+  const [error, setError] = useState(parameterError)
   const [retry, setRetry] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
   const requestRef = useRef(0)
-  const [history, setHistory] = useState<string[]>([])
+  const rawHistory = useStoredString(HISTORY_KEY)
+  const [historyOverride, setHistory] = useState<string[] | null>(null)
+  const history = useMemo(() => {
+    if (historyOverride) return historyOverride
+    try {
+      const items: unknown = JSON.parse(rawHistory || '[]')
+      return Array.isArray(items) ? items.filter(item => typeof item === 'string' && item.length <= 120).slice(0, MAX_HISTORY) : []
+    } catch { return [] }
+  }, [rawHistory, historyOverride])
   const [showHistory, setShowHistory] = useState(false)
-  const [recommendations, setRecommendations] = useState<RecommendPost[]>([])
-  const [loadingRecommendations, setLoadingRecommendations] = useState(false)
 
   useEffect(() => {
-    setHistory(loadHistory())
     inputRef.current?.focus()
   }, [])
 
@@ -137,10 +148,6 @@ export default function SearchClient() {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    setQuery(q)
-    setData(null)
-    setError(parameterError)
-    setLoading(Boolean(q) && !parameterError)
     if (!q || parameterError) return
     const controller = new AbortController()
     controllerRef.current = controller
@@ -150,7 +157,8 @@ export default function SearchClient() {
     const timeout = setTimeout(() => { timedOut = true; controller.abort() }, 15000)
     const params = new URLSearchParams(urlState)
     params.set('q', q)
-    setHistory(saveHistory(q))
+    saveHistory(q)
+    notifyStorageChange()
     async function run() {
       try {
         const response = await fetch(`/api/search?${params}`, { signal: controller.signal })
@@ -226,22 +234,11 @@ export default function SearchClient() {
     }
   }, [])
 
-  useEffect(() => {
-    setRecommendations([])
-    setLoadingRecommendations(false)
-    // An empty page or empty category is not an empty full-site search.
-    if (!data || data.counts.all !== 0 || loading || error || !data.q) return
-    const controller = new AbortController()
-    let active = true
-    const timeout = setTimeout(() => controller.abort(), 15000)
-    setLoadingRecommendations(true)
-    fetch('/api/posts/public?limit=4', { signal: controller.signal })
-      .then(res => { if (!res.ok) throw new Error('recommendations'); return res.json() })
-      .then((posts: RecommendPost[]) => { if (!controller.signal.aborted) setRecommendations(Array.isArray(posts) ? posts : []) })
-      .catch(() => {})
-      .finally(() => { clearTimeout(timeout); if (active) setLoadingRecommendations(false) })
-    return () => { active = false; controller.abort(); clearTimeout(timeout) }
-  }, [data, loading, error])
+  const canRecommend = Boolean(data && data.counts.all === 0 && !loading && !error && data.q)
+  const { data: recommendationData, loading: loadingRecommendations } = useJsonResource<RecommendPost[]>(
+    canRecommend ? '/api/posts/public?limit=4' : null, [], String(retry),
+  )
+  const recommendations = Array.isArray(recommendationData) ? recommendationData : []
 
   const results = data?.results ?? []
   const counts = data?.counts ?? { all: 0, post: 0, skill: 0, gallery: 0 }

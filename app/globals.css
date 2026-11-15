@@ -18,6 +18,63 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Native mobile modal: the browser owns focus containment and background inertness. */
+.site-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  padding: 0;
+  width: min(280px, calc(100vw - 24px));
+  height: 100%;
+  height: 100svh;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  background: white;
+  color: #111827;
+  box-shadow: -16px 0 48px rgb(0 0 0 / 0.15);
+  opacity: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+.site-drawer[open] { display: flex; flex-direction: column; }
+.site-drawer[open]:not([data-closing]) { opacity: 1; }
+.site-drawer::backdrop {
+  background: rgb(0 0 0 / 0.4);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  transition-property: opacity, display, overlay;
+  transition-duration: 150ms;
+  transition-behavior: allow-discrete;
+}
+.site-drawer[open]:not([data-closing])::backdrop { opacity: 1; }
+@starting-style {
+  .site-drawer[open]:not([data-closing]),
+  .site-drawer[open]:not([data-closing])::backdrop { opacity: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-drawer { transform: translateX(100%); transition-duration: 250ms; }
+  .site-drawer[open]:not([data-closing]) { transform: translateX(0); }
+  @starting-style {
+    .site-drawer[open]:not([data-closing]) { transform: translateX(100%); }
+  }
+  .logo-swing { animation: logo-swing 0.7s ease-out; transform-origin: 50% 85%; }
+}
+@keyframes logo-swing {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(12deg); }
+  35% { transform: rotate(-8deg); }
+  55% { transform: rotate(5deg); }
+  70% { transform: rotate(-3deg); }
+  85% { transform: rotate(1.5deg); }
+}
+
 body {
   font-family: var(--font-switzer);
   background-color: #FAFAF8;
@@ -652,6 +709,11 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  /* The drawer has no spatial transform in this mode; retain its short fade. */
+  .site-drawer, .site-drawer::backdrop {
+    transition-property: opacity, display, overlay;
+    transition-duration: 150ms !important;
+  }
 }
 
 /* Technical manual reader — selected concept, scoped to article routes. */

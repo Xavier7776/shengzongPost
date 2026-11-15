@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { UserPlus, UserCheck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface AuthorCardProps {
   name: string
@@ -15,6 +16,7 @@ interface AuthorCardProps {
 }
 
 export default function AuthorCard({ name, avatar, bio, authorId }: AuthorCardProps) {
+  const router = useRouter()
   const initial = name.charAt(0).toUpperCase()
   const { data: session } = useSession()
   const [isFollowing, setIsFollowing] = useState(false)
@@ -38,7 +40,7 @@ export default function AuthorCard({ name, avatar, bio, authorId }: AuthorCardPr
   async function handleFollow(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    if (!session) { window.location.href = '/login'; return }
+    if (!session) { router.push('/login'); return }
     if (!authorId) return
     setLoading(true)
     try {

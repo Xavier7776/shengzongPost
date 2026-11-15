@@ -7,6 +7,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import RoleBadge from '@/components/ui/RoleBadge'
 import AvatarFrame from '@/components/ui/AvatarFrame'
+import { useRouter } from 'next/navigation'
+import { useHydrated } from '@/shared/browser-state'
 
 interface Comment {
   id: number
@@ -113,7 +115,8 @@ function CommentItem({ comment: c, depth, onReply, onAvatarClick, onLike }: Comm
 
 export default function CommentSection({ slug }: { slug: string }) {
   const { data: session, status } = useSession()
-  const [hydrated, setHydrated] = useState(false)
+  const hydrated = useHydrated()
+  const router = useRouter()
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [content, setContent] = useState('')
@@ -124,7 +127,7 @@ export default function CommentSection({ slug }: { slug: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   function handleAvatarClick(userId: number) {
-    window.location.href = `/profile/${userId}`
+    router.push(`/profile/${userId}`)
   }
 
   const loadComments = useCallback(() => {
@@ -134,7 +137,7 @@ export default function CommentSection({ slug }: { slug: string }) {
       .catch(() => setLoading(false))
   }, [slug])
 
-  useEffect(() => { setHydrated(true); loadComments() }, [loadComments])
+  useEffect(() => { loadComments() }, [loadComments])
 
   function handleReply(id: number, name: string) {
     setReplyTo({ id, name })

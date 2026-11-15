@@ -66,9 +66,8 @@ function CursorCard({
   const [deleting, setDeleting] = useState(false)
   const [imgError, setImgError] = useState(false)
 
-  // 同步外部更新
-  useEffect(() => {
-    if (!editing) {
+  // Capture the latest server values when editing starts; do not overwrite a draft in an effect.
+  function startEditing() {
       setForm({
         name: effect.name,
         description: effect.description ?? '',
@@ -82,8 +81,8 @@ function CursorCard({
         render_type: effect.render_type,
         enabled: effect.enabled,
       })
-    }
-  }, [effect, editing])
+    setEditing(true)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -234,7 +233,7 @@ function CursorCard({
         {!editing && (
           <div className="flex-shrink-0 flex gap-1">
             <button
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               className="shrink-0 text-gray-300 hover:text-gray-600 p-1.5 rounded-lg transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />

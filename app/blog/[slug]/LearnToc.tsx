@@ -64,8 +64,7 @@ export default function LearnToc({ study = true }: { study?: boolean }) {
       setActiveId(previous => previous === current ? previous : current)
     }
     const onScroll = () => { if (!frame) frame = requestAnimationFrame(update) }
-    if (window.scrollY === 0) setActiveId(items[0].id)
-    else onScroll()
+    if (window.scrollY !== 0) onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); cancelAnimationFrame(frame) }
@@ -73,6 +72,7 @@ export default function LearnToc({ study = true }: { study?: boolean }) {
 
   useEffect(() => {
     if (!drawerOpen) return
+    const invoker = trigger.current
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     drawer.current?.querySelector<HTMLButtonElement>('button')?.focus()
@@ -88,15 +88,16 @@ export default function LearnToc({ study = true }: { study?: boolean }) {
     const resize = () => { if (window.innerWidth >= 1100) setDrawerOpen(false) }
     window.addEventListener('keydown', keydown)
     window.addEventListener('resize', resize)
-    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', keydown); window.removeEventListener('resize', resize); trigger.current?.focus() }
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', keydown); window.removeEventListener('resize', resize); invoker?.focus() }
   }, [drawerOpen])
 
   const sections = items.filter(item => item.level === 2)
   const groups = useMemo(() => groupReaderHeadings(items, study), [items, study])
-  const active = items.find(item => item.id === activeId)
+  const effectiveActiveId = items.some(item => item.id === activeId) ? activeId : items[0]?.id ?? ''
+  const active = items.find(item => item.id === effectiveActiveId)
   const activeSectionId = active?.parentId || active?.id || sections[0]?.id
   const sectionIndex = Math.max(0, sections.findIndex(item => item.id === activeSectionId)) + 1
-  const activeGroup = groups.find(group => group.id === activeSectionId || group.items.some(item => item.id === activeId))
+  const activeGroup = groups.find(group => group.id === activeSectionId || group.items.some(item => item.id === effectiveActiveId))
   const navigate = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
     setActiveId(id)
@@ -116,7 +117,7 @@ export default function LearnToc({ study = true }: { study?: boolean }) {
         }}><span className="reader-toc-index" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><span>{group.title}</span><ChevronDown size={14} aria-hidden="true" /></button>
         {visible.length > 0 && <ol aria-label={group.title + '章节'}>
           {visible.map(item => <li key={item.id} className={item.level === 3 ? 'reader-toc-subitem' : ''}>
-            <button type="button" title={item.text} aria-label={item.text} aria-current={activeId === item.id ? 'location' : undefined} onClick={() => navigate(item.id)}>{chapterLabel(item.text)}</button>
+            <button type="button" title={item.text} aria-label={item.text} aria-current={effectiveActiveId === item.id ? 'location' : undefined} onClick={() => navigate(item.id)}>{chapterLabel(item.text)}</button>
           </li>)}
         </ol>}
       </section>

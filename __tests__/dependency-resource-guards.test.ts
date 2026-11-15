@@ -5,6 +5,13 @@ it('bounds dependency resource attacks without terminating the application proce
   // Keep an accidental vulnerable lockfile from hanging the test runner itself.
   const result = execFileSync(process.execPath, ['-e', `
     const assert = require('node:assert/strict')
+    const { createRequire } = require('node:module')
+    const fromEstree = createRequire(require.resolve('@typescript-eslint/typescript-estree'))
+    const { minimatch, Minimatch } = fromEstree('minimatch')
+    // The scoped override must retain typescript-estree's named minimatch + dot option API.
+    assert.equal(minimatch('src/.config.ts', '**/*.ts', { dot: true }), true)
+    assert.equal(minimatch('src/config.js', '**/*.ts', { dot: true }), false)
+    new Minimatch('**/../'.repeat(30) + 'file.ts', { optimizationLevel: 2 })
     const { customAlphabet, customRandom } = require('nanoid')
     assert.equal(customAlphabet('abc', 0)(), '')
     assert.equal(customAlphabet('abc', 8)(0), '')

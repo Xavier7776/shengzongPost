@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useStoredString, notifyStorageChange } from '@/shared/browser-state'
 
 const STORAGE_KEY = 'arc_reading_history'
 const MAX_ITEMS = 20
@@ -21,6 +22,16 @@ export function getReadingHistory(): HistoryItem[] {
   }
 }
 
+export function useReadingHistory(enabled = true): HistoryItem[] {
+  const raw = useStoredString(enabled ? STORAGE_KEY : null)
+  return useMemo(() => {
+    try {
+      const items: unknown = JSON.parse(raw || '[]')
+      return Array.isArray(items) ? items.filter((h: HistoryItem) => h && typeof h.slug === 'string' && typeof h.title === 'string' && typeof h.readAt === 'string').slice(0, MAX_ITEMS) : []
+    } catch { return [] }
+  }, [raw])
+}
+
 export function hasRead(slug: string): boolean {
   return getReadingHistory().some(h => h.slug === slug)
 }
@@ -31,6 +42,7 @@ export default function ReadingHistory({ slug, title }: { slug: string; title: s
       const history = getReadingHistory().filter(h => h.slug !== slug)
       history.unshift({ slug, title, readAt: new Date().toISOString() })
       localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, MAX_ITEMS)))
+      notifyStorageChange()
     } catch { /* Reading stays available when browser storage is blocked. */ }
   }, [slug, title])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 
 interface Props {
@@ -11,15 +11,13 @@ interface Props {
   className?: string
 }
 
-export default function AvatarImage({ src, alt, size, userId, className = '' }: Props) {
+export default function AvatarImage(props: Props) {
+  return <AvatarSource key={`${props.src ?? ''}:${props.userId ?? ''}`} {...props} />
+}
+
+function AvatarSource({ src, alt, size, userId, className = '' }: Props) {
   const [imgSrc, setImgSrc] = useState(src)
   const [failed, setFailed] = useState(false)
-
-  // 同步外部 src 变化（修复上传新头像后不刷新的 bug）
-  useEffect(() => {
-    setImgSrc(src)
-    setFailed(false)
-  }, [src])
 
   // 本地回退路径
   const localFallback = userId ? `/avatars/user_${userId}.jpg` : null

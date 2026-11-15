@@ -7,6 +7,7 @@ import {
   Loader2, Sparkles, AlertCircle, ArrowRight, Trash2, Pencil, ExternalLink,
 } from 'lucide-react'
 import type { AdminCursorEffect } from './types'
+import { useJsonResource } from '@/shared/use-json-resource'
 
 interface CodexPet {
   id: string
@@ -277,43 +278,26 @@ const browseCache = new Map<string, BrowseResponse>()
 function BrowsePanel() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const [data, setData] = useState<BrowseResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [committedSearch, setCommittedSearch] = useState('')
   const [importing, setImporting] = useState<string | null>(null)
   const [lastImported, setLastImported] = useState<{ key: string; ok: boolean; msg?: string } | null>(null)
   const [toast, setToast] = useState<{ ok: boolean; msg: string; name?: string } | null>(null)
   const [jumpPage, setJumpPage] = useState('')
 
-  // 搜索防抖
+  const cacheKey = `${page}:${committedSearch}`
+  const cached = browseCache.get(cacheKey) ?? null
+  const url = `/api/admin/shop/pets/browse?page=${page}&pageSize=15${committedSearch ? `&search=${encodeURIComponent(committedSearch)}` : ''}`
+  const resource = useJsonResource<BrowseResponse | null>(cached ? null : url, null)
+  const data = cached ?? resource.data
+  const loading = resource.loading
+  const error = resource.error
   useEffect(() => {
-    const t = setTimeout(() => { setPage(1); load(1, search) }, 400)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (resource.data) browseCache.set(cacheKey, resource.data)
+  }, [cacheKey, resource.data])
+  useEffect(() => {
+    const timer = setTimeout(() => { setPage(1); setCommittedSearch(search) }, 400)
+    return () => clearTimeout(timer)
   }, [search])
-
-  useEffect(() => { load(page, search) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function load(p: number, q: string) {
-    const cacheKey = `${p}:${q}`
-    // 命中缓存直接用，不显示 loading
-    const cached = browseCache.get(cacheKey)
-    if (cached) { setData(cached); setError(null); return }
-
-    setLoading(true); setError(null)
-    try {
-      const url = `/api/admin/shop/pets/browse?page=${p}&pageSize=15${q ? `&search=${encodeURIComponent(q)}` : ''}`
-      const res = await fetch(url)
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || '加载失败')
-      setData(json)
-      browseCache.set(cacheKey, json)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '未知错误')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function handleImport(pet: CodexPet) {
     setImporting(pet.id); setLastImported(null)
@@ -456,7 +440,12 @@ function BrowsePanel() {
             <span className="text-xs text-gray-400">跳至</span>
             <input
               type="text" value={jumpPage} onChange={e => setJumpPage(e.target.value.replace(/\D/g, ''))}
-              onKeyDown={e => { if (e.key === 'Enter') handleJump() }}
+              onKeyDown={e => {
+                if (e.key !== 'Enter') return
+                e.preventDefault()
+                if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return
+                handleJump()
+              }}
               placeholder={String(page)}
               className="w-12 px-2 py-1 text-xs text-center bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono"
             />
@@ -611,27 +600,16 @@ function PetCard({ pet, onImport, isImporting, lastResult }: {
 let existingCache: AdminCursorEffect[] | null = null
 
 function ExistingPanel() {
-  const [effects, setEffects] = useState<AdminCursorEffect[] | null>(existingCache)
-  const [loading, setLoading] = useState(!existingCache)
-  const [error, setError] = useState<string | null>(null)
-
-  async function load(force = false) {
-    if (!force && existingCache) { setEffects(existingCache); setLoading(false); return }
-    setLoading(true); setError(null)
-    try {
-      const res = await fetch('/api/admin/shop/cursors')
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || '加载失败')
-      existingCache = json.effects || []
-      setEffects(existingCache)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '未知错误')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
+  const [cached] = useState(existingCache)
+  const [refresh, setRefresh] = useState(0)
+  const resource = useJsonResource<{ effects: AdminCursorEffect[] } | null>(cached && refresh === 0 ? null : '/api/admin/shop/cursors', null, String(refresh))
+  const effects = resource.data?.effects ?? cached
+  const loading = resource.loading
+  const error = resource.error
+  const load = () => setRefresh(value => value + 1)
+  useEffect(() => {
+    if (resource.data) existingCache = resource.data.effects || []
+  }, [resource.data])
 
   if (loading) return (
     <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
@@ -651,7 +629,7 @@ function ExistingPanel() {
         <div className="text-sm text-gray-500">
           共 <span className="font-black text-gray-900">{effects?.length || 0}</span> 个效果
         </div>
-        <button onClick={() => load(true)} className="text-xs text-gray-400 hover:text-blue-600 font-bold transition-colors">
+        <button onClick={load} className="text-xs text-gray-400 hover:text-blue-600 font-bold transition-colors">
           刷新
         </button>
       </div>
@@ -662,7 +640,7 @@ function ExistingPanel() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {effects?.map(e => <ExistingCard key={e.id} effect={e} onChanged={() => load(true)} />)}
+          {effects?.map(e => <ExistingCard key={e.id} effect={e} onChanged={load} />)}
         </div>
       )}
     </div>

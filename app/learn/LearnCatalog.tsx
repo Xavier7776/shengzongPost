@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { BookOpen, ArrowRight, Clock, CheckCircle2, Layers, CalendarDays } from 'lucide-react'
-import { getReadingHistory } from '@/components/sections/ReadingHistory'
+import { useReadingHistory } from '@/components/sections/ReadingHistory'
 import { TOPICS, type Topic } from '@/lib/learn/document'
 import { learningLabels } from '@/lib/learn/progress'
 import { useLearningProgress } from '@/components/learn/useLearningProgress'
@@ -40,16 +40,11 @@ const iconFor: Record<Topic,string> = {
 }
 
 export default function LearnCatalog({ articles, topic, topicCounts, total, page, pageSize, learningPaths }: Props) {
-  const [visited, setVisited] = useState<Set<string>>(new Set())
-  const [lastRead, setLastRead] = useState<{slug:string;title:string}|null>(null)
+  const history = useReadingHistory().filter(item => /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(item.slug))
+  const visited = new Set(history.map(item => item.slug))
+  const lastRead = history[0] ?? null
   const { records, available } = useLearningProgress()
   const [learningFilter, setLearningFilter] = useState('all')
-  useEffect(() => {
-    const rawHistory = getReadingHistory()
-    const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(item => /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(item.slug))
-    setVisited(new Set(history.map(item => item.slug)))
-    if (history[0]) setLastRead({slug:history[0].slug,title:history[0].title})
-  }, [])
 
   const filtered = articles.filter(article => {
     const r = records[article.slug]
