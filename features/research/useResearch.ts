@@ -7,11 +7,14 @@ import {
   HistoryReport, RESEARCH_COST, fetchWsUrl,
 } from '@/features/research/lib/research'
 
-export function useResearch() {
+type ResearchMenu = '工作台' | '电子表格' | '配置中心' | '历史研报' | '运行日志' | '设置'
+
+export function useResearch(openSheets = false) {
   const { data: session } = useSession()
 
   // ── 导航 ──
-  const [activeMenu, setActiveMenu] = useState<'工作台' | '配置中心' | '历史研报' | '运行日志' | '设置'>('配置中心')
+  const [selectedMenu, setActiveMenu] = useState<ResearchMenu | null>(null)
+  const activeMenu = selectedMenu ?? (openSheets ? '电子表格' : '配置中心')
   const [selectedProject, setSelectedProject] = useState('新建研报')
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'visual' | 'list'>('visual')
