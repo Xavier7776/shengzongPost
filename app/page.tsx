@@ -16,7 +16,7 @@ export const metadata = { alternates: { canonical: '/' } }
 function BlogSkeleton() {
   return (
     <section className="max-w-6xl mx-auto px-6 py-32">
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-4">
+      <div className="home-section-heading flex flex-col md:flex-row md:items-start justify-between mb-10 gap-4">
         <SectionHeading>最近洞察</SectionHeading>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -33,7 +33,7 @@ function SkillsSkeleton() {
   return (
     <section className="bg-gray-50 py-32 relative overflow-hidden border-t border-gray-100">
       <div className="max-w-6xl mx-auto px-6 relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-4">
+        <div className="home-section-heading flex flex-col md:flex-row md:items-start justify-between mb-10 gap-4">
           <SectionHeading>SKILL</SectionHeading>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -52,11 +52,11 @@ async function BlogSection() {
 
   return (
     <section className="max-w-6xl mx-auto px-6 py-32">
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-4">
+      <div className="home-section-heading flex flex-col md:flex-row md:items-start justify-between mb-10 gap-4">
         <SectionHeading>最近洞察</SectionHeading>
         <Link
           href="/blog"
-          className="text-blue-600 font-bold hover:text-blue-700 flex items-center transition-colors group mb-16 md:mb-0"
+          className="text-blue-600 font-bold hover:text-blue-700 flex items-center transition-colors group md:mt-2"
         >
           查看全部
           <ChevronRight className="w-5 h-5 ml-1 transform group-hover:translate-x-2 transition-transform duration-300" />
@@ -65,7 +65,7 @@ async function BlogSection() {
       {posts.length === 0 ? (
         <p className="text-gray-300 text-lg">暂无文章</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="home-blog-cards grid grid-cols-1 md:grid-cols-2 gap-6">
           {posts.slice(0, 4).map((post, i) => (
             <BlogCard
               key={post.slug}
@@ -93,11 +93,11 @@ async function SkillsSection() {
     <section className="bg-gray-50 py-32 relative overflow-hidden border-t border-gray-100">
       <div className="absolute top-0 left-0 w-full h-full bg-blue-600/3 blur-[160px] pointer-events-none" />
       <div className="max-w-6xl mx-auto px-6 relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-4">
+        <div className="home-section-heading flex flex-col md:flex-row md:items-start justify-between mb-10 gap-4">
           <SectionHeading>SKILL</SectionHeading>
           <Link
             href="/skills"
-            className="text-blue-600 font-bold hover:text-blue-700 flex items-center transition-colors group mb-16 md:mb-0"
+            className="text-blue-600 font-bold hover:text-blue-700 flex items-center transition-colors group md:mt-2"
           >
             查看全部
             <ChevronRight className="w-5 h-5 ml-1 transform group-hover:translate-x-2 transition-transform duration-300" />
@@ -106,7 +106,7 @@ async function SkillsSection() {
         {skills.length === 0 ? (
           <p className="text-gray-300 text-lg">暂无 Skills</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="home-skill-cards grid grid-cols-1 md:grid-cols-2 gap-6">
             {skills.map((skill, i) => (
               <SkillCard
                 key={skill.slug}
@@ -123,7 +123,7 @@ async function SkillsSection() {
 
 export default async function HomePage() {
   return (
-    <div>
+    <div className="home-detail-refinement">
       {/* Hero 直接渲染，不进入 Suspense，保证首屏最快 paint */}
       <Hero />
 
