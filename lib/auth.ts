@@ -32,6 +32,12 @@ async function activeAdminSession() {
   return session
 }
 
+/** Account-owned data always needs a real, currently privileged user session. */
+export async function getAdminAccountId() {
+  const session = await activeAdminSession()
+  return session ? Number((session.user as { id: string | number }).id) : null
+}
+
 /** Used by server components; unauthenticated and non-admin sessions are redirected. */
 export async function requireAdmin() {
   if (await isDevBypass()) return { user: { name: 'Dev', email: 'dev@local', role: 'admin' } }

@@ -1,6 +1,6 @@
 // app/admin/page.tsx
 import Link from 'next/link'
-import { Plus, MessageCircle, Images, Layers, ClipboardCheck, ShoppingBag, FolderKanban, BarChart3, BookOpen } from 'lucide-react'
+import { Plus, MessageCircle, Images, Layers, ClipboardCheck, ShoppingBag, FolderKanban, BarChart3, BookOpen, NotebookPen } from 'lucide-react'
 import { requireAdmin } from '@/lib/auth'
 import { getAllPostsAdmin, getPendingCommentsCount, getPendingEditRequestsCount } from '@/lib/db'
 import AdminPostList from '@/components/admin/AdminPostList'
@@ -88,6 +88,14 @@ export default async function AdminPage() {
           >
             <BookOpen className="w-4 h-4" />
             精读发布检查
+          </Link>
+          <Link
+            href="/admin/study-records"
+            prefetch={false}
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+          >
+            <NotebookPen className="w-4 h-4" aria-hidden="true" />
+            学习记录
           </Link>
           <Link
             href="/admin/analytics"
