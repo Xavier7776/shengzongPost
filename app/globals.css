@@ -897,3 +897,21 @@ body:has(.technical-reader-page)::before { display: none; }
   .technical-reader-page .reader-content .reader-code-block pre { padding: 16px; font-size: 12px; }
   .technical-reader-article.reader-mode-dark, .technical-reader-article.reader-mode-sepia { padding: 16px; margin-inline: -10px; }
 }
+
+
+/* Approved homepage-only refinements: section spacing and card type hierarchy. */
+.home-detail-refinement .home-section-heading > div:first-child {
+  margin-bottom: 0;
+}
+
+.home-detail-refinement :is(.home-blog-cards, .home-skill-cards) .text-gray-400 {
+  color: #6b7280;
+}
+
+.home-detail-refinement :is(.home-blog-cards, .home-skill-cards) [class~="text-[10px]"] {
+  font-size: 0.6875rem;
+}
+
+.home-detail-refinement .home-blog-cards h3 {
+  font-size: 1.125rem;
+}
