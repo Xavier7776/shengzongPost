@@ -3,9 +3,11 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { limits, outcomes, parseEntry, tracks, type Entry, type SavedEntry } from './model'
 
-export const control = 'min-h-12 w-full min-w-0 rounded-lg border border-gray-500 bg-white px-3 py-2 text-base text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
-export const button = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:border-gray-500 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
-export const primary = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
+const focus = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+const action = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ' + focus
+export const control = 'min-h-12 w-full min-w-0 rounded-lg border border-slate-500 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-500 hover:border-slate-600 ' + focus
+export const button = action + ' border border-slate-300 bg-white text-slate-700 enabled:hover:border-blue-400 enabled:hover:text-blue-700'
+export const primary = action + ' bg-blue-600 text-white enabled:hover:bg-blue-700'
 
 type Props = {
   entry: SavedEntry | null
@@ -53,8 +55,8 @@ export default function RecordEditor({ entry, today, busy, onSave, onCancel }: P
   }
 
   return (
-    <form onSubmit={submit} method="post" aria-labelledby={id + '-heading'} className="mt-7 rounded-xl border border-gray-200 p-5 sm:p-7">
-      <h2 id={id + '-heading'} className="mb-5 text-lg font-bold">{entry ? '编辑记录' : '新增记录'}</h2>
+    <form onSubmit={submit} method="post" aria-labelledby={id + '-heading'} className="mt-7 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+      <h2 id={id + '-heading'} className="mb-5 text-xl font-bold tracking-tight">{entry ? '编辑记录' : '新增记录'}</h2>
       <fieldset disabled={busy} className="min-w-0 space-y-4">
         <div>
           <label htmlFor={id + '-title'} className="mb-1.5 block text-sm font-medium">学习内容（必填）</label>
@@ -63,7 +65,7 @@ export default function RecordEditor({ entry, today, busy, onSave, onCancel }: P
             className={control + ' aria-[invalid=true]:border-red-700'} defaultValue={entry?.title} onChange={clearTitleError} />
           <p id={id + '-title-error'} role="status" className={titleError ? 'mt-1 text-sm text-red-700' : 'sr-only'}>{titleError}</p>
         </div>
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid min-w-0 gap-4 min-[390px]:grid-cols-2 md:grid-cols-4">
           <div className="min-w-0">
             <label htmlFor={id + '-date'} className="mb-1.5 block text-sm font-medium">日期</label>
             <input id={id + '-date'} name="date" type="date" required min="1000-01-01" max="9999-12-31" className={control} defaultValue={entry?.date ?? today} />

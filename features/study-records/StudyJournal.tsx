@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, type ChangeEvent } from 'react'
-import { Download, NotebookPen, Plus, Upload } from 'lucide-react'
+import { Download, LockKeyhole, NotebookPen, Plus, Search, Upload } from 'lucide-react'
 import { decodeBackup, encodeBackup } from './backup'
 import { importBatchSize, maxBackupBytes, outcomes, tracks, type Entry, type SavedEntry } from './model'
 import RecordEditor, { button, control, primary } from './RecordEditor'
@@ -9,7 +9,10 @@ import RecordEditor, { button, control, primary } from './RecordEditor'
 const endpoint = '/api/admin/study-records'
 const pageSize = 20
 const icon = 'h-4 w-4 shrink-0'
-const rowButton = 'inline-flex min-h-12 items-center rounded px-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-50'
+const rowButton = 'inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-slate-600 transition-colors enabled:hover:bg-blue-50 enabled:hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-50'
+const label = 'mb-1.5 block text-sm font-medium text-slate-700'
+const statValue = 'font-mono text-xl font-medium leading-tight tabular-nums lg:text-2xl'
+const statUnit = 'ml-1 font-sans text-xs font-medium text-slate-600 sm:text-sm'
 
 async function readResponse(response: Response) {
   if (!response.headers.get('content-type')?.includes('application/json')) {
@@ -30,8 +33,13 @@ async function save(payload: object) {
 
 function minutesLabel(minutes: number) {
   const hours = Math.floor(minutes / 60)
-  if (hours === 0) return <>{minutes}<span className="ml-1 text-sm font-medium">分钟</span></>
-  return <>{hours}<span className="mx-1 text-sm font-medium">小时</span>{minutes % 60 > 0 && <>{minutes % 60}<span className="ml-1 text-sm font-medium">分钟</span></>}</>
+  const remainder = minutes % 60
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-1.5">
+      {hours > 0 && <span className="whitespace-nowrap">{hours}<span className={statUnit}>小时</span></span>}
+      {(hours === 0 || remainder > 0) && <span className="whitespace-nowrap">{remainder}<span className={statUnit}>分钟</span></span>}
+    </span>
+  )
 }
 
 function mondayOf(date: string) {
@@ -158,21 +166,32 @@ export default function StudyJournal({ initialRecords, today }: { initialRecords
   }
 
   return <>
-    <div className="mt-7 flex flex-wrap gap-2">
-      <button ref={addButton} type="button" className={primary} disabled={busy || records === null} aria-expanded={Boolean(editor)}
-        onClick={() => { setError(''); setEditor({ entry: null }) }}>
-        <Plus className={icon} aria-hidden="true" /> 记一条
-      </button>
-      <input type="file" accept=".json,application/json" hidden ref={fileInput} onChange={importFile} />
-      <button type="button" className={button} disabled={busy || records === null} onClick={() => fileInput.current?.click()}>
-        <Upload className={icon} aria-hidden="true" /> 导入备份
-      </button>
-      <button type="button" className={button} disabled={busy || !all.length} onClick={exportFile}>
-        <Download className={icon} aria-hidden="true" /> 导出记录
-      </button>
-    </div>
-    <p className="mt-3 text-sm leading-6 text-gray-600">支持 StudyPilot 手机备份和网页备份。同一条记录只导入一次。</p>
-    <p role="status" className={status ? 'mt-3 text-sm font-medium text-gray-800' : 'sr-only'}>{status}</p>
+    <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5 border-b border-[#e5e9f0] pb-6 sm:pb-8">
+      <div>
+        <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-[2.75rem]">学习记录</h1>
+        <p className="mt-2.5 flex items-center gap-2 text-sm leading-6 text-slate-600">
+          <LockKeyhole className="size-3.5 shrink-0" aria-hidden="true" /> 仅当前管理员账号可见
+        </p>
+      </div>
+      <div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <button ref={addButton} type="button" className={primary} disabled={busy || records === null} aria-expanded={Boolean(editor)}
+            onClick={() => { setError(''); setEditor({ entry: null }) }}>
+            <Plus className={icon} aria-hidden="true" /> 记一条
+          </button>
+          <input type="file" accept=".json,application/json" hidden ref={fileInput} onChange={importFile} />
+          <button type="button" className={rowButton + ' gap-2'} disabled={busy || records === null}
+            aria-describedby="study-backup-hint" onClick={() => fileInput.current?.click()}>
+            <Upload className="hidden size-4 shrink-0 min-[370px]:block" aria-hidden="true" /> 导入备份
+          </button>
+          <button type="button" className={rowButton + ' gap-2'} disabled={busy || !all.length} onClick={exportFile}>
+            <Download className="hidden size-4 shrink-0 min-[370px]:block" aria-hidden="true" /> 导出记录
+          </button>
+        </div>
+        <p id="study-backup-hint" className="mt-2 text-xs leading-5 text-slate-600">可导入 StudyPilot 手机备份或网页备份。</p>
+      </div>
+    </header>
+    <p role="status" className={status ? 'mt-4 text-sm font-medium text-[#3858bb]' : 'sr-only'}>{status}</p>
     {error && <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2">
       <p role="alert" className="text-sm text-red-800">{error}</p>
       <button type="button" className={rowButton} disabled={busy} onClick={() => run(refresh)}>重新读取</button>
@@ -180,82 +199,94 @@ export default function StudyJournal({ initialRecords, today }: { initialRecords
 
     {editor && <RecordEditor key={editor.entry?.id ?? 'new'} entry={editor.entry} today={today} busy={busy} onSave={saveEntry} onCancel={closeEditor} />}
 
-    {records !== null && <>
-      <dl className="mt-9 grid grid-cols-3 gap-2 border-y border-gray-200 py-5 sm:gap-5">
-        <div className="min-w-0">
-          <dt className="mb-2 text-sm text-gray-600">本周用时</dt>
-          <dd className="text-xl font-bold tabular-nums sm:text-3xl">{minutesLabel(weekMinutes)}</dd>
-        </div>
-        <div className="min-w-0 border-l border-gray-200 pl-3 sm:pl-5">
-          <dt className="mb-2 text-sm text-gray-600">学习天数</dt>
-          <dd className="text-xl font-bold tabular-nums sm:text-3xl">{new Set(all.map(record => record.date)).size}<span className="ml-1 text-sm font-medium">天</span></dd>
-        </div>
-        <div className="min-w-0 border-l border-gray-200 pl-3 sm:pl-5">
-          <dt className="mb-2 text-sm text-gray-600">累计记录</dt>
-          <dd className="text-xl font-bold tabular-nums sm:text-3xl">{all.length}<span className="ml-1 text-sm font-medium">条</span></dd>
-        </div>
-      </dl>
-
-      <section aria-labelledby="study-history" className="mt-9">
-        <h2 id="study-history" className="text-xl font-bold">历史记录</h2>
-        {all.length > 0 && <search aria-label="筛选学习记录" className="mb-5 mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
-          <div>
-            <label htmlFor="study-query" className="mb-1.5 block text-sm font-medium">搜索</label>
-            <input id="study-query" name="query" type="search" placeholder="按学习内容或笔记搜索" className={control} value={query}
-              onChange={event => { setQuery(event.target.value); setVisible(pageSize) }} />
+    {records !== null && <div className="mt-7 grid gap-7 sm:mt-9 lg:grid-cols-[minmax(0,1fr)_15.5rem] lg:gap-9">
+      <aside aria-labelledby="study-overview" className="min-w-0 lg:col-start-2 lg:row-start-1">
+        <h2 id="study-overview" className="text-lg font-bold tracking-tight lg:text-xl">学习概览</h2>
+        <dl className="mt-3 grid grid-cols-3 gap-3 border-y border-[#e5e9f0] py-3 sm:gap-5 lg:mt-4 lg:grid-cols-1 lg:gap-0 lg:divide-y lg:divide-[#e5e9f0] lg:py-0">
+          <div className="min-w-0 lg:flex lg:items-baseline lg:justify-between lg:gap-3 lg:py-4">
+            <dt className="mb-1.5 text-xs text-slate-600 sm:text-sm lg:mb-0">本周用时</dt>
+            <dd className={statValue}>{minutesLabel(weekMinutes)}</dd>
           </div>
-          <div>
-            <label htmlFor="study-track" className="mb-1.5 block text-sm font-medium">学习方向</label>
-            <select id="study-track" name="track" className={control} value={track}
-              onChange={event => { setTrack(event.target.value); setVisible(pageSize) }}>
-              <option value="all">全部方向</option>
-              {Object.entries(tracks).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
+          <div className="min-w-0 lg:flex lg:items-baseline lg:justify-between lg:gap-3 lg:py-4">
+            <dt className="mb-1.5 text-xs text-slate-600 sm:text-sm lg:mb-0">累计学习</dt>
+            <dd className={statValue}>{new Set(all.map(record => record.date)).size}<span className={statUnit}>天</span></dd>
           </div>
-        </search>}
+          <div className="min-w-0 lg:flex lg:items-baseline lg:justify-between lg:gap-3 lg:py-4">
+            <dt className="mb-1.5 text-xs text-slate-600 sm:text-sm lg:mb-0">累计记录</dt>
+            <dd className={statValue}>{all.length}<span className={statUnit}>条</span></dd>
+          </div>
+        </dl>
+      </aside>
 
-        {!filtered.length && <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50/70 px-5 py-9">
-          <NotebookPen className="mb-3 h-5 w-5 text-gray-500" aria-hidden="true" />
-          <p className="font-semibold">{all.length ? '没有符合条件的记录' : '还没有学习记录'}</p>
-          <p className="mt-1.5 text-sm leading-6 text-gray-600">{all.length ? '试试其他关键词或学习方向。' : '记录今天学了什么，或者导入手机上已有的记录。'}</p>
-        </div>}
-
-        {[...byDate].map(([date, group]) => <section key={date} className="border-t border-gray-200 py-3 sm:grid sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-3">
-          <h3 className="pb-1 pt-2 font-mono text-sm font-semibold tabular-nums text-gray-700">
-            <time dateTime={date}>{date}</time>{date === today && <span className="ml-2 font-sans text-xs font-medium text-gray-500">今天</span>}
-          </h3>
-          <ul className="divide-y divide-gray-100">
-            {group.map(record => <li key={record.id} className="py-2">
-              <div className="flex flex-wrap items-start justify-between gap-x-4">
-                <div className="min-w-0 flex-1 pt-1">
-                  <h4 className="break-words font-semibold leading-6">{record.title}</h4>
-                  <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm leading-6 text-gray-600">
-                    <span>{tracks[record.track]}</span><span className="tabular-nums">{record.minutes} 分钟</span>
-                    <span className={record.outcome === 'again' ? 'font-medium text-amber-800' : ''}>{outcomes[record.outcome]}</span>
-                    {record.review && <span>复习</span>}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  <button type="button" className={rowButton} disabled={busy} aria-label={'编辑 ' + record.title}
-                    onClick={() => { setError(''); setEditor({ entry: record }); setPendingDelete(null) }}>编辑</button>
-                  <button type="button" className={rowButton} disabled={busy} aria-label={'删除 ' + record.title}
-                    aria-expanded={pendingDelete === record.id} onClick={() => setPendingDelete(previous => previous === record.id ? null : record.id)}>删除</button>
-                </div>
+      <section aria-labelledby="study-history" className="min-w-0 lg:col-start-1 lg:row-start-1">
+        <h2 id="study-history" className="text-lg font-bold tracking-tight lg:text-xl">历史记录</h2>
+        <div className="mt-3 rounded-xl border border-[#e5e9f0] bg-white lg:mt-4">
+          {all.length > 0 && <search aria-label="筛选学习记录" className="grid gap-3 border-b border-[#e5e9f0] px-4 py-4 min-[380px]:grid-cols-[minmax(0,1fr)_7rem] sm:grid-cols-[minmax(0,1fr)_10rem] sm:px-6">
+            <div>
+              <label htmlFor="study-query" className={label}>搜索</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+                <input id="study-query" name="query" type="search" placeholder="搜索内容或笔记" className={control + ' pl-9'} value={query}
+                  onChange={event => { setQuery(event.target.value); setVisible(pageSize) }} />
               </div>
-              {record.note && <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">{record.note}</p>}
-              {pendingDelete === record.id && <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-900">
-                <p className="mr-auto">删除这条学习记录？</p>
-                <button type="button" className={rowButton} disabled={busy} onClick={() => setPendingDelete(null)}>取消</button>
-                <button type="button" className={rowButton + ' text-red-800'} disabled={busy} onClick={() => remove(record)}>确认删除</button>
-              </div>}
-            </li>)}
-          </ul>
-        </section>)}
+            </div>
+            <div>
+              <label htmlFor="study-track" className={label}>学习方向</label>
+              <select id="study-track" name="track" className={control} value={track}
+                onChange={event => { setTrack(event.target.value); setVisible(pageSize) }}>
+                <option value="all">全部方向</option>
+                {Object.entries(tracks).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </div>
+          </search>}
+
+          {!filtered.length && <div className="px-4 py-9 sm:px-6">
+            <NotebookPen className="mb-3 size-5 text-[#3858bb]" aria-hidden="true" />
+            <p className="font-bold">{all.length ? '没有符合条件的记录' : '还没有学习记录'}</p>
+            <p className="mt-1.5 text-sm leading-6 text-slate-600">{all.length ? '试试其他关键词或学习方向。' : '记下今天学了什么，或导入 StudyPilot 手机备份。'}</p>
+          </div>}
+
+          <div className="divide-y divide-[#e5e9f0] px-4 sm:px-6">
+            {[...byDate].map(([date, group]) => <section key={date} className="py-4 md:grid md:grid-cols-[7rem_minmax(0,1fr)] md:gap-5 md:py-5">
+              <h3 className="mb-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 self-start text-[13px] font-medium leading-6 text-slate-600 md:mb-0">
+                <time dateTime={date} className="font-mono tabular-nums">{date}</time>
+                {date === today && <span className="text-xs font-medium text-[#3858bb] md:basis-full">今天</span>}
+              </h3>
+              <ul className="divide-y divide-[#e5e9f0]">
+                {group.map(record => <li key={record.id} className="py-4 first:pt-0 last:pb-0">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 sm:gap-x-4">
+                    <div className="min-w-0">
+                      <h4 className="font-bold leading-6 [overflow-wrap:anywhere]">{record.title}</h4>
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs leading-6 text-slate-600 sm:text-sm">
+                        <span className="font-medium text-[#3858bb]">{tracks[record.track]}</span>
+                        <span className="tabular-nums">{record.minutes} 分钟</span>
+                        <span className={record.outcome === 'again' ? 'font-medium text-amber-800' : ''}>{outcomes[record.outcome]}</span>
+                        {record.review && <span className="rounded bg-slate-100 px-1.5 leading-5">复习</span>}
+                      </p>
+                    </div>
+                    <div className="-mr-2.5 -mt-2.5 flex">
+                      <button type="button" className={rowButton} disabled={busy} aria-label={'编辑 ' + record.title}
+                        onClick={() => { setError(''); setEditor({ entry: record }); setPendingDelete(null) }}>编辑</button>
+                      <button type="button" className={rowButton} disabled={busy} aria-label={'删除 ' + record.title}
+                        aria-expanded={pendingDelete === record.id} onClick={() => setPendingDelete(previous => previous === record.id ? null : record.id)}>删除</button>
+                    </div>
+                  </div>
+                  {record.note && <p className="mt-1.5 max-w-[65ch] whitespace-pre-wrap text-sm leading-7 text-slate-700 [overflow-wrap:anywhere]">{record.note}</p>}
+                  {pendingDelete === record.id && <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-900">
+                    <p className="mr-auto">删除这条学习记录？</p>
+                    <button type="button" className={rowButton} disabled={busy} onClick={() => setPendingDelete(null)}>取消</button>
+                    <button type="button" className={rowButton + ' text-red-800'} disabled={busy} onClick={() => remove(record)}>确认删除</button>
+                  </div>}
+                </li>)}
+              </ul>
+            </section>)}
+          </div>
+        </div>
 
         {filtered.length > visible && <button type="button" className={button + ' mt-4'} onClick={() => setVisible(visible + pageSize)}>
           显示更多（剩余 {filtered.length - visible} 条）
         </button>}
       </section>
-    </>}
+    </div>}
   </>
 }
