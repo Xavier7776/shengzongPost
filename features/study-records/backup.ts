@@ -9,7 +9,7 @@ const stages: Readonly<Partial<Record<string, string>>> = {
   read: '理解', lab: '验证', recall: '复述',
 }
 
-function fromAndroid(row: unknown): EntryWithId | null {
+export function parseAndroidRecord(row: unknown): EntryWithId | null {
   if (!isObject(row) || typeof row.id !== 'string' || typeof row.unitId !== 'string'
     || typeof row.outcome !== 'string' || !Object.hasOwn(androidOutcomes, row.outcome)) return null
   const [kind, number, stage] = row.unitId.split('-')
@@ -43,7 +43,7 @@ export function decodeBackup(text: string): EntryWithId[] {
   }
   if (data.version !== 1) throw new Error('这个备份版本暂不支持。')
   if (!Array.isArray(data.records)) throw new Error('备份缺少学习记录。')
-  const parse = data.format === 'studypilot-backup' ? fromAndroid : parseIdentifiedEntry
+  const parse = data.format === 'studypilot-backup' ? parseAndroidRecord : parseIdentifiedEntry
   return data.records.map((value, index) => {
     const entry = parse(value)
     if (!entry) throw new Error('备份中的第 ' + (index + 1) + ' 条学习记录格式有误。')
