@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useRef, useState, type ChangeEvent } from 'react'
 import { Download, LockKeyhole, NotebookPen, Plus, Search, Upload } from 'lucide-react'
 import { decodeBackup, encodeBackup } from './backup'
 import { importBatchSize, maxBackupBytes, outcomes, tracks, type Entry, type SavedEntry } from './model'
 import RecordEditor, { button, control, primary } from './RecordEditor'
+import StudySyncPanel from './StudySyncPanel'
 
 const endpoint = '/api/admin/study-records'
 const pageSize = 20
@@ -75,10 +76,16 @@ export default function StudyJournal({ initialRecords, today }: { initialRecords
     else byDate.set(record.date, [record])
   }
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const { records: saved } = await readResponse(await fetch(endpoint, { cache: 'no-store' }))
     setRecords(saved)
-  }
+  }, [])
+
+  const refreshFromSync = useCallback(async () => {
+    if (inFlight.current) return
+    const { records: saved } = await readResponse(await fetch(endpoint, { cache: 'no-store' }))
+    if (!inFlight.current) setRecords(saved)
+  }, [])
 
   async function run(work: () => Promise<void>) {
     if (inFlight.current) return
@@ -191,6 +198,7 @@ export default function StudyJournal({ initialRecords, today }: { initialRecords
         <p id="study-backup-hint" className="mt-2 text-xs leading-5 text-slate-600">可导入 StudyPilot 手机备份或网页备份。</p>
       </div>
     </header>
+    <StudySyncPanel onSync={refreshFromSync} />
     <p role="status" className={status ? 'mt-4 text-sm font-medium text-[#3858bb]' : 'sr-only'}>{status}</p>
     {error && <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2">
       <p role="alert" className="text-sm text-red-800">{error}</p>

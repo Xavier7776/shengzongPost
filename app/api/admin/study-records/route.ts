@@ -32,7 +32,7 @@ export const POST = withWriteGuard(async request => {
     if (!Array.isArray(body.records) || body.records.length === 0 || body.records.length > importBatchSize) return invalid()
     const entries = body.records.map(parseIdentifiedEntry)
     if (!entries.every(entry => entry !== null)) return invalid()
-    const inserted = await insertStudyRecords(userId, entries)
+    const inserted = await insertStudyRecords(userId, entries, true)
     return reply({ inserted: inserted.length })
   }
 
