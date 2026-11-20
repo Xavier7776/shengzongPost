@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: ['/', '/blog', '/learn', '/skills', '/gallery', '/projects', '/shop', '/search', '/feed.xml'],
         disallow: [
           '/admin',
+          '/study',
           '/dashboard',
           '/api/',
           '/profile',

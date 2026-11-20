@@ -33,6 +33,7 @@ export const AUTH_RATE_POLICIES = {
   upload: { identityMax: 30, ipMax: 60, windowSeconds: 3600 },
   comment: { identityMax: 10, ipMax: 30, windowSeconds: 600 },
   submission: { identityMax: 5, ipMax: 15, windowSeconds: 3600 },
+  'study-plan-ai': { identityMax: 12, ipMax: 20, windowSeconds: 60 },
   login: { identityMax: 12, ipMax: 40, windowSeconds: 900 },
   registration: { identityMax: 3, ipMax: 8, windowSeconds: 3600 },
   'forgot-send': { identityMax: 3, ipMax: 10, windowSeconds: 3600 },

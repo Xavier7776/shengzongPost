@@ -55,11 +55,14 @@ function mondayOf(date: string) {
   return day.toISOString().slice(0, 10)
 }
 
-export default function StudyJournal() {
+export default function StudyJournal({ initialRecords, onRecordsChange }: {
+  initialRecords?: SavedEntry[]
+  onRecordsChange?: (records: SavedEntry[]) => void
+} = {}) {
   const fileInput = useRef<HTMLInputElement>(null)
   const addButton = useRef<HTMLButtonElement>(null)
   const inFlight = useRef(false)
-  const [records, setRecords] = useState<SavedEntry[] | null | undefined>()
+  const [records, setRecords] = useState<SavedEntry[] | null | undefined>(initialRecords)
   const [editor, setEditor] = useState<{ entry: SavedEntry | null } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -70,6 +73,7 @@ export default function StudyJournal() {
   const [visible, setVisible] = useState(pageSize)
 
   useEffect(() => {
+    if (initialRecords !== undefined) return
     const controller = new AbortController()
     void fetchRecords(controller.signal).then(saved => {
       if (!controller.signal.aborted) setRecords(saved)
@@ -80,7 +84,10 @@ export default function StudyJournal() {
       }
     })
     return () => controller.abort()
-  }, [])
+  }, [initialRecords])
+  useEffect(() => {
+    if (records) onRecordsChange?.(records)
+  }, [records, onRecordsChange])
 
   const today = chinaDate()
   const all = records ?? []
@@ -196,7 +203,7 @@ export default function StudyJournal() {
   return <>
     <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5 border-b border-[#e5e9f0] pb-6 sm:pb-8">
       <div>
-        <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-[2.75rem]">学习记录</h1>
+        <h2 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">学习记录</h2>
         <p className="mt-2.5 flex items-center gap-2 text-sm leading-6 text-slate-600">
           <LockKeyhole className="size-3.5 shrink-0" aria-hidden="true" /> 仅当前管理员账号可见
         </p>
