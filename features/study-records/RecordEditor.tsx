@@ -11,19 +11,21 @@ export const primary = action + ' bg-blue-600 text-white enabled:hover:bg-blue-7
 
 type Props = {
   entry: SavedEntry | null
+  draft?: Pick<Entry, 'title' | 'track' | 'date' | 'minutes' | 'review'>
   today: string
   busy: boolean
   onSave: (value: Entry, id?: string) => Promise<void>
   onCancel: () => void
 }
 
-export default function RecordEditor({ entry, today, busy, onSave, onCancel }: Props) {
+export default function RecordEditor({ entry, draft, today, busy, onSave, onCancel }: Props) {
   const id = useId()
   const titleRef = useRef<HTMLInputElement>(null)
   const draftId = useRef<string | undefined>(undefined)
   const [titleError, setTitleError] = useState('')
 
-  useEffect(() => { titleRef.current?.focus() }, [])
+  const outcomeRef = useRef<HTMLSelectElement>(null)
+  useEffect(() => { (draft ? outcomeRef.current : titleRef.current)?.focus() }, [draft])
 
   function clearTitleError(event: ChangeEvent<HTMLInputElement>) {
     event.currentTarget.setCustomValidity('')
@@ -62,28 +64,29 @@ export default function RecordEditor({ entry, today, busy, onSave, onCancel }: P
           <label htmlFor={id + '-title'} className="mb-1.5 block text-sm font-medium">学习内容（必填）</label>
           <input id={id + '-title'} ref={titleRef} name="title" required maxLength={limits.title}
             aria-invalid={Boolean(titleError)} aria-describedby={titleError ? id + '-title-error' : undefined}
-            className={control + ' aria-[invalid=true]:border-red-700'} defaultValue={entry?.title} onChange={clearTitleError} />
+            className={control + ' aria-[invalid=true]:border-red-700'} defaultValue={entry?.title ?? draft?.title} onChange={clearTitleError} />
           <p id={id + '-title-error'} role="status" className={titleError ? 'mt-1 text-sm text-red-700' : 'sr-only'}>{titleError}</p>
         </div>
         <div className="grid min-w-0 gap-4 min-[390px]:grid-cols-2 md:grid-cols-4">
           <div className="min-w-0">
             <label htmlFor={id + '-date'} className="mb-1.5 block text-sm font-medium">日期</label>
-            <input id={id + '-date'} name="date" type="date" required min="1000-01-01" max="9999-12-31" className={control} defaultValue={entry?.date ?? today} />
+            <input id={id + '-date'} name="date" type="date" required min="1000-01-01" max="9999-12-31" className={control} defaultValue={entry?.date ?? draft?.date ?? today} />
           </div>
           <div className="min-w-0">
             <label htmlFor={id + '-track'} className="mb-1.5 block text-sm font-medium">方向</label>
-            <select id={id + '-track'} name="track" className={control} defaultValue={entry?.track ?? 'algorithm'}>
+            <select id={id + '-track'} name="track" className={control} defaultValue={entry?.track ?? draft?.track ?? 'algorithm'}>
               {Object.entries(tracks).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </div>
           <div className="min-w-0">
             <label htmlFor={id + '-minutes'} className="mb-1.5 block text-sm font-medium">用时（分钟）</label>
             <input id={id + '-minutes'} name="minutes" type="number" inputMode="numeric" min={1} max={limits.minutes}
-              required defaultValue={entry?.minutes ?? 30} className={control} />
+              required defaultValue={entry?.minutes ?? draft?.minutes ?? 30} className={control} />
           </div>
           <div className="min-w-0">
             <label htmlFor={id + '-outcome'} className="mb-1.5 block text-sm font-medium">学习结果</label>
-            <select id={id + '-outcome'} name="outcome" className={control} defaultValue={entry?.outcome ?? 'independent'}>
+            <select id={id + '-outcome'} ref={outcomeRef} name="outcome" required className={control} defaultValue={entry?.outcome ?? (draft ? '' : 'independent')}>
+              {draft && <option value="" disabled>选择结果</option>}
               {Object.entries(outcomes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </div>
@@ -94,7 +97,7 @@ export default function RecordEditor({ entry, today, busy, onSave, onCancel }: P
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <label className="inline-flex min-h-12 cursor-pointer items-center gap-2 text-sm font-medium">
-            <input name="review" type="checkbox" className="h-4 w-4 accent-blue-700" defaultChecked={entry?.review} /> 这次是复习
+            <input name="review" type="checkbox" className="h-4 w-4 accent-blue-700" defaultChecked={entry?.review ?? draft?.review} /> 这次是复习
           </label>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={button} onClick={onCancel}>取消</button>

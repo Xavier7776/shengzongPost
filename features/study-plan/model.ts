@@ -74,6 +74,11 @@ export function addDays(value: string, days: number) {
   return date.toISOString().slice(0, 10)
 }
 
+export function startOfWeek(value: string) {
+  const weekday = new Date(value + 'T00:00:00Z').getUTCDay()
+  return addDays(value, -((weekday + 6) % 7))
+}
+
 export function addMonths(value: string, months: number) {
   const date = new Date(value + 'T00:00:00Z')
   const day = date.getUTCDate()

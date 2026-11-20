@@ -1,42 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useRef, useState, type ChangeEvent } from 'react'
 import { Download, LockKeyhole, NotebookPen, Plus, Search, Upload } from 'lucide-react'
 import { decodeBackup, encodeBackup } from './backup'
+import { fetchStudyRecords, writeStudyRecord as save } from './client'
 import { importBatchSize, maxBackupBytes, outcomes, tracks, type Entry, type SavedEntry } from './model'
 import RecordEditor, { button, control, primary } from './RecordEditor'
 import StudySyncPanel from './StudySyncPanel'
-import { chinaDate } from '@/lib/learn/document'
+import { startOfWeek } from '@/features/study-plan/model'
 
-const endpoint = '/api/admin/study-records'
 const pageSize = 20
 const icon = 'h-4 w-4 shrink-0'
 const rowButton = 'inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-slate-600 transition-colors enabled:hover:bg-blue-50 enabled:hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-50'
 const label = 'mb-1.5 block text-sm font-medium text-slate-700'
 const statValue = 'font-mono text-xl font-medium leading-tight tabular-nums lg:text-2xl'
 const statUnit = 'ml-1 font-sans text-xs font-medium text-slate-600 sm:text-sm'
-
-async function readResponse(response: Response) {
-  if (!response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error(response.status === 413 ? '上传内容过大。' : '服务器暂时未响应，请重试。')
-  }
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error ?? '请求失败，请重试。')
-  return data
-}
-
-async function save(payload: object) {
-  return readResponse(await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }))
-}
-
-async function fetchRecords(signal?: AbortSignal): Promise<SavedEntry[]> {
-  const { records } = await readResponse(await fetch(endpoint, { cache: 'no-store', signal }))
-  return records
-}
 
 function minutesLabel(minutes: number) {
   const hours = Math.floor(minutes / 60)
@@ -49,20 +27,14 @@ function minutesLabel(minutes: number) {
   )
 }
 
-function mondayOf(date: string) {
-  const day = new Date(date + 'T00:00:00Z')
-  day.setUTCDate(day.getUTCDate() - (day.getUTCDay() + 6) % 7)
-  return day.toISOString().slice(0, 10)
-}
-
-export default function StudyJournal({ initialRecords, onRecordsChange }: {
-  initialRecords?: SavedEntry[]
-  onRecordsChange?: (records: SavedEntry[]) => void
-} = {}) {
+export default function StudyJournal({ records, refresh, today }: {
+  records: SavedEntry[] | null | undefined
+  refresh: () => Promise<void>
+  today: string
+}) {
   const fileInput = useRef<HTMLInputElement>(null)
   const addButton = useRef<HTMLButtonElement>(null)
   const inFlight = useRef(false)
-  const [records, setRecords] = useState<SavedEntry[] | null | undefined>(initialRecords)
   const [editor, setEditor] = useState<{ entry: SavedEntry | null } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -72,26 +44,8 @@ export default function StudyJournal({ initialRecords, onRecordsChange }: {
   const [query, setQuery] = useState('')
   const [visible, setVisible] = useState(pageSize)
 
-  useEffect(() => {
-    if (initialRecords !== undefined) return
-    const controller = new AbortController()
-    void fetchRecords(controller.signal).then(saved => {
-      if (!controller.signal.aborted) setRecords(saved)
-    }, () => {
-      if (!controller.signal.aborted) {
-        setRecords(null)
-        setError('暂时无法读取学习记录，请重试。')
-      }
-    })
-    return () => controller.abort()
-  }, [initialRecords])
-  useEffect(() => {
-    if (records) onRecordsChange?.(records)
-  }, [records, onRecordsChange])
-
-  const today = chinaDate()
   const all = records ?? []
-  const monday = mondayOf(today)
+  const monday = startOfWeek(today)
   const weekMinutes = all.reduce((total, record) => total + (record.date >= monday && record.date <= today ? record.minutes : 0), 0)
   const keyword = query.trim().toLocaleLowerCase()
   const filtered = all.filter(record => (track === 'all' || record.track === track)
@@ -103,15 +57,10 @@ export default function StudyJournal({ initialRecords, onRecordsChange }: {
     else byDate.set(record.date, [record])
   }
 
-  const refresh = useCallback(async () => {
-    setRecords(await fetchRecords())
-  }, [])
-
   const refreshFromSync = useCallback(async () => {
     if (inFlight.current) return
-    const saved = await fetchRecords()
-    if (!inFlight.current) setRecords(saved)
-  }, [])
+    await refresh()
+  }, [refresh])
 
   async function run(work: () => Promise<void>) {
     if (inFlight.current) return
@@ -187,7 +136,7 @@ export default function StudyJournal({ initialRecords, onRecordsChange }: {
 
   async function exportFile() {
     await run(async () => {
-      const saved = await fetchRecords()
+      const saved = await fetchStudyRecords()
       const objectUrl = URL.createObjectURL(new Blob([encodeBackup(saved)], { type: 'application/json;charset=utf-8' }))
       const link = document.createElement('a')
       link.href = objectUrl
@@ -228,8 +177,8 @@ export default function StudyJournal({ initialRecords, onRecordsChange }: {
     </header>
     <StudySyncPanel onSync={refreshFromSync} />
     <p role="status" className={status ? 'mt-4 text-sm font-medium text-[#3858bb]' : 'sr-only'}>{status}</p>
-    {error && <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2">
-      <p role="alert" className="text-sm text-red-800">{error}</p>
+    {(error || records === null) && <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2">
+      <p role="alert" className="text-sm text-red-800">{error || '暂时无法读取学习记录。'}</p>
       <button type="button" className={rowButton} disabled={busy} onClick={() => run(refresh)}>重新读取</button>
     </div>}
 
