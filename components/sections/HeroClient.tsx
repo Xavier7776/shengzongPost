@@ -41,7 +41,7 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
   }, [list.length, next, paused])
 
   return (
-    <section className="relative bg-[#FAFAF8] pt-[var(--home-intro-top,6rem)] pb-16">
+    <section className="relative bg-[#FAFAF8] pt-24 pb-16">
       {/* ── 顶部文字区 ── */}
       <div className="max-w-6xl mx-auto px-6 mb-8">
         <div>

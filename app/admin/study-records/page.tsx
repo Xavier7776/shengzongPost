@@ -7,5 +7,5 @@ export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 export default async function AdminStudyRecordsPage() {
   if (!await getAdminAccountId()) redirect('/admin/login')
-  redirect('/?view=study')
+  redirect('/study')
 }
