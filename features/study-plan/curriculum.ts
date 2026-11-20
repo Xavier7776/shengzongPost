@@ -102,6 +102,11 @@ export const algorithms = [
   [287, "find-the-duplicate-number", "技巧"],
 ] as const
 
+const lcedaBasics = 'https://openkits-wiki.easyeda.com/zh-hans/fdb/basic/review.html'
+const stm32Hal = (chapter: number) =>
+  `https://doc.embedfire.com/mcu/stm32/f103/hal_generalzh/latest/doc/chapter${chapter}/chapter${chapter}.html`
+const freeRtos = 'https://doc.embedfire.com/rtos/freertos/zh/latest/application/'
+
 export const sourceLinks: Partial<Record<string, string>> = {
   "java-1": "https://dev.java/learn/api/collections-framework/",
   "java-2": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html",
@@ -127,14 +132,30 @@ export const sourceLinks: Partial<Record<string, string>> = {
   "java-22": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
   "java-23": "https://platform.openai.com/docs/guides/evals",
   "java-24": "https://opentelemetry.io/docs/concepts/observability-primer/",
-  "hw-4": "https://en.cppreference.com/w/c/language/pointer.html",
-  "hw-5": "https://en.cppreference.com/w/c/language/operator_arithmetic.html",
-  "hw-6": "https://www.st.com/en/development-tools/stm32cubeide.html",
-  "hw-7": "https://www.st.com/en/development-tools/stm32cubeide.html",
-  "hw-9": "https://www.st.com/en/embedded-software/stm32cube-mcu-mpu-packages.html",
-  "hw-19": "https://www.freertos.org/Documentation/02-Kernel/02-Kernel-features/01-Tasks-and-co-routines/01-Tasks-overview",
-  "hw-20": "https://www.freertos.org/Documentation/02-Kernel/02-Kernel-features/02-Queues-mutexes-and-semaphores/01-Queues",
-  "hw-24": "https://docs.kicad.org/",
+  "hw-1": lcedaBasics + '#_4-2-欧姆定律',
+  "hw-2": lcedaBasics + '#_4-2-3-限流电阻计算',
+  "hw-3": lcedaBasics + '#_4-4-电容',
+  "hw-4": "https://wangdoc.com/clang/pointer.html",
+  "hw-5": lcedaBasics + '#_3-9-位操作-重中之重',
+  "hw-6": stm32Hal(4),
+  "hw-7": stm32Hal(12),
+  "hw-8": stm32Hal(13),
+  "hw-9": stm32Hal(20),
+  "hw-10": stm32Hal(30),
+  "hw-11": stm32Hal(17),
+  "hw-12": stm32Hal(29),
+  "hw-13": stm32Hal(23),
+  "hw-14": stm32Hal(24),
+  "hw-15": "https://doc.embedfire.com/module/module_tutorial/zh/latest/Module_Manual/port_class/more_port.html",
+  "hw-16": stm32Hal(29) + '#id26',
+  "hw-17": "https://wiki.lckfb.com/zh-hans/fdb/basic/embedded-development-introduction.html#_8-3-设置断点",
+  "hw-18": stm32Hal(21),
+  "hw-19": freeRtos + 'create_tasks.html',
+  "hw-20": freeRtos + 'message_queue.html',
+  "hw-21": freeRtos + 'mutex.html',
+  "hw-22": "https://wiki.lceda.cn/zh-hans/course-projects/mcu32/stm32-code-standard.html#错误处理",
+  "hw-23": "https://docs.github.com/zh/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes",
+  "hw-24": "https://docs.kicad.org/9.0/zh/getting_started_in_kicad/getting_started_in_kicad.html#教程第_2_部分原理图",
 }
 
 export const stages = [
