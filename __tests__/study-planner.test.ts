@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, defaultDay, defaultPlan, importMobilePlan, parseProposal } from '@/features/study-plan/model'
-import { getPlanStage, planDay } from '@/features/study-plan/planner'
+import { getPlanStage, planDay, planSchedule } from '@/features/study-plan/planner'
 import type { SavedEntry } from '@/features/study-records/model'
 
 describe('StudyPilot web plan', () => {
@@ -25,6 +25,39 @@ describe('StudyPilot web plan', () => {
     expect(result.tasks.reduce((n, row) => n + row.minutes, 0)).toBeLessThanOrEqual(35)
     plan.days[day] = { ...defaultDay, minutes: 45, mode: 'rest' }
     expect(planDay(plan, day, [prior]).tasks).toEqual([])
+  })
+  it('projects consecutive tasks and keeps later weeks consistent when opened directly', () => {
+    const plan = defaultPlan(day)
+    const schedule = planSchedule(plan, day, '2026-11-29', day, [])
+    const todayIds = schedule.get(day)!.tasks.map(task => task.id)
+    const tomorrowIds = schedule.get('2026-11-21')!.tasks.map(task => task.id)
+    expect(tomorrowIds).toEqual(['hw-1', 'project-1', 'lc-3'])
+    expect(tomorrowIds.some(id => todayIds.includes(id))).toBe(false)
+    const nextWeek = planSchedule(plan, '2026-11-23', '2026-11-29', day, [])
+    expect(nextWeek.get('2026-11-23')!.tasks).toEqual(schedule.get('2026-11-23')!.tasks)
+    expect(schedule.get('2026-11-22')!.tasks.map(task => task.id)).not.toEqual(tomorrowIds)
+  })
+  it('carries review overflow across a rest day and reflows from actual learning outcomes', () => {
+    const plan = defaultPlan('2026-11-19')
+    plan.days[day] = { ...defaultDay, minutes: 15 }
+    plan.days['2026-11-21'] = { ...defaultDay, mode: 'rest' }
+    const other = { ...prior, id: 'android:other', title: '206. 反转链表' }
+    const records = [prior, other]
+    const estimate = planSchedule(plan, day, '2026-11-22', day, records)
+    expect(estimate.get(day)!.tasks.map(task => task.id)).toEqual(['lc-1'])
+    expect(estimate.get(day)!.dueCount).toBe(2)
+    expect(estimate.get('2026-11-21')!.tasks).toEqual([])
+    expect(estimate.get('2026-11-22')!.tasks[0]).toMatchObject({ id: 'lc-206', review: true })
+    const recorded = { ...prior, id: 'web:later', date: day, minutes: 15, outcome: 'again' as const, review: true }
+    const adjusted = planSchedule(plan, day, '2026-11-22', day, [...records, recorded])
+    expect(adjusted.get(day)!.completed).toEqual([recorded])
+    expect(adjusted.get(day)!.tasks).toEqual([])
+    expect(adjusted.get('2026-11-22')!.tasks.slice(0, 2).map(task => task.id)).toEqual(['lc-206', 'lc-1'])
+  })
+  it('keeps a usable schedule after the first set of topics has been allocated', () => {
+    const schedule = planSchedule(defaultPlan(day), '2026-12-16', '2026-12-18', day, [])
+    expect([...schedule.values()].every(date => date.tasks.length > 0)).toBe(true)
+    expect([...schedule.values()].some(date => date.tasks.some(task => task.practice))).toBe(true)
   })
   it('anchors all stage boundaries to the original start day', () => {
     expect(addMonths('2026-01-31', 2)).toBe('2026-03-31')

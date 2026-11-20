@@ -4,6 +4,7 @@ import { allowAuthAttempt } from '@/lib/auth-rate-limit'
 import { isPlanDate, parseStudyPlan } from '@/features/study-plan/model'
 import { suggestStudyPlan, StudyAiError } from '@/lib/ai/study-plan'
 import { logFailure } from '@/lib/security/log'
+import { chinaDate } from '@/lib/learn/document'
 import { withWriteGuard } from '@/lib/security/write-guard'
 
 export const maxDuration = 45
@@ -26,7 +27,7 @@ export const POST = withWriteGuard(async request => {
 
   try {
     const records = await listStudyRecords(userId)
-    return reply({ proposal: await suggestStudyPlan(key, userId, instruction.trim(), date, plan, records) })
+    return reply({ proposal: await suggestStudyPlan(key, userId, instruction.trim(), date, plan, records, chinaDate()) })
   } catch (error) {
     if (error instanceof StudyAiError) return reply({ error: error.message }, error.status)
     logFailure('admin/study-plan/ai', error)

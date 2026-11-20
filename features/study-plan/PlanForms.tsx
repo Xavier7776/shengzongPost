@@ -21,7 +21,7 @@ export function DayEditor({ value, disabled, onSave, onCancel, onReset }: {
     }))
   }
 
-  return <form aria-label="调整当日计划" onSubmit={submit} method="post" className="border-b border-slate-200 px-4 py-5 sm:px-6">
+  return <form aria-label="调整当日计划" onSubmit={submit} method="post" className="px-4 py-5 sm:px-6">
     <fieldset disabled={disabled} className="min-w-0">
       <div className="grid gap-3 sm:grid-cols-3">
         <label className={label}>可用时间（分钟）<input name="minutes" type="number" min={0} max={1440} placeholder="使用日常预算" className={control} defaultValue={value.minutes ?? ''} /></label>
@@ -59,10 +59,10 @@ export function PlanSettings({ value, disabled, onSave }: {
     }))
   }
 
-  return <form aria-label="路线与时间设置" onSubmit={submit} method="post" className="mt-4">
+  return <form aria-label="路线与时间设置" onSubmit={submit} method="post" className="pb-4 pt-1">
     <fieldset disabled={disabled} className="min-w-0">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className={label}>路线开始日期<input name="startDate" type="date" required min="1900-01-01" max="2100-12-31" defaultValue={value.startDate} className={control} /></label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className={label + ' col-span-2'}>路线开始日期<input name="startDate" type="date" required min="1900-01-01" max="2100-12-31" defaultValue={value.startDate} className={control} /></label>
         <label className={label}>工作日（分钟）<input name="weekdayMinutes" type="number" required min={1} max={1440} defaultValue={value.weekdayMinutes} className={control} /></label>
         <label className={label}>周末（分钟）<input name="weekendMinutes" type="number" required min={1} max={1440} defaultValue={value.weekendMinutes} className={control} /></label>
       </div>

@@ -21,7 +21,7 @@ export default async function StudyPage() {
 
   const today = chinaDate()
   const history = records.status === 'fulfilled' ? records.value : undefined
-  const earliest = history?.filter(entry => entry.id.startsWith('android:') && entry.date <= today && isPlanDate(entry.date)).at(-1)?.date
+  const earliest = history?.filter(entry => entry.date <= today && isPlanDate(entry.date)).at(-1)?.date
   const fallback = { snapshot: defaultPlan(earliest ?? today), revision: 0 }
 
   return <div className="relative mx-auto min-h-dvh max-w-6xl px-5 pb-16 pt-24 text-[#252a34] sm:px-6 sm:pb-24 sm:pt-28">
