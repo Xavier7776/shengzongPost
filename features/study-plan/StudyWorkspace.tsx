@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowDown, ArrowUpRight, RefreshCw, Sparkles } from 'lucide-react'
 import StudyJournal from '@/features/study-records/StudyJournal'
 import RecordEditor, { button, control, primary } from '@/features/study-records/RecordEditor'
@@ -26,8 +26,9 @@ async function apiData(response: Response) {
   return data
 }
 
-export default function StudyWorkspace({ initialPlan, initialRecords, today: initialToday, loadFailed, aiAvailable }: {
+export default function StudyWorkspace({ initialPlan, initialRecords, today: initialToday, loadFailed, aiAvailable, nightlyReview }: {
   initialPlan: SavedPlan; initialRecords: SavedEntry[] | undefined; today: string; loadFailed: boolean; aiAvailable: boolean
+  nightlyReview: ReactNode
 }) {
   const [saved, setSaved] = useState(initialPlan)
   const [recordList, setRecordList] = useState<SavedEntry[] | null | undefined>(initialRecords)
@@ -243,6 +244,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+        <a href="#study-nightly" className={subtleAction}>晚间复盘</a>
         <a href="#study-records" className={subtleAction}>学习记录 <ArrowDown className="hidden size-4 sm:block" aria-hidden="true" /></a>
         <button type="button" className={button + ' !min-h-10 max-sm:gap-1 max-sm:px-2'} aria-expanded={aiOpen} aria-controls="study-assistant"
           disabled={disabled} onClick={() => {
@@ -389,6 +391,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
       </aside>
     </div>
 
+    {nightlyReview}
     <section id="study-records" aria-label="学习记录" className="mt-12 scroll-mt-24 sm:mt-16">
       <StudyJournal records={recordList} refresh={refreshRecords} today={today} />
     </section>

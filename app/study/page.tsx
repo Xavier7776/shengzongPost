@@ -3,10 +3,12 @@ import { redirect } from 'next/navigation'
 import { getAdminAccountId } from '@/lib/auth'
 import { listStudyRecords } from '@/lib/db/study-records'
 import { loadStudyPlan } from '@/lib/db/study-plans'
+import { listNightlyReviews } from '@/lib/db/study-nightly'
 import { chinaDate } from '@/lib/learn/document'
 import { logFailure } from '@/lib/security/log'
 import { defaultPlan, isPlanDate } from '@/features/study-plan/model'
 import StudyWorkspace from '@/features/study-plan/StudyWorkspace'
+import NightlyReviews from '@/features/study-plan/NightlyReviews'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: '学习 · MindStack', robots: { index: false, follow: false } }
@@ -15,9 +17,12 @@ export default async function StudyPage() {
   const userId = await getAdminAccountId()
   if (!userId) redirect('/admin/login')
 
-  const [plan, records] = await Promise.allSettled([loadStudyPlan(userId), listStudyRecords(userId)])
+  const [plan, records, reviews] = await Promise.allSettled([
+    loadStudyPlan(userId), listStudyRecords(userId), listNightlyReviews(userId),
+  ])
   if (plan.status === 'rejected') logFailure('study/plan', plan.reason)
   if (records.status === 'rejected') logFailure('study/records', records.reason)
+  if (reviews.status === 'rejected') logFailure('study/nightly-reviews', reviews.reason)
 
   const today = chinaDate()
   const history = records.status === 'fulfilled' ? records.value : undefined
@@ -26,6 +31,7 @@ export default async function StudyPage() {
 
   return <div className="relative mx-auto min-h-dvh max-w-6xl px-5 pb-16 pt-24 text-[#252a34] sm:px-6 sm:pb-24 sm:pt-28">
     <StudyWorkspace initialPlan={plan.status === 'fulfilled' ? plan.value ?? fallback : fallback} initialRecords={history}
-      loadFailed={plan.status === 'rejected'} today={today} aiAvailable={Boolean(process.env.OPENCODE_GO_API_KEY?.trim())} />
+      loadFailed={plan.status === 'rejected'} today={today} aiAvailable={Boolean(process.env.OPENCODE_GO_API_KEY?.trim())}
+      nightlyReview={<NightlyReviews reviews={reviews.status === 'fulfilled' ? reviews.value : null} />} />
   </div>
 }
