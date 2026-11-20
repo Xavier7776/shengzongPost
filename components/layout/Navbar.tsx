@@ -19,7 +19,6 @@ const NAV_ITEMS = [
   { label: '个人项目', href: '/work' },
   { label: '关于',     href: '/projects' },
 ]
-const ADMIN_NAV_ITEMS = [...NAV_ITEMS, { label: '学习记录', href: '/admin/study-records' }]
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -120,7 +119,6 @@ export default function Navbar() {
   const name    = session?.user?.name ?? ''
   const avatar  = session?.user?.image ?? null
   const role    = (session?.user as { role?: string })?.role ?? 'user'
-  const navItems = role === 'admin' ? ADMIN_NAV_ITEMS : NAV_ITEMS
   const userId  = (session?.user as { id?: string })?.id
   const initial = name.charAt(0).toUpperCase()
 
@@ -167,8 +165,8 @@ export default function Navbar() {
           </Link>
 
           {/* 桌面端导航 */}
-          <div className={`hidden items-center gap-x-4 md:flex lg:gap-x-7 xl:gap-x-10 ${isArticleReader ? 'reader-desktop-links' : ''} ${pathname === '/gallery' && role !== 'admin' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : ''}`}>
-            {navItems.map(({ label, href }) => {
+          <div className={`hidden items-center space-x-10 md:flex ${isArticleReader ? 'reader-desktop-links' : ''} ${pathname === '/gallery' ? 'md:absolute md:left-1/2 md:-translate-x-1/2' : ''}`}>
+            {NAV_ITEMS.map(({ label, href }) => {
               const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
               return (
                 <Link
@@ -176,7 +174,7 @@ export default function Navbar() {
                   href={href}
                   prefetch={false}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`whitespace-nowrap capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
+                  className={`capitalize text-xs font-black tracking-widest transition-all duration-300 relative py-2 ${
                     isGalleryHero
                       ? isActive ? 'text-white' : 'text-white/65 hover:text-white'
                       : isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
@@ -280,7 +278,7 @@ export default function Navbar() {
             {/* 导航 + 账号 */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 px-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-3 mb-2">导航</p>
-              {navItems.map(({ label, href }) => {
+              {NAV_ITEMS.map(({ label, href }) => {
                 const isActive = hydrated && (href === '/' ? pathname === '/' : pathname.startsWith(href))
                 return (
                   <Link

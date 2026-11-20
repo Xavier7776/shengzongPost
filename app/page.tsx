@@ -5,6 +5,7 @@ import Hero from '@/components/sections/Hero'
 import BlogCard from '@/components/sections/BlogCard'
 import SkillCard from '@/components/sections/SkillCard'
 import SectionHeading from '@/components/ui/SectionHeading'
+import HomeViews from '@/features/home/HomeViews'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { getAllPosts } from '@/lib/db'
 import { getSkills } from '@/lib/db-skills'
@@ -123,19 +124,21 @@ async function SkillsSection() {
 
 export default async function HomePage() {
   return (
-    <div>
-      {/* Hero 直接渲染，不进入 Suspense，保证首屏最快 paint */}
-      <Hero />
+    <HomeViews>
+      <div>
+        {/* Hero 直接渲染，不进入 Suspense，保证首屏最快 paint */}
+        <Hero />
 
-      {/* 博客区域流式渲染：数据就绪前先展示骨架屏 */}
-      <Suspense fallback={<BlogSkeleton />}>
-        <BlogSection />
-      </Suspense>
+        {/* 博客区域流式渲染：数据就绪前先展示骨架屏 */}
+        <Suspense fallback={<BlogSkeleton />}>
+          <BlogSection />
+        </Suspense>
 
-      {/* Skills 区域流式渲染：与博客区域互不阻塞 */}
-      <Suspense fallback={<SkillsSkeleton />}>
-        <SkillsSection />
-      </Suspense>
-    </div>
+        {/* Skills 区域流式渲染：与博客区域互不阻塞 */}
+        <Suspense fallback={<SkillsSkeleton />}>
+          <SkillsSection />
+        </Suspense>
+      </div>
+    </HomeViews>
   )
 }

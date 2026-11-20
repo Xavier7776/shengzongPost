@@ -90,7 +90,7 @@ export default async function AdminPage() {
             精读发布检查
           </Link>
           <Link
-            href="/admin/study-records"
+            href="/?view=study"
             prefetch={false}
             className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
           >
