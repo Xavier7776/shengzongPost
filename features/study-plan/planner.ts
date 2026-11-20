@@ -49,8 +49,7 @@ const catalog: Unit[] = [
   ...projects.flatMap((group, i) => group.map(number => lesson('project-' + number, 'project', i + 1, 45, false))),
   ...Array.from({ length: 24 }, (_, index) => {
     const number = index + 1
-    return lesson('hw-' + number, 'hardware', findPhase(number, [6, 9, 14, 17, 22, 24]), 60, false,
-      sourceLinks['hw-' + number] ?? (number <= 3 ? 'https://www.falstad.com/circuit/' : undefined))
+    return lesson('hw-' + number, 'hardware', findPhase(number, [6, 9, 14, 17, 22, 24]), 60, false)
   }),
 ]
 
