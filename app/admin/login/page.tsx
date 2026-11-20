@@ -23,7 +23,7 @@ export default function LoginPage() {
         </h1>
         <p className="text-gray-400 text-sm mb-10">使用 GitHub 账号登录</p>
         <button
-          onClick={() => signIn('github', { callbackUrl: '/admin' })}
+          onClick={() => signIn('github', { callbackUrl: '/' })}
           className="w-full flex items-center justify-center gap-3 bg-gray-900 hover:bg-blue-600 text-white font-bold py-3.5 rounded-2xl transition-all duration-300 active:scale-95"
         >
           <Github className="w-5 h-5" />

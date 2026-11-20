@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Download, LockKeyhole, NotebookPen, Plus, Search, Upload } from 'lucide-react'
 import { decodeBackup, encodeBackup } from './backup'
 import { importBatchSize, maxBackupBytes, outcomes, tracks, type Entry, type SavedEntry } from './model'
 import RecordEditor, { button, control, primary } from './RecordEditor'
 import StudySyncPanel from './StudySyncPanel'
+import { chinaDate } from '@/lib/learn/document'
 
 const endpoint = '/api/admin/study-records'
 const pageSize = 20
@@ -32,6 +33,11 @@ async function save(payload: object) {
   }))
 }
 
+async function fetchRecords(signal?: AbortSignal): Promise<SavedEntry[]> {
+  const { records } = await readResponse(await fetch(endpoint, { cache: 'no-store', signal }))
+  return records
+}
+
 function minutesLabel(minutes: number) {
   const hours = Math.floor(minutes / 60)
   const remainder = minutes % 60
@@ -49,20 +55,34 @@ function mondayOf(date: string) {
   return day.toISOString().slice(0, 10)
 }
 
-export default function StudyJournal({ initialRecords, today }: { initialRecords: SavedEntry[] | null; today: string }) {
+export default function StudyJournal() {
   const fileInput = useRef<HTMLInputElement>(null)
   const addButton = useRef<HTMLButtonElement>(null)
   const inFlight = useRef(false)
-  const [records, setRecords] = useState(initialRecords)
+  const [records, setRecords] = useState<SavedEntry[] | null | undefined>()
   const [editor, setEditor] = useState<{ entry: SavedEntry | null } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
-  const [error, setError] = useState(initialRecords ? '' : '暂时无法读取学习记录，请重试。')
+  const [error, setError] = useState('')
   const [track, setTrack] = useState('all')
   const [query, setQuery] = useState('')
   const [visible, setVisible] = useState(pageSize)
 
+  useEffect(() => {
+    const controller = new AbortController()
+    void fetchRecords(controller.signal).then(saved => {
+      if (!controller.signal.aborted) setRecords(saved)
+    }, () => {
+      if (!controller.signal.aborted) {
+        setRecords(null)
+        setError('暂时无法读取学习记录，请重试。')
+      }
+    })
+    return () => controller.abort()
+  }, [])
+
+  const today = chinaDate()
   const all = records ?? []
   const monday = mondayOf(today)
   const weekMinutes = all.reduce((total, record) => total + (record.date >= monday && record.date <= today ? record.minutes : 0), 0)
@@ -77,13 +97,12 @@ export default function StudyJournal({ initialRecords, today }: { initialRecords
   }
 
   const refresh = useCallback(async () => {
-    const { records: saved } = await readResponse(await fetch(endpoint, { cache: 'no-store' }))
-    setRecords(saved)
+    setRecords(await fetchRecords())
   }, [])
 
   const refreshFromSync = useCallback(async () => {
     if (inFlight.current) return
-    const { records: saved } = await readResponse(await fetch(endpoint, { cache: 'no-store' }))
+    const saved = await fetchRecords()
     if (!inFlight.current) setRecords(saved)
   }, [])
 
@@ -161,7 +180,7 @@ export default function StudyJournal({ initialRecords, today }: { initialRecords
 
   async function exportFile() {
     await run(async () => {
-      const { records: saved } = await readResponse(await fetch(endpoint, { cache: 'no-store' }))
+      const saved = await fetchRecords()
       const objectUrl = URL.createObjectURL(new Blob([encodeBackup(saved)], { type: 'application/json;charset=utf-8' }))
       const link = document.createElement('a')
       link.href = objectUrl
@@ -171,6 +190,8 @@ export default function StudyJournal({ initialRecords, today }: { initialRecords
       setStatus('已生成 ' + saved.length + ' 条学习记录的备份。')
     })
   }
+
+  if (records === undefined) return <p role="status" className="text-sm text-slate-600">正在读取学习记录…</p>
 
   return <>
     <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5 border-b border-[#e5e9f0] pb-6 sm:pb-8">
