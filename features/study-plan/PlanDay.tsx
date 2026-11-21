@@ -1,10 +1,11 @@
-import { ArrowUpRight, Check, PencilLine } from 'lucide-react'
+import { ArrowDown, ArrowUpRight, Check, PencilLine } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { button, primary } from '@/features/study-records/RecordEditor'
 import { outcomes } from '@/features/study-records/model'
 import { focusLabels, type DayOverride } from './model'
 import { plannedMinutes, shortDate, weekdayLabel } from './PlanCalendar'
 import type { PlannedDay, PlannedTask } from './planner'
+import { embeddedGuideHref, embeddedGuideHrefForTitle } from './embedded-guide'
 
 export function taskLabel(task: PlannedTask) {
   if (task.id === 'custom') return '自定义任务'
@@ -12,6 +13,7 @@ export function taskLabel(task: PlannedTask) {
 }
 
 const rowAction = 'inline-flex min-h-10 items-center justify-center gap-1 rounded-md px-2 text-sm font-semibold text-blue-700 enabled:hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-50'
+const taskLink = 'inline-block rounded py-1 text-[15px] font-semibold leading-6 text-slate-900 underline-offset-4 [overflow-wrap:anywhere] hover:text-blue-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600'
 
 export default function PlanDay({ date, today, day, options, busy, canRecord, editing, activeTaskId, onEdit, onRecord, editor }: {
   date: string
@@ -48,21 +50,33 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
     </header>
     {editing && <div className="border-t border-slate-200">{editor}</div>}
     {tasks.length > 0 && <ol className="divide-y divide-slate-200 border-t border-slate-200 px-4 sm:px-6">
-      {tasks.map((task, index) => <li key={task.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3.5 sm:gap-4 sm:py-4">
-        <div className="min-w-0">
-          <p className={`text-xs font-medium leading-5 ${task.review ? 'text-blue-800' : 'text-slate-600'}`}>{taskLabel(task)}</p>
-          {task.url ? <a href={task.url} target="_blank" rel="noreferrer"
-            className="inline-block rounded py-1 text-[15px] font-semibold leading-6 text-slate-900 underline-offset-4 [overflow-wrap:anywhere] hover:text-blue-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
-            {task.title} <ArrowUpRight className="inline size-3.5 align-[-0.125em] text-slate-500" aria-hidden="true" />
-          </a> : <p className="py-1 text-[15px] font-semibold leading-6 text-slate-900 [overflow-wrap:anywhere]">{task.title}</p>}
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-4">
-          <span className="whitespace-nowrap text-xs font-medium tabular-nums text-slate-600 sm:text-sm">{task.minutes} 分钟</span>
-          {!future && <button type="button" aria-label={`记录 ${task.title}`} aria-expanded={activeTaskId === task.id}
-            className={index === 0 ? primary + ' !min-h-10 px-2.5' : rowAction} disabled={busy || !canRecord} onClick={() => onRecord(task)}>记录</button>}
-        </div>
-        {activeTaskId === task.id && <div className="col-span-full [&>form]:mt-1">{editor}</div>}
-      </li>)}
+      {tasks.map((task, index) => {
+        const guideHref = embeddedGuideHref(task.id)
+        const titleHref = guideHref ?? task.url
+        return <li key={task.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3.5 sm:gap-4 sm:py-4">
+          <div className="min-w-0">
+            <p className={`text-xs font-medium leading-5 ${task.review ? 'text-blue-800' : 'text-slate-600'}`}>{taskLabel(task)}</p>
+            {titleHref ? <a href={titleHref} target={guideHref ? undefined : '_blank'} rel={guideHref ? undefined : 'noreferrer'}
+              className={taskLink}>
+              {task.title} {guideHref
+                ? <ArrowDown className="inline size-3.5 align-[-0.125em] text-slate-500" aria-hidden="true" />
+                : <ArrowUpRight className="inline size-3.5 align-[-0.125em] text-slate-500" aria-hidden="true" />}
+            </a> : <p className="py-1 text-[15px] font-semibold leading-6 text-slate-900 [overflow-wrap:anywhere]">{task.title}</p>}
+            {guideHref && task.url && <div>
+              <a href={task.url} target="_blank" rel="noreferrer" aria-label={`${task.title}的本节教程`}
+                className="inline-flex min-h-8 items-center gap-1 rounded text-xs font-semibold text-blue-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+                本节教程 <ArrowUpRight className="size-3 shrink-0" aria-hidden="true" />
+              </a>
+            </div>}
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-4">
+            <span className="whitespace-nowrap text-xs font-medium tabular-nums text-slate-600 sm:text-sm">{task.minutes} 分钟</span>
+            {!future && <button type="button" aria-label={`记录 ${task.title}`} aria-expanded={activeTaskId === task.id}
+              className={index === 0 ? primary + ' !min-h-10 px-2.5' : rowAction} disabled={busy || !canRecord} onClick={() => onRecord(task)}>记录</button>}
+          </div>
+          {activeTaskId === task.id && <div className="col-span-full [&>form]:mt-1">{editor}</div>}
+        </li>
+      })}
     </ol>}
     {tasks.length === 0 && (!past || !day.completed.length) && <p className="border-t border-slate-200 px-4 py-5 text-sm leading-6 text-slate-600 sm:px-6">
       {past ? '这一天没有学习记录。' : !day.stage ? '开始日期可以在「路线与时间设置」中调整。' : !day.budget ? '未完成的复习会留到下一个学习日。'
@@ -76,11 +90,16 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
     {day.completed.length > 0 && <div className="border-t border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
       <h3 className="text-xs font-semibold text-slate-700">已记录 {day.completed.length} 项</h3>
       <ul className="mt-2 space-y-2">
-        {[...day.completed].reverse().map(record => <li key={record.id} className="flex items-start gap-2 text-sm leading-5 text-slate-700">
-          <Check className="mt-0.5 size-4 shrink-0 text-blue-700" aria-hidden="true" />
-          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{record.title}</span>
-          <span className="shrink-0 text-xs text-slate-600">{outcomes[record.outcome]}</span>
-        </li>)}
+        {[...day.completed].reverse().map(record => {
+          const guideHref = record.track === 'hardware' ? embeddedGuideHrefForTitle(record.title) : undefined
+          return <li key={record.id} className="flex items-start gap-2 text-sm leading-5 text-slate-700">
+            <Check className="mt-0.5 size-4 shrink-0 text-blue-700" aria-hidden="true" />
+            {guideHref ? <a href={guideHref} className="min-w-0 flex-1 rounded text-blue-700 underline-offset-4 [overflow-wrap:anywhere] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+              {record.title} <ArrowDown className="inline size-3.5 align-[-0.125em]" aria-hidden="true" />
+            </a> : <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{record.title}</span>}
+            <span className="shrink-0 text-xs text-slate-600">{outcomes[record.outcome]}</span>
+          </li>
+        })}
       </ul>
     </div>}
   </section>

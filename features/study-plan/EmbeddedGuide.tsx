@@ -1,7 +1,9 @@
 import { ArrowUpRight } from 'lucide-react'
+import { embeddedGuideSections } from './embedded-guide'
 
 const stages = [
   {
+    id: embeddedGuideSections.basics,
     title: '电路与嵌入式 C',
     learn: '先看电压、电流、共地、电阻和电容。C 语言重点复习指针、结构体、位运算和寄存器掩码。',
     practice: '画一个电阻分压电路，算出输出电压。再用仿真或面包板验证，练习给 LED 选限流电阻。',
@@ -10,6 +12,7 @@ const stages = [
     url: 'https://openkits-wiki.easyeda.com/zh-hans/fdb/basic/review.html',
   },
   {
+    id: embeddedGuideSections.stm32,
     title: 'STM32 裸机与常用外设',
     learn: '跟野火的 HAL 教程建工程。按点灯、按键、串口、中断和定时器的顺序练习。接下来学 ADC，再选 I²C 或 SPI 接一个外设。',
     practice: '让开发板回显电脑发送的字符，然后用定时器控制闪灯，检查等待串口数据时闪灯是否仍在继续。',
@@ -18,6 +21,7 @@ const stages = [
     url: 'https://doc.embedfire.com/mcu/stm32/f103/hal_generalzh/latest/index.html',
   },
   {
+    id: embeddedGuideSections.project,
     title: '做出第一个采集项目',
     learn: '把 ADC、定时器和串口接到同一个工程里。ADC 负责读电压，定时器决定采样间隔，串口把结果发给电脑。',
     practice: '用电位器做输入，每隔固定时间采样一次，让电脑每行收到样本序号、原始读数和换算电压。',
@@ -26,6 +30,7 @@ const stages = [
     url: 'https://doc.embedfire.com/mcu/stm32/f103/hal_generalzh/latest/doc/chapter29/chapter29.html#id26',
   },
   {
+    id: embeddedGuideSections.rtos,
     title: '用 FreeRTOS 改造采集项目',
     learn: '从野火教程的「应用开发」部分开始，按任务创建、任务延时、消息队列、互斥量的顺序学。',
     practice: '将采样和串口输出拆成两个任务，用队列传递采样值。人为放慢串口输出，观察队列满时程序怎样处理。',
@@ -50,7 +55,7 @@ export default function EmbeddedGuide() {
         <p className="max-w-[72ch] text-sm leading-6 text-slate-600">野火 HAL 示例使用 STM32F103。跟书做实验时，按手头开发板的型号和原理图核对引脚。</p>
         <ol className="mt-3 divide-y divide-slate-200">
           {stages.map((stage, index) => <li key={stage.title} className="py-4 sm:py-5">
-            <h3 className="text-base font-semibold tracking-tight text-slate-900">{index + 1}. {stage.title}</h3>
+            <h3 id={stage.id} tabIndex={-1} className="scroll-mt-28 text-base font-semibold tracking-tight text-slate-900">{index + 1}. {stage.title}</h3>
             <p className="mt-1.5 max-w-[72ch] text-sm leading-6 text-slate-700">{stage.learn}</p>
             <dl className="mt-3 grid gap-x-8 gap-y-2 text-sm leading-6 sm:grid-cols-2">
               <div><dt className="font-semibold text-slate-900">动手练</dt><dd className="text-slate-700">{stage.practice}</dd></div>
@@ -65,7 +70,7 @@ export default function EmbeddedGuide() {
           <h3 className="text-base font-semibold text-slate-900">做完采集项目后可以选一个方向</h3>
           <div className="mt-2 grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <div>
-              <h4 className="font-semibold">想自己画板</h4>
+              <h4 id={embeddedGuideSections.pcb} tabIndex={-1} className="scroll-mt-28 font-semibold">想自己画板</h4>
               <p className="text-slate-700">从简单 LED 电路开始，练习原理图、封装、布线和设计规则检查。</p>
               <a href="https://wiki.lceda.cn/zh-hans/contest/e-contests/resource/" className={link} target="_blank" rel="noreferrer">嘉立创 EDA 自学资料 <ArrowUpRight className="size-3.5 shrink-0" aria-hidden="true" /></a>
             </div>
