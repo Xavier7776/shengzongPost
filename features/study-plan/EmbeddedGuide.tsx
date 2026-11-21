@@ -1,18 +1,20 @@
 import { ArrowUpRight } from 'lucide-react'
 import { studyPilotTitles } from '@/features/study-records/study-pilot-titles'
 import { sourceLinks } from './curriculum'
-import { embeddedGuideSections, embeddedHalCourse, embeddedIntroVideos, embeddedLessonId, type EmbeddedIntroId } from './embedded-guide'
+import { embeddedDividerLab, embeddedGuideSections, embeddedHalCourse, embeddedIntroVideos, embeddedLessonId, type EmbeddedIntroId } from './embedded-guide'
 
-const dcLab = 'https://phet.colorado.edu/zh_CN/simulations/circuit-construction-kit-dc-virtual-lab'
+type LessonResource = { name: string; url: string }
+
 const beginnerLessons = {
   'hw-1': {
-    learn: '第一次接触电路，先认清电压、电流和电阻。接着看串联短片，知道两个电阻首尾相接就是串联。看过基础概念的可以直接做实验。',
+    learn: '先花 10–15 分钟做一次分压。串联电阻流过同样的电流，每个电阻两端的电压用 U = I × R 算。',
     practice: '在 PhET 放一个电池和两个电阻，点元件把数值改为 6 V、10 Ω、10 Ω。用导线从电池正极依次接两个电阻，再接回负极。把负极当作 0 V，电压表黑笔接负极，红笔接两个电阻的交点。',
     check: '交点应读到约 3 V。把靠近负极的电阻换成 20 Ω，先算，再测，读数应接近 4 V。也可以用纸写下 6 × 20 ÷ (10 + 20) 来对照。',
-    resources: [
+    resources: [embeddedDividerLab],
+    review: [
+      embeddedIntroVideos['hw-1'],
       { name: '物理余老师 · 串联电路（7 分钟）', url: 'https://www.bilibili.com/video/BV1Kx4y1s7S5/' },
-      { name: '物理余老师 · 欧姆定律虚拟实验（19 分钟，可选）', url: 'https://www.bilibili.com/video/BV1FXpoe5EHZ/' },
-      { name: '打开 PhET 中文直流仿真', url: dcLab },
+      { name: '物理余老师 · 欧姆定律虚拟实验（19 分钟）', url: 'https://www.bilibili.com/video/BV1FXpoe5EHZ/' },
     ],
   },
   'hw-2': {
@@ -66,7 +68,7 @@ const beginnerLessons = {
     check: '连续短按 10 次，每按一次只翻转一次。长按也只触发一次。',
     resources: [{ name: '野火 · GPIO 输入与按键检测图文', url: sourceLinks['hw-8']! }],
   },
-} satisfies Record<EmbeddedIntroId, { learn: string; practice: string; check: string; resources: { name: string; url: string }[] }>
+} satisfies Record<EmbeddedIntroId, { learn: string; practice: string; check: string; resources: LessonResource[]; review?: LessonResource[] }>
 
 const circuitLessons: EmbeddedIntroId[] = ['hw-1', 'hw-2', 'hw-3', 'hw-4', 'hw-5']
 const stm32Lessons: EmbeddedIntroId[] = ['hw-6', 'hw-7', 'hw-8']
@@ -75,7 +77,7 @@ const stages = [
   {
     id: embeddedGuideSections.basics,
     title: '电路与嵌入式 C',
-    learn: '第一节用浏览器做电路实验，只需要准备电脑。后两节认识 LED 和电容，然后用小程序复习 C。',
+    learn: '先用分压实验找回电路手感，再认识 LED 和电容，最后用小程序复习 C。',
     lessons: circuitLessons,
     name: '立创 · 嵌入式基础知识速查',
     url: 'https://openkits-wiki.easyeda.com/zh-hans/fdb/basic/review.html',
@@ -110,26 +112,34 @@ const stages = [
 
 const link = 'inline-flex min-h-9 items-center gap-1.5 rounded text-sm font-semibold text-blue-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600'
 
+function LessonLinks({ resources }: { resources: LessonResource[] }) {
+  return <ul className="mb-2 mt-1 flex flex-wrap gap-x-4">
+    {resources.map(resource => <li key={resource.url}>
+      <a href={resource.url} target="_blank" rel="noreferrer" className={link}>
+        {resource.name} <ArrowUpRight className="size-3.5 shrink-0" aria-hidden="true" />
+      </a>
+    </li>)}
+  </ul>
+}
+
 function BeginnerLesson({ taskId }: { taskId: EmbeddedIntroId }) {
   const lesson = beginnerLessons[taskId]
-  const video = embeddedIntroVideos[taskId]
+  const resources = 'review' in lesson ? lesson.resources : [embeddedIntroVideos[taskId], ...lesson.resources]
 
   return <li className="py-4">
     <h4 id={embeddedLessonId(taskId)} tabIndex={-1} className="scroll-mt-28 text-base font-semibold text-slate-900">
       {studyPilotTitles[taskId]}
     </h4>
     <p className="mt-1.5 max-w-[72ch] text-sm leading-6 text-slate-700">{lesson.learn}</p>
-    <ul className="mb-2 mt-1 flex flex-wrap gap-x-4">
-      {[video, ...lesson.resources].map(resource => <li key={resource.url}>
-        <a href={resource.url} target="_blank" rel="noreferrer" className={link}>
-          {resource.name} <ArrowUpRight className="size-3.5 shrink-0" aria-hidden="true" />
-        </a>
-      </li>)}
-    </ul>
+    <LessonLinks resources={resources} />
     <dl className="max-w-[72ch] space-y-1 text-sm leading-6 text-slate-700">
       <div><dt className="inline font-semibold text-slate-900">动手练</dt><dd className="ml-2 inline">{lesson.practice}</dd></div>
       <div><dt className="inline font-semibold text-slate-900">做到这一步</dt><dd className="ml-2 inline">{lesson.check}</dd></div>
     </dl>
+    {'review' in lesson && <details className="mt-2">
+      <summary className="w-fit cursor-pointer rounded py-2 text-sm font-semibold text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">按需回看基础视频</summary>
+      <LessonLinks resources={lesson.review} />
+    </details>}
   </li>
 }
 
@@ -138,10 +148,10 @@ export default function EmbeddedGuide() {
     className="mt-9 scroll-mt-24 rounded-xl border border-slate-200 bg-white sm:mt-10">
     <header className="px-4 py-4 sm:px-6 sm:py-5">
       <h2 id="embedded-heading" className="text-xl font-bold tracking-tight">嵌入式学习指南</h2>
-      <p className="mt-1.5 text-sm leading-6 text-slate-600">电路零基础从分压仿真开始，再用 STM32 点亮第一颗灯。</p>
+      <p className="mt-1.5 text-sm leading-6 text-slate-600">先用分压仿真复习电路，再用 STM32 点亮第一颗灯。</p>
     </header>
     <details className="border-t border-slate-200">
-      <summary className="cursor-pointer rounded-b-xl px-4 py-3.5 text-sm font-semibold text-blue-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:px-6">零基础步骤、中文视频和图文</summary>
+      <summary className="cursor-pointer rounded-b-xl px-4 py-3.5 text-sm font-semibold text-blue-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:px-6">学习步骤、中文视频和图文</summary>
       <div className="px-4 pb-5 sm:px-6">
         <ol className="divide-y divide-slate-200">
           {stages.map((stage, index) => <li key={stage.title} className="py-4 sm:py-5">
