@@ -9,6 +9,10 @@ export const embeddedGuideSections = {
 } as const
 
 export const embeddedHalCourse = 'https://www.bilibili.com/video/BV1Ey4y1w7wN/'
+export const embeddedDividerLab = {
+  name: '打开 PhET 分压仿真',
+  url: 'https://phet.colorado.edu/zh_CN/simulations/circuit-construction-kit-dc-virtual-lab',
+} as const
 
 export const embeddedIntroVideos = {
   'hw-1': { name: '大墨老师 · 电流、电压与电阻（15 分钟）', url: 'https://www.bilibili.com/video/BV1vR4y177NZ/' },
@@ -27,8 +31,9 @@ function isEmbeddedIntro(taskId: string): taskId is EmbeddedIntroId {
   return Object.hasOwn(embeddedIntroVideos, taskId)
 }
 
-export function embeddedIntroVideo(taskId: string) {
-  return isEmbeddedIntro(taskId) ? embeddedIntroVideos[taskId] : undefined
+export function embeddedIntroResource(taskId: string) {
+  if (taskId === 'hw-1') return { url: embeddedDividerLab.url, label: '分压仿真' }
+  return isEmbeddedIntro(taskId) ? { url: embeddedIntroVideos[taskId].url, label: '入门视频' } : undefined
 }
 
 export function embeddedLessonId(taskId: EmbeddedIntroId) {

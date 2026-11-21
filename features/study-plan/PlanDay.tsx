@@ -5,7 +5,7 @@ import { outcomes } from '@/features/study-records/model'
 import { focusLabels, type DayOverride } from './model'
 import { plannedMinutes, shortDate, weekdayLabel } from './PlanCalendar'
 import type { PlannedDay, PlannedTask } from './planner'
-import { embeddedGuideHref, embeddedGuideHrefForTitle, embeddedIntroVideo } from './embedded-guide'
+import { embeddedGuideHref, embeddedGuideHrefForTitle, embeddedIntroResource } from './embedded-guide'
 
 export function taskLabel(task: PlannedTask) {
   if (task.id === 'custom') return '自定义任务'
@@ -53,9 +53,9 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
       {tasks.map((task, index) => {
         const guideHref = embeddedGuideHref(task.id)
         const titleHref = guideHref ?? task.url
-        const video = embeddedIntroVideo(task.id)
-        const resourceUrl = video?.url ?? (guideHref ? task.url : undefined)
-        const resourceLabel = video ? '入门视频' : '本节教程'
+        const resource = embeddedIntroResource(task.id)
+        const resourceUrl = resource?.url ?? (guideHref ? task.url : undefined)
+        const resourceLabel = resource?.label ?? '本节教程'
         return <li key={task.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3.5 sm:gap-4 sm:py-4">
           <div className="min-w-0">
             <p className={`text-xs font-medium leading-5 ${task.review ? 'text-blue-800' : 'text-slate-600'}`}>{taskLabel(task)}</p>
