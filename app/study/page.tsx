@@ -9,6 +9,7 @@ import { logFailure } from '@/lib/security/log'
 import { defaultPlan, isPlanDate } from '@/features/study-plan/model'
 import StudyWorkspace from '@/features/study-plan/StudyWorkspace'
 import NightlyReviews from '@/features/study-plan/NightlyReviews'
+import EmbeddedGuide from '@/features/study-plan/EmbeddedGuide'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: '学习 · MindStack', robots: { index: false, follow: false } }
@@ -32,6 +33,7 @@ export default async function StudyPage() {
   return <div className="relative mx-auto min-h-dvh max-w-6xl px-5 pb-16 pt-24 text-[#252a34] sm:px-6 sm:pb-24 sm:pt-28">
     <StudyWorkspace initialPlan={plan.status === 'fulfilled' ? plan.value ?? fallback : fallback} initialRecords={history}
       loadFailed={plan.status === 'rejected'} today={today} aiAvailable={Boolean(process.env.OPENCODE_GO_API_KEY?.trim())}
+      embeddedGuide={<EmbeddedGuide />}
       nightlyReview={<NightlyReviews reviews={reviews.status === 'fulfilled' ? reviews.value : null} />} />
   </div>
 }

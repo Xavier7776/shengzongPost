@@ -26,8 +26,9 @@ async function apiData(response: Response) {
   return data
 }
 
-export default function StudyWorkspace({ initialPlan, initialRecords, today: initialToday, loadFailed, aiAvailable, nightlyReview }: {
+export default function StudyWorkspace({ initialPlan, initialRecords, today: initialToday, loadFailed, aiAvailable, embeddedGuide, nightlyReview }: {
   initialPlan: SavedPlan; initialRecords: SavedEntry[] | undefined; today: string; loadFailed: boolean; aiAvailable: boolean
+  embeddedGuide: ReactNode
   nightlyReview: ReactNode
 }) {
   const [saved, setSaved] = useState(initialPlan)
@@ -369,6 +370,9 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
         </section>}
 
         <div className="mt-4">
+          <a href="#study-embedded" className={detailsStyle + ' flex items-center justify-between gap-2 rounded py-3.5 text-sm font-semibold hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600'}>
+            嵌入式学习指南 <ArrowDown className="size-4 shrink-0" aria-hidden="true" />
+          </a>
           <details className={detailsStyle}>
             <summary className={summaryStyle}>路线与时间设置</summary>
             <PlanSettings value={snapshot} disabled={disabled} key={saved.revision} onSave={(next, imported) => {
@@ -395,6 +399,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
       </aside>
     </div>
 
+    {embeddedGuide}
     {nightlyReview}
     <section id="study-records" aria-label="学习记录" className="mt-12 scroll-mt-24 sm:mt-16">
       <StudyJournal records={recordList} refresh={refreshRecords} today={today} />
