@@ -17,8 +17,10 @@ export async function suggestStudyPlan(key: string, userId: number, instruction:
     return {
       date: day, weekday: new Date(day + 'T00:00:00Z').getUTCDay(), preferences: snapshot.days[day] ?? defaultDay,
       stage: current.stage?.title ?? null, minutes: current.budget, spent: current.spent, dueReviews: current.dueCount,
+      timeLeftBeforeTasks: Math.max(0, current.budget - current.spent),
+      completedJavaMinutes: current.completed.filter(entry => entry.track === 'backend').reduce((total, entry) => total + entry.minutes, 0),
       tasks: current.tasks.slice(0, 8).map(task => ({
-        title: task.title, minutes: task.minutes, kind: task.review ? 'review' : task.practice ? 'practice' : 'new',
+        title: task.title, track: task.track, minutes: task.minutes, kind: task.review ? 'review' : task.practice ? 'practice' : 'new',
       })),
     }
   })
@@ -33,11 +35,14 @@ export async function suggestStudyPlan(key: string, userId: number, instruction:
       model, stream: false, temperature: 0.2, max_tokens: 2300,
       messages: [
         { role: 'system', content: [
-          '你是 StudyPilot 学习计划助手。你只能提出日期偏好修改，排课和到期复习由系统计算。',
+          '你是 StudyPilot 学习计划助手。你可以解释现有安排，或按用户明确要求提出日期偏好修改。排课和到期复习由系统计算。',
           '理解用户的中文要求。只更改用户请求涉及的日期，沿用未提及的字段。优先保留到期复习。今天和明天以 today 为参照；当天、这天和所选日指 selectedDate；周日是 weekday 0，周六是 weekday 6。',
           '只输出 JSON，没有 Markdown。结构是 {"explanation":"简短说明","changes":[{"date":"YYYY-MM-DD","day":{"minutes":null,"mode":"normal","focus":"balanced","extra":null}}]}。',
+          '只问原因、规则或任务时必须返回 changes:[]。优先回答用户问的日期和方向，通常用两三句。若该方向实际有任务，给出名称和分钟数。只有用户要求看一周才逐日列举，不推测以往的计划。track=backend 表示 Java 后端（含八股）。',
+          '调整预览的 explanation 不超过 400 字，排课说明不超过 1200 字。',
+          '规则：已记录时间从预算中扣除。到期复习优先，再安排自定义任务和明确指定的优先方向。标准周末尽量凑足 30 分钟 Java（含已记录或已安排的 Java），余额至少 10 分钟时可安排短练习，然后安排硬件、算法和项目。休息日不排任务。',
           'minutes 为 null（使用当天默认预算）或 0 到 1440 的整数，mode 为 normal、busy（最多30分钟）或 rest。focus 为 balanced、algorithm、backend、ai、hardware 或 project。',
-          '只有用户要求添加自定义任务时才设置 extra {"title":"任务名","minutes":20}，否则保留现值。每次返回 1 至 7 个有改动的日期，只能选输入 schedule 里的日期。',
+          '只有用户要求添加自定义任务时才设置 extra {"title":"任务名","minutes":20}，否则保留现值。明确要求调整时返回 1 至 7 个有改动的日期，只能选输入 schedule 里的日期。',
           '例如“今天只学 45 分钟”使用 minutes=45 和 mode=normal；“休息一天”使用 mode=rest；“周末优先 STM32”使用 focus=hardware。',
           '不要索取凭据、直接承诺改动已生效或指定外部操作。',
         ].join('\n') },
@@ -46,14 +51,14 @@ export async function suggestStudyPlan(key: string, userId: number, instruction:
     }),
   })
   if (response.status === 429) throw new StudyAiError('OpenCode Go 暂时达到用量限制。可以稍后重试或手动调整。', 429)
-  if (!response.ok) throw new StudyAiError('OpenCode Go 暂时无法生成建议。', 502)
+  if (!response.ok) throw new StudyAiError('OpenCode Go 暂时无法回复。', 502)
   const data = await response.json()
   const result = data.choices?.[0]?.message?.content
-  if (typeof result !== 'string') throw new StudyAiError('没有收到可用的调整建议。', 502)
+  if (typeof result !== 'string') throw new StudyAiError('没有收到可用的回复。', 502)
   const clean = result.trim().replace(/^```(?:json)?\s*|\s*```$/gi, '')
   let parsed: unknown
-  try { parsed = JSON.parse(clean) } catch { throw new StudyAiError('AI 返回的建议无法读取，请换个说法再试。', 502) }
+  try { parsed = JSON.parse(clean) } catch { throw new StudyAiError('AI 返回的回复无法读取，请重试。', 502) }
   const proposal = parseProposal(parsed, date)
-  if (!proposal) throw new StudyAiError('AI 的建议超出了可调整范围，请缩小到接下来一周。', 502)
+  if (!proposal) throw new StudyAiError('AI 返回的回复格式有误，请重试。调整请求可指定未来一周的日期。', 502)
   return proposal
 }

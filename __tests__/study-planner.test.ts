@@ -9,10 +9,40 @@ describe('StudyPilot web plan', () => {
     id: 'android:fixture', title: '1. 两数之和', track: 'algorithm', date: '2026-11-19', minutes: 30,
     outcome: 'independent', recordedAt: 1795080000000, revision: 1, note: '不发送给 AI 的私人笔记', review: false,
   }
-  it('uses the original weekday and weekend curriculum', () => {
+  it('includes a Java block on weekdays and standard weekends', () => {
     const plan = defaultPlan(day)
     expect(planDay(plan, day, []).tasks.map(x => x.id)).toEqual(['lc-1', 'java-1-read', 'lc-206'])
-    expect(planDay(plan, '2026-11-21', []).tasks.map(x => x.id)).toEqual(['hw-1', 'project-1', 'lc-1'])
+    expect(planDay(plan, '2026-11-21', []).tasks.map(x => [x.id, x.minutes]))
+      .toEqual([['java-1-read', 30], ['hw-1', 60], ['lc-1', 30], ['project-1', 30]])
+  })
+  it('reserves Java when 80 of 150 weekend minutes have already been recorded', () => {
+    const saturday = '2026-11-21'
+    const plan = defaultPlan(day)
+    const records: SavedEntry[] = [
+      { ...prior, id: 'web:pair', date: saturday, minutes: 20 },
+      { ...prior, id: 'web:list', title: '206. 反转链表', date: saturday, minutes: 20, outcome: 'hinted' },
+      { ...prior, id: 'web:window', title: '3. 无重复字符的最长子串', date: saturday, minutes: 20 },
+      { ...prior, id: 'web:project', title: '请求入口与依赖', track: 'project', date: saturday, minutes: 20 },
+    ]
+    const remaining = planDay(plan, saturday, [prior, ...records])
+    expect(remaining.spent).toBe(80)
+    expect(remaining.tasks.map(task => [task.id, task.minutes])).toEqual([['java-1-read', 30], ['hw-1', 40]])
+    const afterJava = planDay(plan, saturday, [...records, {
+      ...prior, id: 'web:java', date: saturday, minutes: 30, track: 'backend', title: remaining.tasks[0].title,
+    }])
+    expect(afterJava.tasks.every(task => task.track !== 'backend')).toBe(true)
+  })
+  it('protects due reviews and explicit weekend priorities within a tight budget', () => {
+    const saturday = '2026-11-21'
+    const plan = defaultPlan(day)
+    plan.days[saturday] = { ...defaultDay, minutes: 25 }
+    const tasks = planDay(plan, saturday, [prior]).tasks
+    expect(tasks.map(task => [task.id, task.minutes])).toEqual([['lc-1', 15], ['java-1-read', 10]])
+    plan.days[saturday] = { ...defaultDay, minutes: 70, focus: 'hardware' }
+    expect(planDay(plan, saturday, []).tasks.map(task => [task.id, task.minutes]))
+      .toEqual([['hw-1', 60], ['java-1-read', 10]])
+    plan.days[saturday] = { ...defaultDay, mode: 'rest' }
+    expect(planDay(plan, saturday, [prior]).tasks).toEqual([])
   })
   it('allocates time to overdue reviews first and subtracts completed minutes', () => {
     const plan = defaultPlan('2026-11-19')
@@ -31,7 +61,7 @@ describe('StudyPilot web plan', () => {
     const schedule = planSchedule(plan, day, '2026-11-29', day, [])
     const todayIds = schedule.get(day)!.tasks.map(task => task.id)
     const tomorrowIds = schedule.get('2026-11-21')!.tasks.map(task => task.id)
-    expect(tomorrowIds).toEqual(['hw-1', 'project-1', 'lc-3'])
+    expect(tomorrowIds).toEqual(['java-1-lab', 'hw-1', 'lc-3', 'project-1'])
     expect(tomorrowIds.some(id => todayIds.includes(id))).toBe(false)
     const nextWeek = planSchedule(plan, '2026-11-23', '2026-11-29', day, [])
     expect(nextWeek.get('2026-11-23')!.tasks).toEqual(schedule.get('2026-11-23')!.tasks)
@@ -67,6 +97,9 @@ describe('StudyPilot web plan', () => {
   it('bounds AI changes to the selected week and accepts portable plan settings', () => {
     const result = { explanation: '调整时长', changes: [{ date: day, day: { ...defaultDay, minutes: 45 } }] }
     expect(parseProposal(result, day)).toEqual(result)
+    const explanation = { explanation: '周末还有 70 分钟，可先学 Java。'.repeat(25), changes: [] }
+    expect(parseProposal(explanation, day)).toEqual(explanation)
+    expect(parseProposal({ ...result, explanation: explanation.explanation }, day)).toBeNull()
     expect(parseProposal({ ...result, changes: [{ date: '2026-11-28', day: defaultDay }] }, day)).toBeNull()
     expect(parseProposal({ ...result, changes: [{ date: day, day: { ...defaultDay, minutes: -1 } }] }, day)).toBeNull()
     expect(importMobilePlan(JSON.stringify({
