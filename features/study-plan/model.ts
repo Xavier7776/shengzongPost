@@ -91,7 +91,7 @@ export function addMonths(value: string, months: number) {
 
 export function parseProposal(value: unknown, date: string): Proposal | null {
   if (!isObject(value) || !Array.isArray(value.changes) || value.changes.length > 7) return null
-  const explanation = textValue(value.explanation, 400)
+  const explanation = textValue(value.explanation, value.changes.length ? 400 : 1200)
   if (!explanation) return null
   const latest = addDays(date, 7)
   const seen = new Set<string>()

@@ -97,8 +97,9 @@ describe('StudyPilot web plan', () => {
   it('bounds AI changes to the selected week and accepts portable plan settings', () => {
     const result = { explanation: '调整时长', changes: [{ date: day, day: { ...defaultDay, minutes: 45 } }] }
     expect(parseProposal(result, day)).toEqual(result)
-    expect(parseProposal({ explanation: '周末还有 70 分钟，可先学 Java。', changes: [] }, day))
-      .toEqual({ explanation: '周末还有 70 分钟，可先学 Java。', changes: [] })
+    const explanation = { explanation: '周末还有 70 分钟，可先学 Java。'.repeat(25), changes: [] }
+    expect(parseProposal(explanation, day)).toEqual(explanation)
+    expect(parseProposal({ ...result, explanation: explanation.explanation }, day)).toBeNull()
     expect(parseProposal({ ...result, changes: [{ date: '2026-11-28', day: defaultDay }] }, day)).toBeNull()
     expect(parseProposal({ ...result, changes: [{ date: day, day: { ...defaultDay, minutes: -1 } }] }, day)).toBeNull()
     expect(importMobilePlan(JSON.stringify({
