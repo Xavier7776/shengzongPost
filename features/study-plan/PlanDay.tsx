@@ -5,7 +5,7 @@ import { outcomes } from '@/features/study-records/model'
 import { focusLabels, type DayOverride } from './model'
 import { plannedMinutes, shortDate, weekdayLabel } from './PlanCalendar'
 import type { PlannedDay, PlannedTask } from './planner'
-import { embeddedGuideHref, embeddedGuideHrefForTitle } from './embedded-guide'
+import { embeddedGuideHref, embeddedGuideHrefForTitle, embeddedIntroVideo } from './embedded-guide'
 
 export function taskLabel(task: PlannedTask) {
   if (task.id === 'custom') return '自定义任务'
@@ -53,6 +53,9 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
       {tasks.map((task, index) => {
         const guideHref = embeddedGuideHref(task.id)
         const titleHref = guideHref ?? task.url
+        const video = embeddedIntroVideo(task.id)
+        const resourceUrl = video?.url ?? (guideHref ? task.url : undefined)
+        const resourceLabel = video ? '入门视频' : '本节教程'
         return <li key={task.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3.5 sm:gap-4 sm:py-4">
           <div className="min-w-0">
             <p className={`text-xs font-medium leading-5 ${task.review ? 'text-blue-800' : 'text-slate-600'}`}>{taskLabel(task)}</p>
@@ -62,10 +65,10 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
                 ? <ArrowDown className="inline size-3.5 align-[-0.125em] text-slate-500" aria-hidden="true" />
                 : <ArrowUpRight className="inline size-3.5 align-[-0.125em] text-slate-500" aria-hidden="true" />}
             </a> : <p className="py-1 text-[15px] font-semibold leading-6 text-slate-900 [overflow-wrap:anywhere]">{task.title}</p>}
-            {guideHref && task.url && <div>
-              <a href={task.url} target="_blank" rel="noreferrer" aria-label={`${task.title}的本节教程`}
+            {resourceUrl && <div>
+              <a href={resourceUrl} target="_blank" rel="noreferrer" aria-label={`${task.title}的${resourceLabel}`}
                 className="inline-flex min-h-8 items-center gap-1 rounded text-xs font-semibold text-blue-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
-                本节教程 <ArrowUpRight className="size-3 shrink-0" aria-hidden="true" />
+                {resourceLabel} <ArrowUpRight className="size-3 shrink-0" aria-hidden="true" />
               </a>
             </div>}
           </div>
