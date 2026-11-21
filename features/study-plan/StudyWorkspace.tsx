@@ -72,14 +72,13 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
   const daily = schedule.get(date)!
   const currentStage = getPlanStage(snapshot.startDate, today)
   const selectedDay = snapshot.days[date] ?? defaultDay
-  const preview = proposal && {
+  const lastChange = proposal?.changes.at(-1)
+  const preview = proposal && lastChange && {
     ...snapshot,
     days: { ...snapshot.days, ...Object.fromEntries(proposal.changes.map(change => [change.date, change.day])) },
   }
-  const previewDays = preview && proposal
-    ? planSchedule(preview, monday, proposal.changes.at(-1)!.date, today, records) : null
-  const originalDays = preview && proposal
-    ? planSchedule(snapshot, monday, proposal.changes.at(-1)!.date, today, records) : null
+  const previewDays = preview && lastChange ? planSchedule(preview, monday, lastChange.date, today, records) : null
+  const originalDays = preview && lastChange ? planSchedule(snapshot, monday, lastChange.date, today, records) : null
 
   const refreshRecords = useCallback(async () => {
     recordsRead.current?.abort()
@@ -208,7 +207,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
     event.preventDefault()
     const message = instruction.trim()
     if (message.length < 2) {
-      setAiError('请描述你想怎样调整计划。')
+      setAiError('请输入你想问的问题或调整要求。')
       return
     }
     clearProposal()
@@ -222,7 +221,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
       }))
       if (!request.signal.aborted) setProposal(data.proposal)
     } catch (failure) {
-      if (!request.signal.aborted) setAiError(failure instanceof Error ? failure.message : '无法生成调整建议。')
+      if (!request.signal.aborted) setAiError(failure instanceof Error ? failure.message : '暂时无法回答，请重试。')
     } finally {
       if (aiRequest.current === request) {
         aiRequest.current = null
@@ -233,7 +232,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
 
   const disabled = busy || unavailable
   const preparing = recordDraft && recordDraft.entry.date === date
-  const assistantShortcuts = ['所选日只排 45 分钟', '周末优先 STM32', '明天安排为休息日']
+  const assistantShortcuts = ['为什么这样排？', '所选日只排 45 分钟', '周末优先 STM32', '明天安排为休息日']
 
   return <>
     <header className="flex flex-wrap items-end justify-between gap-x-2 gap-y-3 border-b border-slate-200 pb-5 sm:gap-x-6 sm:pb-6">
@@ -251,7 +250,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
             if (aiOpen) clearProposal()
             else if (date < today) changeDate(today)
             setAiOpen(!aiOpen)
-          }}><Sparkles className="size-4 text-blue-700" aria-hidden="true" /> AI 调整</button>
+          }}><Sparkles className="size-4 text-blue-700" aria-hidden="true" /> AI 助手</button>
       </div>
     </header>
 
@@ -285,27 +284,32 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
 
       <aside className="min-w-0">
         <section id="study-assistant" hidden={!aiOpen} aria-labelledby="study-ai-heading" className="mb-5 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-          <h2 id="study-ai-heading" className="text-lg font-bold tracking-tight">调整学习计划</h2>
+          <h2 id="study-ai-heading" className="text-lg font-bold tracking-tight">学习计划助手</h2>
           <p className="mt-1 text-xs leading-5 text-slate-600">
             {aiAvailable ? `OpenCode Go · 从 ${shortDate(date)} 起` : 'OpenCode Go 尚未连接。'}
           </p>
           <form method="post" onSubmit={ask} aria-labelledby="study-ai-heading" className="mt-4">
-            <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium">你想怎样调整？</label>
+            <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium">你想问什么或怎样调整？</label>
             <textarea id={inputId} ref={aiInput} name="instruction" value={instruction} onChange={event => setInstruction(event.target.value)}
               required maxLength={800} rows={3} disabled={disabled || !aiAvailable} className={control}
-              placeholder="例如：周六想多学一点 STM32。" />
+              placeholder="例如：为什么今天没有排 Java？" />
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {assistantShortcuts.map(preset => <button key={preset} type="button" className="min-h-8 rounded-md bg-slate-100 px-2 text-xs font-medium text-slate-700 hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
                 disabled={!aiAvailable} onClick={() => { setInstruction(preset); aiInput.current?.focus() }}>{preset}</button>)}
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-600">你的要求和未来一周的任务摘要将发送给 OpenCode Go。</p>
             <button type="submit" className={primary + ' mt-3 w-full'} disabled={disabled || !aiAvailable || date < today || aiBusy}>
-              {aiBusy ? '正在生成…' : '生成调整建议'}
+              {aiBusy ? '正在回复…' : '发送给 AI'}
             </button>
           </form>
           {date < today && <p className="mt-2 text-sm text-slate-600">请选择今天或之后的日期。</p>}
           {aiError && <p role="alert" className="mt-2 text-sm leading-6 text-red-800">{aiError}</p>}
-          {proposal && preview && previewDays && originalDays && <div className="mt-4 border-t border-slate-200 pt-4" aria-live="polite">
+          <p role="status" className="sr-only">{proposal ? (lastChange ? '调整预览已生成。' : '排课说明已生成。') : ''}</p>
+          {proposal && !lastChange && <div className="mt-4 border-t border-slate-200 pt-4">
+            <h3 className="font-bold">排课说明</h3>
+            <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{proposal.explanation}</p>
+          </div>}
+          {proposal && preview && previewDays && originalDays && <div className="mt-4 border-t border-slate-200 pt-4">
             <h3 className="font-bold">调整预览</h3>
             <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{proposal.explanation}</p>
             <ul className="mt-2 divide-y divide-slate-200">

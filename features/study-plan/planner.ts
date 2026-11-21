@@ -20,6 +20,9 @@ const projects = [[1], [6, 4], [7, 2, 5], [11, 3], [8, 9, 10], [12]]
 const secondTopics = new Set(['普通数组', '矩阵', '链表', '二叉树'])
 const thirdTopics = new Set(['图论', '回溯', '二分查找', '栈', '堆'])
 const aiTopics = new Set(['java-23', 'java-27', 'project-8', 'project-9'])
+const isAiUnit = (unit: Unit) => aiTopics.has(unit.id.match(/^java-\d+/)?.[0] ?? unit.id)
+const isCoreJava = (unit: Unit) => !isAiUnit(unit)
+const weekendJavaMinutes = 30
 const prerequisites: Partial<Record<string, string[]>> = {
   'hw-18': ['hw-9', 'hw-11'],
   'hw-19': ['hw-9', 'hw-11', 'hw-16', 'hw-17'],
@@ -119,8 +122,7 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
   function add(unit: Unit, minutes: number, review = false, practice = false) {
     if (used.has(unit.id) || (!practice && allocated.has(unit.id)) || minutes <= 0 || minutes > remaining) return false
     used.add(unit.id)
-    const base = unit.id.match(/^java-\d+/)?.[0] ?? unit.id
-    result.tasks.push({ id: unit.id, title: unit.title, track: aiTopics.has(base) ? 'ai' : unit.track, review, practice, minutes, url: unit.url })
+    result.tasks.push({ id: unit.id, title: unit.title, track: isAiUnit(unit) ? 'ai' : unit.track, review, practice, minutes, url: unit.url })
     remaining -= minutes
     return true
   }
@@ -141,15 +143,15 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
   }
 
   function available(focus: Exclude<Focus, 'balanced'>) {
-    return catalog.filter(unit => unit.phase <= month && (focus === 'ai'
-      ? aiTopics.has(unit.id.match(/^java-\d+/)?.[0] ?? unit.id) : unit.track === focus))
+    return catalog.filter(unit => unit.phase <= month && (focus === 'ai' ? isAiUnit(unit) : unit.track === focus))
       .sort((a, b) => (focus === 'hardware' ? a.phase - b.phase
         : (a.phase === month ? 0 : a.phase) - (b.phase === month ? 0 : b.phase)))
   }
   const missing = (unit: Unit) => (prerequisites[unit.id] ?? []).filter(id => progress.get(id)?.outcome !== 'independent')
-  function fresh(focus: Exclude<Focus, 'balanced'>, minutes?: number, fit = false) {
+  function fresh(focus: Exclude<Focus, 'balanced'>, minutes?: number, fit = false, eligible?: (unit: Unit) => boolean) {
     const units = available(focus)
     for (const unit of units) {
+      if (eligible && !eligible(unit)) continue
       const prev = progress.get(unit.id)
       if (prev && (unit.reviewable || prev.outcome !== 'again')) continue
       if (missing(unit).length) continue
@@ -158,7 +160,7 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
     }
     if (focus !== 'hardware') return false
     const needs = new Set(units.filter(unit => !unavailable(unit.id) && !progress.has(unit.id)).flatMap(missing))
-    return units.some(unit => needs.has(unit.id) && add(unit, unit.minutes))
+    return units.some(unit => needs.has(unit.id) && add(unit, minutes ?? (fit ? Math.min(unit.minutes, remaining) : unit.minutes)))
   }
 
   const outcomeRank: Record<Outcome, number> = { again: 0, hinted: 1, independent: 2 }
@@ -174,44 +176,46 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
 
   const algorithm = (short?: number) => (month >= 5 && repeatAlgorithm(short ?? 30)) || fresh('algorithm', short)
 
+  function practice(focus: Exclude<Focus, 'balanced'>, limit: number, eligible?: (unit: Unit) => boolean) {
+    const cutoff = addDays(date, -7)
+    const lastScheduled = (id: string) => allocated.get(id) ?? progress.get(id)?.last ?? '9999'
+    const candidate = available(focus)
+      .filter(unit => (!eligible || eligible(unit)) && !used.has(unit.id) && !missing(unit).length && lastScheduled(unit.id) <= cutoff)
+      .sort((a, b) => lastScheduled(a.id).localeCompare(lastScheduled(b.id)))
+      .find(unit => limit >= (unit.track === 'backend' ? 10 : unit.track === 'algorithm' ? 20 : 30))
+    return candidate ? add(candidate, Math.min(candidate.minutes, limit), false, true) : false
+  }
+
   if (options.focus !== 'balanced') {
     const short = options.mode === 'busy' ? (options.focus === 'algorithm' ? 20 : 10) : undefined
     const minimum = options.focus === 'algorithm' ? 20 : options.focus === 'hardware' || options.focus === 'project' ? 30 : 10
     if (short !== undefined || remaining >= minimum) {
       if (options.focus === 'algorithm') algorithm(short ?? Math.min(30, remaining))
-      else fresh(options.focus, short, true)
+      else fresh(options.focus, short, true, options.focus === 'backend' ? isCoreJava : undefined)
     }
   }
   if (options.mode === 'busy') {
     if (options.focus !== 'backend') fresh('backend', 10)
     if (options.focus !== 'algorithm' && (due.length === 0 || remaining >= 20)) algorithm(20)
   } else if (weekend) {
-    if (options.focus !== 'hardware') fresh('hardware')
-    if (options.focus !== 'project') fresh('project')
-    if (options.focus !== 'algorithm') algorithm()
+    const javaMinutes = completed.filter(entry => entry.track === 'backend').reduce((total, entry) => total + entry.minutes, 0)
+      + result.tasks.filter(task => task.track === 'backend').reduce((total, task) => total + task.minutes, 0)
+    const javaSlot = Math.min(remaining, weekendJavaMinutes - javaMinutes)
+    if (javaSlot >= 10 && !fresh('backend', javaSlot, false, isCoreJava)) practice('backend', javaSlot, isCoreJava)
+    if (options.focus !== 'hardware' && remaining >= 30) fresh('hardware', undefined, true)
+    if (options.focus !== 'algorithm' && remaining >= 20) algorithm(Math.min(30, remaining))
+    if (options.focus !== 'project' && remaining >= 30) fresh('project', undefined, true)
   } else {
     if (options.focus !== 'algorithm') algorithm()
     if (options.focus !== 'backend') fresh('backend')
     if (!fresh('algorithm') && month >= 5) repeatAlgorithm(30)
   }
   // A short remaining slot is still useful, especially after completing part of today's plan.
-  if (remaining < 30 && options.mode === 'normal') {
-    if (weekend && remaining >= 20) algorithm(remaining)
-    if (!weekend && remaining >= 10) fresh('backend', remaining)
-  }
+  if (!weekend && remaining >= 10 && remaining < 30 && options.mode === 'normal') fresh('backend', remaining)
   if (result.tasks.length === 0 && remaining >= 10) {
     const directions: Exclude<Focus, 'balanced'>[] = weekend ? ['hardware', 'project', 'algorithm'] : ['backend', 'algorithm']
     if (options.focus !== 'balanced') directions.unshift(options.focus)
-    const cutoff = addDays(date, -7)
-    for (const direction of directions) {
-      const candidate = available(direction)
-        .filter(unit => !used.has(unit.id) && !missing(unit).length
-          && (allocated.get(unit.id) ?? progress.get(unit.id)?.last ?? '9999') <= cutoff)
-        .sort((a, b) => (allocated.get(a.id) ?? progress.get(a.id)!.last)
-          .localeCompare(allocated.get(b.id) ?? progress.get(b.id)!.last))
-        .find(unit => remaining >= (unit.track === 'backend' ? 10 : unit.track === 'algorithm' ? 20 : 30))
-      if (candidate && add(candidate, Math.min(candidate.minutes, remaining), false, true)) break
-    }
+    directions.some(direction => practice(direction, remaining))
   }
   return result
 }
