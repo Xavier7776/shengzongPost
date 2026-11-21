@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="多模态证据管理：图像区域、两种呈现方式与答案变更判断">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#070f28"/><stop offset=".54" stop-color="#182449"/><stop offset="1" stop-color="#23143b"/></linearGradient>
+<linearGradient id="cyan" x1="0" x2="1"><stop stop-color="#1bc9e9"/><stop offset="1" stop-color="#46ead1"/></linearGradient>
+<linearGradient id="amber" x1="0" x2="1"><stop stop-color="#f6bb55"/><stop offset="1" stop-color="#f18c53"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="13"/></filter>
+<filter id="sh"><feDropShadow dx="0" dy="10" stdDeviation="20" flood-opacity=".42"/></filter>
+<pattern id="grid" width="38" height="38" patternUnits="userSpaceOnUse"><path d="M 38 0 L 0 0 0 38" fill="none" stroke="#7790b1" stroke-opacity=".09"/></pattern>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/><rect width="1600" height="900" fill="url(#grid)"/>
+<circle cx="220" cy="130" r="260" fill="#1ab2e9" opacity=".06" filter="url(#glow)"/><circle cx="1390" cy="700" r="260" fill="#b178e8" opacity=".10" filter="url(#glow)"/>
+<g filter="url(#sh)">
+<rect x="85" y="157" width="440" height="574" rx="32" fill="#112647" stroke="#59bdf3" stroke-width="4"/>
+<rect x="122" y="202" width="366" height="445" rx="20" fill="#193d60" stroke="#6289bb" stroke-width="2"/>
+<ellipse cx="296" cy="414" rx="136" ry="184" fill="#71aee0" fill-opacity=".07" stroke="#9bd5ff" stroke-opacity=".55" stroke-width="4"/>
+<path d="M277 275 C207 282 186 349 203 442 C213 506 255 539 281 536 L294 406 Z" fill="#559bd7" fill-opacity=".16" stroke="#71baee" stroke-width="5"/>
+<path d="M316 275 C382 286 407 352 386 443 C372 504 337 537 310 531 L304 399 Z" fill="#559bd7" fill-opacity=".16" stroke="#71baee" stroke-width="5"/>
+<ellipse cx="360" cy="438" rx="55" ry="43" fill="#f4b54c" opacity=".22" filter="url(#glow)"/>
+<ellipse cx="360" cy="438" rx="45" ry="34" fill="#efac50" opacity=".66" stroke="#ffe0a1" stroke-width="4"/>
+<rect x="303" y="386" width="117" height="106" rx="15" fill="none" stroke="#7de9f4" stroke-width="5" stroke-dasharray="10 10"/>
+</g>
+<g filter="url(#sh)">
+<rect x="618" y="185" width="358" height="228" rx="24" fill="#103854" stroke="#25d4e8" stroke-width="4"/>
+<path d="M660 353 Q797 208 934 348" fill="none" stroke="#50e9d9" stroke-width="8"/>
+<path d="M666 337 Q804 231 931 335" fill="none" stroke="#91fff0" stroke-opacity=".36" stroke-width="25"/>
+<rect x="640" y="461" width="337" height="247" rx="25" fill="#3d254d" stroke="#f5b85a" stroke-width="4"/>
+<ellipse cx="813" cy="578" rx="99" ry="73" fill="#f3aa59" fill-opacity=".20" stroke="#f8c66c" stroke-width="4"/>
+<path d="M724 620 L901 528 M728 539 L898 625" stroke="#ffd297" stroke-opacity=".36" stroke-width="5"/>
+</g>
+<path d="M525 432 C575 432 571 306 617 306 M525 433 C572 433 564 582 638 582" stroke="url(#cyan)" stroke-width="9" fill="none"/>
+<g filter="url(#sh)">
+<circle cx="1149" cy="450" r="139" fill="#19374c" stroke="#64decb" stroke-width="10"/>
+<circle cx="1149" cy="450" r="109" fill="none" stroke="#dca76c" stroke-opacity=".7" stroke-width="12" stroke-dasharray="210 480" transform="rotate(-40 1149 450)"/>
+<path d="M1078 434 L1220 434 M1149 406 L1149 520 M1111 507 L1187 507" stroke="#b3f3e2" stroke-width="8" stroke-linecap="round"/>
+<path d="M1112 416 L1081 481 L1144 481 Z M1186 416 L1155 481 L1218 481 Z" stroke="#b3f3e2" stroke-width="5" fill="none"/>
+</g>
+<path d="M978 300 Q1035 300 1061 355 M976 584 Q1037 584 1061 539" fill="none" stroke-width="8" stroke="#8bdbe5"/>
+<path d="M1271 392 Q1321 358 1357 338 M1278 520 Q1324 548 1354 573" stroke-width="9" fill="none" stroke="url(#cyan)"/>
+<rect x="1357" y="237" width="184" height="170" rx="24" fill="#0c4b50" stroke="#5ae9c7" stroke-width="5"/><path d="M1394 320 L1420 347 L1496 277" stroke="#80fbd5" stroke-width="13" fill="none" stroke-linecap="round"/>
+<rect x="1357" y="504" width="184" height="169" rx="24" fill="#5b382e" stroke="#f5b665" stroke-width="5"/><circle cx="1449" cy="578" r="36" stroke="#ffd289" stroke-width="9" fill="none"/><path d="M1480 609 L1508 637" stroke="#ffd289" stroke-width="11" stroke-linecap="round"/>
+<path d="M160 774 H1500" stroke="#7895cf" stroke-opacity=".18" stroke-width="2"/>
+<text x="109" y="111" fill="#e8f4fe" font-size="51" font-weight="700" font-family="sans-serif">视觉证据管理</text>
+<text x="111" y="817" fill="#aac8e5" font-size="28" font-family="sans-serif">原图与目标区域  ·  不同呈现方式  ·  审查答案是否应当改变</text>
+</svg>
