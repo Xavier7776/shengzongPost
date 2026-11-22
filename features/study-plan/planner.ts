@@ -10,6 +10,7 @@ export type PlannedTask = { id: string; title: string; minutes: number; track: F
 export type PlannedDay = {
   stage: (typeof stages)[number] | null
   budget: number
+  sundayRest: boolean
   spent: number
   dueCount: number
   tasks: PlannedTask[]
@@ -107,10 +108,11 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
   const options = plan.days[date] ?? defaultDay
   const weekday = new Date(date + 'T00:00:00Z').getUTCDay()
   const weekend = weekday === 6 || weekday === 0
+  const sundayRest = plan.sundayRest && weekday === 0
   const regular = options.minutes ?? (weekend ? plan.weekendMinutes : plan.weekdayMinutes)
-  const budget = options.mode === 'rest' ? 0 : options.mode === 'busy' ? Math.min(30, regular) : regular
+  const budget = sundayRest || options.mode === 'rest' ? 0 : options.mode === 'busy' ? Math.min(30, regular) : regular
   const spent = completed.reduce((total, record) => total + record.minutes, 0)
-  const result: PlannedDay = { stage, budget, spent, dueCount: 0, tasks: [], completed }
+  const result: PlannedDay = { stage, budget, sundayRest, spent, dueCount: 0, tasks: [], completed }
   if (!stage) return result
 
   let remaining = budget - spent

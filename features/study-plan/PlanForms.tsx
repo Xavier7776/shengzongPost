@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, type FormEvent } from 'react'
+import { useId, useRef, type FormEvent } from 'react'
 import { button, control, primary } from '@/features/study-records/RecordEditor'
 import { maxBackupBytes } from '@/features/study-records/model'
 import { focusLabels, importMobilePlan, modeLabels, parseDay, parseStudyPlan, type DayOverride, type StudyPlan } from './model'
@@ -49,13 +49,14 @@ export function PlanSettings({ value, disabled, onSave }: {
   value: StudyPlan; disabled: boolean; onSave: (plan: StudyPlan | null, imported?: boolean) => void
 }) {
   const input = useRef<HTMLInputElement>(null)
+  const sundayRestId = useId()
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const fields = new FormData(event.currentTarget)
     onSave(parseStudyPlan({
       ...value, startDate: fields.get('startDate'), weekdayMinutes: Number(fields.get('weekdayMinutes')),
-      weekendMinutes: Number(fields.get('weekendMinutes')),
+      weekendMinutes: Number(fields.get('weekendMinutes')), sundayRest: fields.has('sundayRest'),
     }))
   }
 
@@ -66,8 +67,12 @@ export function PlanSettings({ value, disabled, onSave }: {
         <label className={label}>工作日（分钟）<input name="weekdayMinutes" type="number" required min={1} max={1440} defaultValue={value.weekdayMinutes} className={control} /></label>
         <label className={label}>周末（分钟）<input name="weekendMinutes" type="number" required min={1} max={1440} defaultValue={value.weekendMinutes} className={control} /></label>
       </div>
+      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-slate-700">
+        <input id={sundayRestId} name="sundayRest" type="checkbox" defaultChecked={value.sundayRest} className="size-4 accent-blue-700" />
+        <label htmlFor={sundayRestId} className="cursor-pointer py-1">每周日休息</label>
+      </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button type="submit" className={primary}>保存日常预算</button>
+        <button type="submit" className={primary}>保存计划设置</button>
         <button type="button" onClick={() => input.current?.click()} className={button} aria-describedby="study-import-source">导入手机计划设置</button>
         <input ref={input} type="file" hidden accept=".json,application/json" onChange={async event => {
           const file = event.currentTarget.files?.[0]
