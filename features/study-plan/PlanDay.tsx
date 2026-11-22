@@ -34,7 +34,7 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
   const duePending = day.dueCount - day.tasks.filter(task => task.review).length
   const extraUnscheduled = options.extra && day.stage && day.budget > 0 && !past
     && !tasks.some(task => task.id === 'custom') && !day.completed.some(record => record.title === options.extra?.title)
-  const description = past ? `已记录 ${day.spent} 分钟` : !day.stage ? '六个月学习路线尚未开始'
+  const description = past ? `已记录 ${day.spent} 分钟` : day.sundayRest ? '周日固定休息' : !day.stage ? '六个月学习路线尚未开始'
     : day.budget === 0 ? '休息日' : `待学 ${plannedMinutes(day)} 分钟 · 预算 ${day.budget} 分钟${day.spent ? ` · 已学 ${day.spent} 分钟` : ''}`
 
   return <section aria-labelledby="day-plan-heading" className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -45,8 +45,8 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
         </h2>
         <p className="mt-1.5 text-[13px] leading-5 text-slate-600">{description}</p>
       </div>
-      <button type="button" className={button + ' !min-h-10'} disabled={busy} aria-expanded={editing}
-        onClick={onEdit}><PencilLine className="size-3.5" aria-hidden="true" /> 调整当天</button>
+      {(past || !day.sundayRest) && <button type="button" className={button + ' !min-h-10'} disabled={busy} aria-expanded={editing}
+        onClick={onEdit}><PencilLine className="size-3.5" aria-hidden="true" /> 调整当天</button>}
     </header>
     {editing && <div className="border-t border-slate-200">{editor}</div>}
     {tasks.length > 0 && <ol className="divide-y divide-slate-200 border-t border-slate-200 px-4 sm:px-6">

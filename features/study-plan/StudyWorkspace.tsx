@@ -269,7 +269,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
 
     <div className="mt-5 grid items-start gap-5 sm:mt-6 lg:grid-cols-[minmax(0,1fr)_19.5rem] lg:gap-8">
       <PlanDay date={date} today={today} day={daily} options={selectedDay} busy={disabled} canRecord={Boolean(recordList)}
-        editing={editDay} activeTaskId={preparing ? recordDraft.id : undefined}
+        editing={editDay && (date < today || !daily.sundayRest)} activeTaskId={preparing ? recordDraft.id : undefined}
         onEdit={() => { setRecordDraft(null); setEditDay(!editDay) }} onRecord={openRecord}
         editor={editDay ? <DayEditor key={date + saved.revision} value={selectedDay} disabled={disabled} onCancel={() => setEditDay(false)}
           onReset={async () => {
@@ -377,7 +377,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
             <summary className={summaryStyle}>路线与时间设置</summary>
             <PlanSettings value={snapshot} disabled={disabled} key={saved.revision} onSave={(next, imported) => {
               if (!next) { setError(imported ? '无法读取手机计划，请选择有效的 StudyPilot 备份。' : '请检查路线日期和时间预算。'); return }
-              void commit(next, imported ? '已导入手机计划设置。' : '已保存开始日期和日常预算。')
+              void commit(next, imported ? '已导入手机计划设置。' : '已保存计划设置。')
             }} />
           </details>
           <details className={detailsStyle}>

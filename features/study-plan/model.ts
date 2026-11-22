@@ -17,6 +17,7 @@ export type StudyPlan = {
   startDate: string
   weekdayMinutes: number
   weekendMinutes: number
+  sundayRest: boolean
   days: Record<string, DayOverride>
 }
 export type Adjustment = { date: string; day: DayOverride }
@@ -26,7 +27,7 @@ export type SavedPlan = { snapshot: StudyPlan; revision: number }
 export const defaultDay: DayOverride = { minutes: null, mode: 'normal', focus: 'balanced', extra: null }
 
 export const defaultPlan = (startDate: string): StudyPlan => ({
-  startDate, weekdayMinutes: 90, weekendMinutes: 150, days: {},
+  startDate, weekdayMinutes: 90, weekendMinutes: 150, sundayRest: false, days: {},
 })
 
 export function isPlanDate(value: unknown): value is string {
@@ -56,7 +57,8 @@ export function parseDay(value: unknown): DayOverride | null {
 
 export function parseStudyPlan(value: unknown): StudyPlan | null {
   if (!isObject(value) || !isPlanDate(value.startDate) || !isMinutes(value.weekdayMinutes)
-    || !isMinutes(value.weekendMinutes) || !isObject(value.days)) return null
+    || !isMinutes(value.weekendMinutes) || (value.sundayRest !== undefined && typeof value.sundayRest !== 'boolean')
+    || !isObject(value.days)) return null
   const entries = Object.entries(value.days)
   if (entries.length > 730) return null
   const days: StudyPlan['days'] = {}
@@ -65,7 +67,8 @@ export function parseStudyPlan(value: unknown): StudyPlan | null {
     if (!isPlanDate(day) || !override) return null
     days[day] = override
   }
-  return { startDate: value.startDate, weekdayMinutes: value.weekdayMinutes, weekendMinutes: value.weekendMinutes, days }
+  return { startDate: value.startDate, weekdayMinutes: value.weekdayMinutes, weekendMinutes: value.weekendMinutes,
+    sundayRest: value.sundayRest ?? false, days }
 }
 
 export function addDays(value: string, days: number) {
@@ -116,5 +119,5 @@ export function importMobilePlan(input: string, current: StudyPlan): StudyPlan |
     if (!isObject(row) || !isPlanDate(row.date) || !['NORMAL', 'BUSY', 'REST'].includes(row.mode as string)) return null
     if (!days[row.date]) days[row.date] = { ...defaultDay, mode: (row.mode as string).toLowerCase() as Mode }
   }
-  return parseStudyPlan({ ...data.settings, days })
+  return parseStudyPlan({ ...data.settings, sundayRest: current.sundayRest, days })
 }

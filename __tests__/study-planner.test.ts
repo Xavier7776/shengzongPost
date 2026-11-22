@@ -84,6 +84,20 @@ describe('StudyPilot web plan', () => {
     expect(adjusted.get(day)!.tasks).toEqual([])
     expect(adjusted.get('2026-11-22')!.tasks.slice(0, 2).map(task => task.id)).toEqual(['lc-206', 'lc-1'])
   })
+  it('leaves every fixed Sunday free, even with a day override, and carries due reviews to Monday', () => {
+    const saturday = '2026-11-21'
+    const sunday = '2026-11-22'
+    const monday = '2026-11-23'
+    const plan = { ...defaultPlan(day), sundayRest: true }
+    plan.days[sunday] = { ...defaultDay, minutes: 120, extra: { title: '自定义任务', minutes: 45 } }
+    const record = { ...prior, date: saturday }
+    const schedule = planSchedule(plan, saturday, '2026-11-29', saturday, [record])
+    expect(schedule.get(saturday)).toMatchObject({ budget: 150, sundayRest: false })
+    expect(schedule.get(sunday)).toMatchObject({ budget: 0, sundayRest: true, dueCount: 1, tasks: [] })
+    expect(schedule.get(monday)!.tasks[0]).toMatchObject({ id: 'lc-1', review: true })
+    expect(schedule.get('2026-11-29')).toMatchObject({ budget: 0, sundayRest: true, tasks: [] })
+    expect(planDay(plan, sunday, [{ ...record, date: sunday }]).spent).toBe(30)
+  })
   it('keeps a usable schedule after the first set of topics has been allocated', () => {
     const schedule = planSchedule(defaultPlan(day), '2026-12-16', '2026-12-18', day, [])
     expect([...schedule.values()].every(date => date.tasks.length > 0)).toBe(true)
@@ -105,6 +119,7 @@ describe('StudyPilot web plan', () => {
     expect(importMobilePlan(JSON.stringify({
       format: 'studypilot-backup', version: 1, settings: { startDate: day, weekdayMinutes: 60, weekendMinutes: 120 },
       dayModes: [{ date: day, mode: 'BUSY' }],
-    }), defaultPlan(day))).toEqual({ startDate: day, weekdayMinutes: 60, weekendMinutes: 120, days: { [day]: { ...defaultDay, mode: 'busy' } } })
+    }), { ...defaultPlan(day), sundayRest: true })).toEqual({ startDate: day, weekdayMinutes: 60, weekendMinutes: 120,
+      sundayRest: true, days: { [day]: { ...defaultDay, mode: 'busy' } } })
   })
 })
