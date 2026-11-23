@@ -5,11 +5,20 @@ vi.mock('@/lib/db/_core', () => ({
   serializeRows: (rows: Record<string,unknown>[])=>rows.map(row=>({...row})),
   serializeRow: (row: Record<string,unknown>)=>row,
 }))
-import { getBlogTagCounts, getPopularPosts, getPostsPaginatedByTag } from '@/lib/db/posts'
+import { getBlogTagCounts, getPopularPosts, getPostsPaginatedByTag, getRecentPostCards } from '@/lib/db/posts'
 
 beforeEach(() => sql.mockReset())
 
 describe('global blog categorization and popularity', () => {
+  it('returns reading minutes from the full article without sending its body to cards', async () => {
+    sql.mockResolvedValueOnce([
+      { slug: 'daily-learn-2026-11-23', excerpt: '简短摘要', content: '预计阅读 22 分钟。' },
+      { slug: 'regular', excerpt: '简短摘要', content: '<p>' + '学'.repeat(801) + '</p>' },
+    ])
+    const cards = await getRecentPostCards(4)
+    expect(cards.map(card => card.readingMinutes)).toEqual([22, 3])
+    expect(cards.every(card => !('content' in card))).toBe(true)
+  })
   it('ranks articles using stored cumulative views, never arbitrary page positions', async () => {
     sql.mockResolvedValue([{slug:'high-traffic',title:'Most viewed'}])
     const result = await getPopularPosts(5)

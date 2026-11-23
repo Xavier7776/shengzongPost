@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowDown, ArrowUpRight, RefreshCw, Sparkles } from 'lucide-react'
 import StudyJournal from '@/features/study-records/StudyJournal'
-import RecordEditor, { button, control, primary } from '@/features/study-records/RecordEditor'
+import RecordEditor, { button, control, primary, type TaskRecordDraft } from '@/features/study-records/RecordEditor'
 import { fetchStudyRecords, writeStudyRecord } from '@/features/study-records/client'
 import { limits, type Entry, type SavedEntry } from '@/features/study-records/model'
 import { chinaDate } from '@/lib/learn/document'
@@ -37,9 +37,12 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
   const [today, setToday] = useState(initialToday)
   const [chosenDate, setChosenDate] = useState<string | null>(null)
   const [editDay, setEditDay] = useState(false)
+  const taskDrafts = useRef(new Map<string, TaskRecordDraft>())
   const [recordDraft, setRecordDraft] = useState<{
     id: string
-    entry: Pick<Entry, 'title' | 'track' | 'date' | 'minutes' | 'review'>
+    planDate: string
+    key: string
+    entry: TaskRecordDraft
   } | null>(null)
   const [busy, setBusy] = useState(false)
   const [unavailable, setUnavailable] = useState(loadFailed)
@@ -197,11 +200,19 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
   function openRecord(task: PlannedTask) {
     recordTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setEditDay(false)
-    setRecordDraft(recordDraft?.id === task.id ? null : {
-      id: task.id,
-      entry: { title: task.title, date, track: task.track === 'balanced' ? 'other' : task.track,
-        minutes: Math.min(task.minutes, limits.minutes), review: task.review || Boolean(task.practice) },
-    })
+    if (recordDraft?.id === task.id && recordDraft.planDate === date) {
+      setRecordDraft(null)
+      return
+    }
+    const key = date + '/' + task.id
+    const entry = taskDrafts.current.get(key) ?? {
+      recordId: 'web:' + crypto.randomUUID(), title: task.title, date,
+      track: task.track === 'balanced' ? 'other' : task.track,
+      minutes: String(Math.min(task.minutes, limits.minutes)), review: task.review || Boolean(task.practice),
+      outcome: '', note: '',
+    }
+    taskDrafts.current.set(key, entry)
+    setRecordDraft({ id: task.id, planDate: date, key, entry })
   }
 
   async function saveTask(entry: Entry, id?: string) {
@@ -209,6 +220,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
       if (!id) return
       const recorded = { ...entry, id, recordedAt: Date.now() }
       await writeStudyRecord({ type: 'create', entry: recorded })
+      if (recordDraft) taskDrafts.current.delete(recordDraft.key)
       setRecordList(previous => [...(previous ?? noRecords).filter(record => record.id !== id), { ...recorded, revision: 1 }]
         .sort((a, b) => b.date.localeCompare(a.date) || b.recordedAt - a.recordedAt))
       setRecordDraft(null)
@@ -246,7 +258,7 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
   }
 
   const disabled = busy || unavailable
-  const preparing = recordDraft && recordDraft.entry.date === date
+  const preparing = recordDraft && recordDraft.planDate === date
   const assistantShortcuts = ['为什么这样排？', '所选日只排 45 分钟', '周末优先 STM32', '明天安排为休息日']
 
   return <>
@@ -295,8 +307,13 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
           onSave={async day => {
             if (!day) { setError('请检查当天的计划设置。'); return }
             if (await commit({ ...snapshot, days: { ...snapshot.days, [date]: day } }, '已保存当天的安排，后续计划已更新。')) setEditDay(false)
-          }} /> : preparing ? <RecordEditor key={date + recordDraft.id} entry={null} draft={recordDraft.entry} today={today}
-            busy={disabled} onSave={saveTask} onCancel={() => { setRecordDraft(null); recordTrigger.current?.focus() }} /> : undefined} />
+          }} /> : preparing ? <RecordEditor key={recordDraft.key} entry={null} draft={recordDraft.entry} today={today}
+            onDraftChange={entry => taskDrafts.current.set(recordDraft.key, entry)} busy={disabled} onSave={saveTask}
+            onCancel={() => {
+              taskDrafts.current.delete(recordDraft.key)
+              setRecordDraft(null)
+              recordTrigger.current?.focus()
+            }} /> : undefined} />
 
       <aside className="min-w-0">
         <section id="study-assistant" hidden={!aiOpen} aria-labelledby="study-ai-heading" className="mb-5 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">

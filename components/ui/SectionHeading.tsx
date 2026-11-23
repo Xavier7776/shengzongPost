@@ -5,15 +5,16 @@ import { useScrollReveal } from '@/shared/hooks'
 interface SectionHeadingProps {
   children: React.ReactNode
   light?: boolean
+  spacing?: 'default' | 'none'
 }
 
-export default function SectionHeading({ children, light = false }: SectionHeadingProps) {
+export default function SectionHeading({ children, light = false, spacing = 'default' }: SectionHeadingProps) {
   const [ref, isVisible] = useScrollReveal()
 
   return (
     <div
       ref={ref}
-      className={`mb-16 transition-all duration-1000 ${
+      className={`${spacing === 'default' ? 'mb-16' : ''} transition-all duration-1000 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
     >

@@ -43,6 +43,15 @@ describe('reading SEO and accessible controls',()=>{
    fireEvent.click(screen.getByRole('button',{name:'下一张'}));expect(screen.getByRole('heading',{level:1})).toHaveTextContent('第二张');unmount()
    vi.stubGlobal('matchMedia',()=>({matches:true}));render(<HeroClient slides={slides}/>);vi.advanceTimersByTime(6000);expect(screen.getByRole('heading',{level:1})).toHaveTextContent('第一张')
  })
+ it('links the hero to the portfolio and offers responsive versions of archived slides', () => {
+   vi.stubGlobal('matchMedia', () => ({ matches: true }))
+   const img = 'https://res.cloudinary.com/demo/image/upload/v123/slides/test.jpg'
+   render(<HeroClient slides={[{ img, title: '风景', subtitle: '' }]} />)
+   expect(screen.getByRole('link', { name: '查看作品' })).toHaveAttribute('href', '/work')
+   const photo = screen.getByRole('img', { name: '风景' })
+   expect(photo.getAttribute('srcset')).toContain('/c_limit,w_480,f_auto,q_auto/v123/slides/test.jpg 480w')
+   expect(photo).toHaveAttribute('sizes', expect.stringContaining('calc(100vw - 48px)'))
+ })
  it('renders unique study anchors and legacy aliases before hydration and keeps them after answering',()=>{
    const edition=makeEdition()
    const {container}=render(<LearnInteractive edition={edition}/>)

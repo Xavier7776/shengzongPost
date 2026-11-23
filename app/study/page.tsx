@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: '学习 · MindStack', robots: { inde
 
 export default async function StudyPage() {
   const userId = await getAdminAccountId()
-  if (!userId) redirect('/admin/login')
+  if (!userId) redirect('/admin/login?from=study')
 
   const [plan, records, reviews] = await Promise.allSettled([
     loadStudyPlan(userId), listStudyRecords(userId), listNightlyReviews(userId),
