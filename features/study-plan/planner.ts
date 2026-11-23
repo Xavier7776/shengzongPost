@@ -1,16 +1,18 @@
 import { studyPilotTitles } from '@/features/study-records/study-pilot-titles'
 import type { Outcome, SavedEntry } from '@/features/study-records/model'
 import { algorithms, sourceLinks, stages } from './curriculum'
-import { addDays, addMonths, defaultDay, startOfWeek, type Focus, type StudyPlan } from './model'
+import { addDays, addMonths, defaultDay, startOfWeek, type DayOverride, type DeferredTask, type Focus, type StudyPlan } from './model'
 
 type Track = Exclude<Focus, 'balanced' | 'ai'>
 type Unit = { id: string; title: string; track: Track; phase: number; minutes: number; reviewable: boolean; url?: string }
 type Progress = { stage: number; due: string; outcome: Outcome; last: string }
-export type PlannedTask = { id: string; title: string; minutes: number; track: Focus; review: boolean; practice?: boolean; url?: string }
+export type PlannedTask = { id: string; title: string; minutes: number; track: Focus; review: boolean; practice?: boolean; url?: string; deferred?: true }
+type Deferred = { unit?: Unit; task: PlannedTask }
 export type PlannedDay = {
   stage: (typeof stages)[number] | null
   budget: number
   sundayRest: boolean
+  paused: boolean
   spent: number
   dueCount: number
   tasks: PlannedTask[]
@@ -58,6 +60,7 @@ const catalog: Unit[] = [
 ]
 
 const byTitle = new Map(catalog.map(unit => [unit.title, unit]))
+const byId = new Map(catalog.map(unit => [unit.id, unit]))
 const gaps = [1, 3, 7, 21]
 
 export function getPlanStage(startDate: string, date: string) {
@@ -69,6 +72,17 @@ export function planDay(plan: StudyPlan, date: string, records: readonly SavedEn
   return planSchedule(plan, date, date, date, records).get(date)!
 }
 
+export function deferDay(day: PlannedDay, options: DayOverride): DeferredTask[] {
+  const tasks = day.tasks.filter(task => !task.review && !task.deferred).map(task => ({
+    id: task.id, minutes: task.minutes,
+    ...(task.practice && { practice: true as const }), ...(task.id === 'custom' && { title: task.title }),
+  }))
+  if (options.extra && !tasks.some(task => task.id === 'custom') && !day.completed.some(entry => entry.title === options.extra?.title)) {
+    tasks.unshift({ ...options.extra, id: 'custom' })
+  }
+  return tasks
+}
+
 export function planSchedule(plan: StudyPlan, first: string, last: string, today: string, records: readonly SavedEntry[]) {
   const firstWeek = startOfWeek(first)
   const forecastStart = firstWeek > addMonths(today, 6) ? firstWeek : today
@@ -77,6 +91,24 @@ export function planSchedule(plan: StudyPlan, first: string, last: string, today
   const history = [...records].sort((a, b) => a.date.localeCompare(b.date) || a.recordedAt - b.recordedAt)
   const progress = new Map<string, Progress>()
   const allocated = new Map<string, string>()
+  const deferred = new Map<string, Deferred>()
+  const pauses = Object.entries(plan.pauses ?? {}).sort(([a], [b]) => a.localeCompare(b))
+  let pauseIndex = 0
+
+  function readPausesThrough(date: string) {
+    for (; pauseIndex < pauses.length && pauses[pauseIndex][0] <= date; pauseIndex++) {
+      const [origin, items] = pauses[pauseIndex]
+      for (const item of items) {
+        const unit = byId.get(item.id)
+        const id = item.id === 'custom' ? `custom:${origin}` : item.id
+        const title = unit?.title ?? item.title
+        if (!title || deferred.has(id)) continue
+        deferred.set(id, { unit, task: { id, title, minutes: item.minutes, review: false,
+          track: unit ? (isAiUnit(unit) ? 'ai' : unit.track) : 'balanced', deferred: true, practice: item.practice, url: unit?.url } })
+      }
+    }
+  }
+
   const result = new Map<string, PlannedDay>()
   let cursor = 0
   for (let date = start; date <= last; date = addDays(date, 1)) {
@@ -84,7 +116,13 @@ export function planSchedule(plan: StudyPlan, first: string, last: string, today
     for (; cursor < history.length && history[cursor].date <= date; cursor++) {
       const entry = history[cursor]
       if (entry.date === date) completed.push(entry)
+      readPausesThrough(entry.date)
       const unit = byTitle.get(entry.title)
+      if (unit && deferred.has(unit.id)) deferred.delete(unit.id)
+      else if (!unit || entry.track === 'other') {
+        const custom = [...deferred.values()].find(item => !item.unit && item.task.title === entry.title)
+        if (custom) deferred.delete(custom.task.id)
+      }
       if (!unit) continue
       const previous = progress.get(unit.id)?.stage ?? 0
       const independent = entry.outcome === 'independent'
@@ -93,8 +131,9 @@ export function planSchedule(plan: StudyPlan, first: string, last: string, today
       // A recorded session starts its own review cycle, even when it follows a projected session.
       allocated.delete(unit.id)
     }
+    readPausesThrough(date)
     if (date < first && date < plan.startDate) continue
-    const day = buildDay(plan, date, completed, progress, allocated)
+    const day = buildDay(plan, date, completed, progress, allocated, deferred)
     if (date >= first) result.set(date, day)
     // Projections reserve a slot. Review intervals and prerequisites still follow real records.
     if (date >= today) for (const task of day.tasks) if (task.id !== 'custom') allocated.set(task.id, date)
@@ -103,16 +142,17 @@ export function planSchedule(plan: StudyPlan, first: string, last: string, today
 }
 
 function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progress: Map<string, Progress>,
-  allocated: Map<string, string>): PlannedDay {
+  allocated: Map<string, string>, deferred: Map<string, Deferred>): PlannedDay {
   const stage = getPlanStage(plan.startDate, date)
   const options = plan.days[date] ?? defaultDay
   const weekday = new Date(date + 'T00:00:00Z').getUTCDay()
   const weekend = weekday === 6 || weekday === 0
   const sundayRest = plan.sundayRest && weekday === 0
+  const paused = Object.hasOwn(plan.pauses ?? {}, date)
   const regular = options.minutes ?? (weekend ? plan.weekendMinutes : plan.weekdayMinutes)
-  const budget = sundayRest || options.mode === 'rest' ? 0 : options.mode === 'busy' ? Math.min(30, regular) : regular
+  const budget = paused || sundayRest || options.mode === 'rest' ? 0 : options.mode === 'busy' ? Math.min(30, regular) : regular
   const spent = completed.reduce((total, record) => total + record.minutes, 0)
-  const result: PlannedDay = { stage, budget, sundayRest, spent, dueCount: 0, tasks: [], completed }
+  const result: PlannedDay = { stage, budget, sundayRest, paused, spent, dueCount: 0, tasks: [], completed }
   if (!stage) return result
 
   let remaining = budget - spent
@@ -122,7 +162,8 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
   const month = stage.month
 
   function add(unit: Unit, minutes: number, review = false, practice = false) {
-    if (used.has(unit.id) || (!practice && allocated.has(unit.id)) || minutes <= 0 || minutes > remaining) return false
+    if (used.has(unit.id) || (!practice && allocated.has(unit.id)) || (!review && deferred.has(unit.id))
+      || minutes <= 0 || minutes > remaining) return false
     used.add(unit.id)
     result.tasks.push({ id: unit.id, title: unit.title, track: isAiUnit(unit) ? 'ai' : unit.track, review, practice, minutes, url: unit.url })
     remaining -= minutes
@@ -144,12 +185,20 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
     remaining -= options.extra.minutes
   }
 
+  const missing = (unit: Unit) => (prerequisites[unit.id] ?? []).filter(id => progress.get(id)?.outcome !== 'independent')
+  for (const { unit, task } of deferred.values()) {
+    if (task.minutes > remaining || unavailable(task.id) || (unit && (unit.phase > month || missing(unit).length))) continue
+    if (!unit && result.tasks.some(existing => existing.title === task.title)) continue
+    used.add(task.id)
+    result.tasks.push(task)
+    remaining -= task.minutes
+  }
+
   function available(focus: Exclude<Focus, 'balanced'>) {
     return catalog.filter(unit => unit.phase <= month && (focus === 'ai' ? isAiUnit(unit) : unit.track === focus))
       .sort((a, b) => (focus === 'hardware' ? a.phase - b.phase
         : (a.phase === month ? 0 : a.phase) - (b.phase === month ? 0 : b.phase)))
   }
-  const missing = (unit: Unit) => (prerequisites[unit.id] ?? []).filter(id => progress.get(id)?.outcome !== 'independent')
   function fresh(focus: Exclude<Focus, 'balanced'>, minutes?: number, fit = false, eligible?: (unit: Unit) => boolean) {
     const units = available(focus)
     for (const unit of units) {
@@ -167,7 +216,7 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
 
   const outcomeRank: Record<Outcome, number> = { again: 0, hinted: 1, independent: 2 }
   function repeatAlgorithm(minutes: number) {
-    const prior = available('algorithm').filter(unit => !unavailable(unit.id) && (progress.get(unit.id)?.last ?? '9999') < date)
+    const prior = available('algorithm').filter(unit => !unavailable(unit.id) && !deferred.has(unit.id) && (progress.get(unit.id)?.last ?? '9999') < date)
       .sort((a, b) => {
         const first = progress.get(a.id)!
         const second = progress.get(b.id)!
@@ -182,7 +231,7 @@ function buildDay(plan: StudyPlan, date: string, completed: SavedEntry[], progre
     const cutoff = addDays(date, -7)
     const lastScheduled = (id: string) => allocated.get(id) ?? progress.get(id)?.last ?? '9999'
     const candidate = available(focus)
-      .filter(unit => (!eligible || eligible(unit)) && !used.has(unit.id) && !missing(unit).length && lastScheduled(unit.id) <= cutoff)
+      .filter(unit => (!eligible || eligible(unit)) && !used.has(unit.id) && !deferred.has(unit.id) && !missing(unit).length && lastScheduled(unit.id) <= cutoff)
       .sort((a, b) => lastScheduled(a.id).localeCompare(lastScheduled(b.id)))
       .find(unit => limit >= (unit.track === 'backend' ? 10 : unit.track === 'algorithm' ? 20 : 30))
     return candidate ? add(candidate, Math.min(candidate.minutes, limit), false, true) : false

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUpRight, Check, PencilLine } from 'lucide-react'
+import { ArrowDown, ArrowUpRight, Check, Pause, PencilLine, Play } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { button, primary } from '@/features/study-records/RecordEditor'
 import { outcomes } from '@/features/study-records/model'
@@ -8,14 +8,15 @@ import type { PlannedDay, PlannedTask } from './planner'
 import { embeddedGuideHref, embeddedGuideHrefForTitle, embeddedIntroResource } from './embedded-guide'
 
 export function taskLabel(task: PlannedTask) {
-  if (task.id === 'custom') return '自定义任务'
+  if (task.id === 'custom' || task.id.startsWith('custom:')) return task.deferred ? '顺延 · 自定义任务' : '自定义任务'
+  if (task.deferred) return `${task.practice ? '顺延练习' : '顺延'} · ${focusLabels[task.track]}`
   return `${task.review ? '到期复习' : task.practice ? '巩固练习' : '新学'} · ${focusLabels[task.track]}`
 }
 
 const rowAction = 'inline-flex min-h-10 items-center justify-center gap-1 rounded-md px-2 text-sm font-semibold text-blue-700 enabled:hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-50'
 const taskLink = 'inline-block rounded py-1 text-[15px] font-semibold leading-6 text-slate-900 underline-offset-4 [overflow-wrap:anywhere] hover:text-blue-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600'
 
-export default function PlanDay({ date, today, day, options, busy, canRecord, editing, activeTaskId, onEdit, onRecord, editor }: {
+export default function PlanDay({ date, today, day, options, busy, canRecord, editing, activeTaskId, onEdit, onTogglePause, onRecord, editor }: {
   date: string
   today: string
   day: PlannedDay
@@ -25,28 +26,36 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
   editing: boolean
   activeTaskId?: string
   onEdit: () => void
+  onTogglePause: () => void
   onRecord: (task: PlannedTask) => void
   editor?: ReactNode
 }) {
   const past = date < today
   const future = date > today
   const tasks = past ? [] : day.tasks
+  const canPause = date === today && (day.paused || Boolean(day.stage && day.budget > 0))
   const duePending = day.dueCount - day.tasks.filter(task => task.review).length
   const extraUnscheduled = options.extra && day.stage && day.budget > 0 && !past
     && !tasks.some(task => task.id === 'custom') && !day.completed.some(record => record.title === options.extra?.title)
-  const description = past ? `已记录 ${day.spent} 分钟` : day.sundayRest ? '周日固定休息' : !day.stage ? '六个月学习路线尚未开始'
+  const description = past ? `已记录 ${day.spent} 分钟` : day.paused ? `今日已暂停${day.spent ? ` · 已学 ${day.spent} 分钟` : ''}`
+    : day.sundayRest ? '周日固定休息' : !day.stage ? '六个月学习路线尚未开始'
     : day.budget === 0 ? '休息日' : `待学 ${plannedMinutes(day)} 分钟 · 预算 ${day.budget} 分钟${day.spent ? ` · 已学 ${day.spent} 分钟` : ''}`
 
   return <section aria-labelledby="day-plan-heading" className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
     <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-6 sm:pt-6">
-      <div aria-live="polite" aria-atomic="true" className="min-w-0 flex-1">
+      <div aria-live="polite" aria-atomic="true" className="min-w-0 flex-1 basis-28">
         <h2 id="day-plan-heading" tabIndex={-1} className="text-xl font-bold tracking-tight outline-none sm:text-2xl">
           {date === today ? '今日计划' : `${shortDate(date)} · ${weekdayLabel(date)}`}
         </h2>
         <p className="mt-1.5 text-[13px] leading-5 text-slate-600">{description}</p>
       </div>
-      {(past || !day.sundayRest) && <button type="button" className={button + ' !min-h-10'} disabled={busy} aria-expanded={editing}
-        onClick={onEdit}><PencilLine className="size-3.5" aria-hidden="true" /> 调整当天</button>}
+      <div className="flex flex-wrap items-center gap-2">
+        {canPause && <button type="button" className={button + ' !min-h-10'} disabled={busy || (!day.paused && !canRecord)}
+          onClick={onTogglePause}>{day.paused ? <Play className="size-3.5" aria-hidden="true" /> : <Pause className="size-3.5" aria-hidden="true" />}
+          {day.paused ? '恢复今日计划' : '今日暂停'}</button>}
+        {(past || (!day.sundayRest && !day.paused)) && <button type="button" className={button + ' !min-h-10'} disabled={busy} aria-expanded={editing}
+          onClick={onEdit}><PencilLine className="size-3.5" aria-hidden="true" /> 调整当天</button>}
+      </div>
     </header>
     {editing && <div className="border-t border-slate-200">{editor}</div>}
     {tasks.length > 0 && <ol className="divide-y divide-slate-200 border-t border-slate-200 px-4 sm:px-6">
@@ -82,7 +91,8 @@ export default function PlanDay({ date, today, day, options, busy, canRecord, ed
       })}
     </ol>}
     {tasks.length === 0 && (!past || !day.completed.length) && <p className="border-t border-slate-200 px-4 py-5 text-sm leading-6 text-slate-600 sm:px-6">
-      {past ? '这一天没有学习记录。' : !day.stage ? '开始日期可以在「路线与时间设置」中调整。' : !day.budget ? '未完成的复习会留到下一个学习日。'
+      {past ? '这一天没有学习记录。' : day.paused ? '未完成的任务已按后续学习日的可用时间重新安排。'
+        : !day.stage ? '开始日期可以在「路线与时间设置」中调整。' : !day.budget ? '未完成的复习会留到下一个学习日。'
         : day.spent >= day.budget ? '当天的学习时间已用完。' : duePending > 0 ? '剩余时间不足 15 分钟，复习会顺延。'
           : '目前没有适合这段时间的任务。可以增加预算或添加自定义任务。'}
     </p>}

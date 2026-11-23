@@ -16,7 +16,7 @@ export async function suggestStudyPlan(key: string, userId: number, instruction:
   const schedule = [...days].filter(([day]) => isPlanDate(day)).map(([day, current]) => {
     return {
       date: day, weekday: new Date(day + 'T00:00:00Z').getUTCDay(), preferences: snapshot.days[day] ?? defaultDay,
-      stage: current.stage?.title ?? null, minutes: current.budget, sundayRest: current.sundayRest,
+      stage: current.stage?.title ?? null, minutes: current.budget, sundayRest: current.sundayRest, paused: current.paused,
       spent: current.spent, dueReviews: current.dueCount,
       timeLeftBeforeTasks: Math.max(0, current.budget - current.spent),
       completedJavaMinutes: current.completed.filter(entry => entry.track === 'backend').reduce((total, entry) => total + entry.minutes, 0),
@@ -43,6 +43,7 @@ export async function suggestStudyPlan(key: string, userId: number, instruction:
           '调整预览的 explanation 不超过 400 字，排课说明不超过 1200 字。',
           '规则：已记录时间从预算中扣除。到期复习优先，再安排自定义任务和明确指定的优先方向。标准周末尽量凑足 30 分钟 Java（含已记录或已安排的 Java），余额至少 10 分钟时可安排短练习，然后安排硬件、算法和项目。休息日不排任务。',
           'sundayRest 为 true 的日期是固定周日休息，不可以写入 changes。若用户要求修改这些日期，说明可在「路线与时间设置」关闭每周日休息。',
+          'paused 为 true 的日期已手动暂停，不可以写入 changes。若用户要求恢复今天，说明可点击「恢复今日计划」。',
           'minutes 为 null（使用当天默认预算）或 0 到 1440 的整数，mode 为 normal、busy（最多30分钟）或 rest。focus 为 balanced、algorithm、backend、ai、hardware 或 project。',
           '只有用户要求添加自定义任务时才设置 extra {"title":"任务名","minutes":20}，否则保留现值。明确要求调整时返回 1 至 7 个有改动的日期，只能选输入 schedule 里的日期。',
           '例如“今天只学 45 分钟”使用 minutes=45 和 mode=normal；“休息一天”使用 mode=rest；“周末优先 STM32”使用 focus=hardware。',
@@ -64,6 +65,9 @@ export async function suggestStudyPlan(key: string, userId: number, instruction:
   if (!proposal) throw new StudyAiError('AI 返回的回复格式有误，请重试。调整请求可指定未来一周的日期。', 502)
   if (proposal.changes.some(change => days.get(change.date)?.sundayRest)) {
     throw new StudyAiError('周日已设为固定休息日，请选择其他日期。', 422)
+  }
+  if (proposal.changes.some(change => days.get(change.date)?.paused)) {
+    throw new StudyAiError('今天已暂停。请先恢复今日计划，或选择其他日期。', 422)
   }
   return proposal
 }

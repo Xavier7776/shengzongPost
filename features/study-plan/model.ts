@@ -13,12 +13,14 @@ export type Focus = keyof typeof focusLabels
 export type Mode = keyof typeof modeLabels
 export type ExtraTask = { title: string; minutes: number }
 export type DayOverride = { minutes: number | null; mode: Mode; focus: Focus; extra: ExtraTask | null }
+export type DeferredTask = { id: string; minutes: number; practice?: true; title?: string }
 export type StudyPlan = {
   startDate: string
   weekdayMinutes: number
   weekendMinutes: number
   sundayRest: boolean
   days: Record<string, DayOverride>
+  pauses?: Record<string, DeferredTask[]>
 }
 export type Adjustment = { date: string; day: DayOverride }
 export type Proposal = { explanation: string; changes: Adjustment[] }
@@ -55,6 +57,30 @@ export function parseDay(value: unknown): DayOverride | null {
   return title ? { ...flags, extra: { title, minutes: extra.minutes } } : null
 }
 
+function parseDeferredTask(value: unknown): DeferredTask | null {
+  if (!isObject(value) || typeof value.id !== 'string' || value.id.length > 32 || !isMinutes(value.minutes)) return null
+  if (value.id === 'custom') {
+    const title = textValue(value.title, 120)
+    return title ? { id: value.id, minutes: value.minutes, title } : null
+  }
+  if (!/^(?:lc|hw|project|java)-\d+(?:-(?:read|lab|recall))?$/.test(value.id)) return null
+  return { id: value.id, minutes: value.minutes, ...(value.practice === true && { practice: true }) }
+}
+
+function parsePauses(value: unknown): NonNullable<StudyPlan['pauses']> | null {
+  if (!isObject(value)) return null
+  const entries = Object.entries(value)
+  if (entries.length > 730) return null
+  const pauses: NonNullable<StudyPlan['pauses']> = {}
+  for (const [date, tasks] of entries) {
+    if (!isPlanDate(date) || !Array.isArray(tasks) || tasks.length > 12) return null
+    const parsed = tasks.map(parseDeferredTask)
+    if (!parsed.every(task => task !== null) || new Set(parsed.map(task => task.id)).size !== parsed.length) return null
+    pauses[date] = parsed
+  }
+  return pauses
+}
+
 export function parseStudyPlan(value: unknown): StudyPlan | null {
   if (!isObject(value) || !isPlanDate(value.startDate) || !isMinutes(value.weekdayMinutes)
     || !isMinutes(value.weekendMinutes) || (value.sundayRest !== undefined && typeof value.sundayRest !== 'boolean')
@@ -67,8 +93,10 @@ export function parseStudyPlan(value: unknown): StudyPlan | null {
     if (!isPlanDate(day) || !override) return null
     days[day] = override
   }
+  const pauses = value.pauses === undefined ? {} : parsePauses(value.pauses)
+  if (!pauses) return null
   return { startDate: value.startDate, weekdayMinutes: value.weekdayMinutes, weekendMinutes: value.weekendMinutes,
-    sundayRest: value.sundayRest ?? false, days }
+    sundayRest: value.sundayRest ?? false, days, ...(Object.keys(pauses).length > 0 && { pauses }) }
 }
 
 export function addDays(value: string, days: number) {
@@ -119,5 +147,5 @@ export function importMobilePlan(input: string, current: StudyPlan): StudyPlan |
     if (!isObject(row) || !isPlanDate(row.date) || !['NORMAL', 'BUSY', 'REST'].includes(row.mode as string)) return null
     if (!days[row.date]) days[row.date] = { ...defaultDay, mode: (row.mode as string).toLowerCase() as Mode }
   }
-  return parseStudyPlan({ ...data.settings, sundayRest: current.sundayRest, days })
+  return parseStudyPlan({ ...data.settings, sundayRest: current.sundayRest, days, pauses: current.pauses })
 }
