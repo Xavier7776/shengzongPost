@@ -37,7 +37,7 @@ describe('global blog categorization and popularity', () => {
   })
   it('paginates matching tags across all published posts', async () => {
     sql.mockResolvedValueOnce([{total:27}]).mockResolvedValueOnce([{slug:'old-post',tags:['RAG']}])
-    const response = await getPostsPaginatedByTag(3,12,'RAG')
+    const response = await getPostsPaginatedByTag(3,12,'RAG','oldest')
     expect(response.total).toBe(27)
     expect(response.posts.map(p=>p.slug)).toEqual(['old-post'])
     const countText = (sql.mock.calls[0][0] as TemplateStringsArray).join('?')
@@ -45,6 +45,6 @@ describe('global blog categorization and popularity', () => {
     expect(countText).toContain('published=TRUE')
     expect(postsText).toContain('p.published=TRUE')
     expect(sql.mock.calls[0][1]).toBe('RAG')
-    expect(sql.mock.calls[1].slice(1)).toEqual(['RAG',12,24])
+    expect(sql.mock.calls[1].slice(1)).toEqual(['RAG','RAG',true,true,12,24])
   })
 })

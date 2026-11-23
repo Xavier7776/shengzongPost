@@ -35,20 +35,28 @@ function postCards(rows: Record<string, unknown>[]): PostCardMeta[] {
   }) as PostCardMeta)
 }
 
-export async function getRecentPostCards(limit: number, offset = 0): Promise<PostCardMeta[]> {
+export type BlogSort = 'newest' | 'oldest'
+
+async function getPostCards(limit: number, offset: number, sort: BlogSort, tag: string | null): Promise<PostCardMeta[]> {
   const rows = await sql`
     SELECT p.content,p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,
            p.author_id,u.name as author_name,u.avatar as author_avatar
     FROM posts p LEFT JOIN users u ON u.id = p.author_id
-    WHERE p.published=true ORDER BY p.created_at DESC,p.id DESC
+    WHERE p.published=TRUE AND (${tag}::text IS NULL OR ${tag}=ANY(p.tags))
+    ORDER BY CASE WHEN ${sort === 'oldest'} THEN p.created_at END ASC,
+             CASE WHEN ${sort === 'oldest'} THEN p.id END ASC, p.created_at DESC, p.id DESC
     LIMIT ${limit} OFFSET ${offset}`
   return postCards(rows)
 }
 
-export async function getPostsPaginated(page: number, pageSize: number): Promise<{ posts: PostCardMeta[]; total: number }> {
+export function getRecentPostCards(limit: number, offset = 0): Promise<PostCardMeta[]> {
+  return getPostCards(limit, offset, 'newest', null)
+}
+
+export async function getPostsPaginated(page: number, pageSize: number, sort: BlogSort = 'newest'): Promise<{ posts: PostCardMeta[]; total: number }> {
   const [count, posts] = await Promise.all([
     sql`SELECT COUNT(*)::int AS total FROM posts WHERE published=true`,
-    getRecentPostCards(pageSize, (page - 1) * pageSize),
+    getPostCards(pageSize, (page - 1) * pageSize, sort, null),
   ])
   return { posts, total: Number(count[0].total) }
 }
@@ -184,18 +192,12 @@ export async function getBlogTagCounts(): Promise<{tag:string;count:number}[]> {
 
 /** Page through every published post with a selected tag, including older posts. */
 export async function getPostsPaginatedByTag(
-  page: number, pageSize: number, tag: string,
+  page: number, pageSize: number, tag: string, sort: BlogSort = 'newest',
 ): Promise<{posts:PostCardMeta[];total:number}> {
   const offset = (page - 1) * pageSize
-  const countRows = await sql`SELECT COUNT(*)::int AS total
-    FROM posts WHERE published=TRUE AND ${tag}=ANY(tags)`
-  const rows = await sql`SELECT p.content,p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,
-      p.updated_at,p.cover_image,p.author_id,u.name AS author_name,u.avatar AS author_avatar
-    FROM posts p LEFT JOIN users u ON u.id=p.author_id
-    WHERE p.published=TRUE AND ${tag}=ANY(p.tags)
-    ORDER BY p.created_at DESC,p.id DESC LIMIT ${pageSize} OFFSET ${offset}`
-  return {
-    posts:postCards(rows),
-    total:Number(countRows[0]?.total ?? 0),
-  }
+  const [countRows, posts] = await Promise.all([
+    sql`SELECT COUNT(*)::int AS total FROM posts WHERE published=TRUE AND ${tag}=ANY(tags)`,
+    getPostCards(pageSize, offset, sort, tag),
+  ])
+  return { posts, total: Number(countRows[0]?.total ?? 0) }
 }

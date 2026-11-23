@@ -18,6 +18,11 @@ beforeAll(async () => {
       tags text[], cover_image text, author_id int, published boolean, created_at timestamptz);
     CREATE TABLE skills (slug text UNIQUE, name text, description text, chinese_summary text, content text,
       tags text[], cover_image text, category text, created_at timestamptz);
+    CREATE TABLE projects (slug text UNIQUE, name text, tagline text, description text, tech_stack text[], cover_image text, enabled boolean, created_at timestamptz);
+    INSERT INTO projects (slug,name,tagline,description,tech_stack,enabled,created_at) VALUES
+      ('Mnemo','Mnemo 个人知识库','离线检索','本地知识管理',ARRAY['vectors'],true,'2024-10-10'),
+      ('secret','Mnemo 未发布','离线检索','本地知识管理',ARRAY['vectors'],false,'2026-10-10');
+    INSERT INTO posts (slug,title,published,created_at) VALUES ('mnemo-post','Mnemo',true,'2026-10-10');
     CREATE TABLE gallery_images (id serial PRIMARY KEY, title text, description text, category text, tags text[], url text, created_at timestamptz);
     INSERT INTO posts (slug,title,published,created_at) SELECT 'page-'||i,'pagekey',true,'2026-01-01' FROM generate_series(1,40) i;
     INSERT INTO posts (slug,title,content,published,created_at) VALUES
@@ -45,9 +50,21 @@ describe('search on the PostgreSQL engine', () => {
   it('ranks across types by the strongest field, with exact titles above newer body matches', async () => {
     const result = await search('rankkey')
     expect(result.results.map(r => r.id)).toEqual(['skill-title', '6', 'post-title', 'tag', 'excerpt', 'body'])
-    expect(result.counts).toEqual({ all: 6, post: 4, skill: 1, gallery: 1 })
+    expect(result.counts).toEqual({ all: 6, post: 4, skill: 1, gallery: 1, project: 0 })
     expect(result.results.every(r => !('body' in r) && !('content' in r) && !('score' in r))).toBe(true)
     expect((await search('rankkey', 'sort=newest')).results.at(-1)?.id).toBe('skill-title')
+  })
+
+  it('ranks exact public project slugs first and searches their descriptions and stack', async () => {
+    const matches = await search('mnemo')
+    expect(matches.results.map(r => r.url)).toEqual(['/work/Mnemo', '/blog/mnemo-post'])
+    expect(matches.counts.project).toBe(1)
+    expect((await search('mnemo', 'sort=newest')).results[0].type).toBe('post')
+    for (const term of ['知识库', '离线检索', '本地知识管理', 'vectors', 'nemo']) {
+      const result = await search(term, 'type=project')
+      expect(result.results.map(r => r.id)).toEqual(['Mnemo'])
+      expect(result.total).toBe(1)
+    }
   })
 
   it('returns all 65 matches exactly once across pages, including ties', async () => {
@@ -56,7 +73,7 @@ describe('search on the PostgreSQL engine', () => {
     for (const p of pages) {
       expect(p.total).toBe(65)
       expect(p.totalPages).toBe(4)
-      expect(p.counts).toEqual({ all: 65, post: 40, skill: 20, gallery: 5 })
+      expect(p.counts).toEqual({ all: 65, post: 40, skill: 20, gallery: 5, project: 0 })
     }
     const keys = pages.flatMap(p => p.results.map(r => `${r.type}:${r.id}`))
     expect(new Set(keys).size).toBe(65)

@@ -20,7 +20,7 @@ const response = (data: unknown, ok = true) => ({ ok, json: async () => data })
 function result(url: string, overrides: Partial<SearchResponse> = {}): SearchResponse {
   const query = parseSearchParams(new URL(url, 'http://localhost').searchParams)
   return {
-    ...query, total: 65, totalPages: 4, counts: { all: 65, post: 40, skill: 20, gallery: 5 },
+    ...query, total: 65, totalPages: 4, counts: { all: 65, post: 40, skill: 20, gallery: 5, project: 0 },
     results: [{ type: 'post', id: 'one', title: `${query.q} article`, excerpt: 'summary', url: '/blog/one', tags: [], image: null, meta: '', created_at: '' }],
     ...overrides,
   }
@@ -91,6 +91,54 @@ describe('search state and asynchronous UI', () => {
     expect(screen.getByRole('heading', { name: 'DeepSeek article' })).toBeInTheDocument()
     expect(nav.replace).toHaveBeenCalledExactlyOnceWith('/search?q=DeepSeek&type=all&sort=relevance&page=1', { scroll: false })
     expect(nav.push).not.toHaveBeenCalled()
+  })
+
+  it('keeps the input selection and the selected tab’s keyboard focus across result updates', async () => {
+    vi.useFakeTimers()
+    nav.value = 'q=Agent'
+    render(<SearchClient />)
+    await settle()
+    const input = screen.getByRole('textbox') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'AIgent' } })
+    input.setSelectionRange(2, 2)
+    await act(async () => { await vi.advanceTimersByTimeAsync(350) })
+    expect(screen.getByRole('textbox')).toBe(input)
+    expect(input.selectionStart).toBe(2)
+    const skills = screen.getByRole('tab', { name: 'Skills 20' })
+    skills.focus()
+    fireEvent.click(skills)
+    await settle()
+    expect(skills).toHaveFocus()
+  })
+
+  it('waits for IME composition to finish before searching', async () => {
+    vi.useFakeTimers()
+    render(<SearchClient />)
+    await settle()
+    const input = screen.getByRole('textbox')
+    fireEvent.compositionStart(input)
+    fireEvent.change(input, { target: { value: 'xiang' } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+    expect(nav.replace).not.toHaveBeenCalled()
+    fireEvent.change(input, { target: { value: '项目' } })
+    fireEvent.compositionEnd(input)
+    await act(async () => { await vi.advanceTimersByTimeAsync(350) })
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain(encodeURIComponent('项目'))
+  })
+
+  it('preserves a newer draft while the previous navigation is completing', async () => {
+    vi.useFakeTimers()
+    nav.replace.mockImplementation(() => {})
+    render(<SearchClient />)
+    await settle()
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Ag' } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(350) })
+    fireEvent.change(input, { target: { value: 'Agent' } })
+    navigate('q=Ag&type=all&sort=relevance&page=1')
+    expect(input).toHaveValue('Agent')
+    await act(async () => { await vi.advanceTimersByTimeAsync(350) })
+    expect(nav.replace).toHaveBeenLastCalledWith('/search?q=Agent&type=all&sort=relevance&page=1', { scroll: false })
   })
 
   it('replaces each paused input without adding intermediate history entries', async () => {
@@ -219,13 +267,13 @@ describe('search state and asynchronous UI', () => {
 
   it('only requests bounded recommendations for a true full-site zero, not an empty page or category', async () => {
     fetchMock.mockImplementation(async url => url.startsWith('/api/posts/public') ? response([]) : response(result(url, {
-      results: [], total: 0, totalPages: 0, counts: { all: 10, post: 10, skill: 0, gallery: 0 },
+      results: [], total: 0, totalPages: 0, counts: { all: 10, post: 10, skill: 0, gallery: 0, project: 0 },
     })))
     render(<SearchClient />)
     await settle()
     expect(fetchMock).toHaveBeenCalledTimes(1)
     fetchMock.mockImplementation(async url => url.startsWith('/api/posts/public') ? response([]) : response(result(url, {
-      results: [], total: 0, totalPages: 0, counts: { all: 0, post: 0, skill: 0, gallery: 0 },
+      results: [], total: 0, totalPages: 0, counts: { all: 0, post: 0, skill: 0, gallery: 0, project: 0 },
     })))
     navigate('q=missing')
     await settle()
