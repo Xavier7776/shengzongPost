@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { addMonths, defaultDay, defaultPlan, importMobilePlan, parseProposal } from '@/features/study-plan/model'
-import { getPlanStage, planDay, planSchedule } from '@/features/study-plan/planner'
+import { addMonths, defaultDay, defaultPlan, importMobilePlan, parseProposal, parseStudyPlan } from '@/features/study-plan/model'
+import { deferDay, getPlanStage, planDay, planSchedule } from '@/features/study-plan/planner'
 import type { SavedEntry } from '@/features/study-records/model'
 
 describe('StudyPilot web plan', () => {
@@ -97,6 +97,47 @@ describe('StudyPilot web plan', () => {
     expect(schedule.get(monday)!.tasks[0]).toMatchObject({ id: 'lc-1', review: true })
     expect(schedule.get('2026-11-29')).toMatchObject({ budget: 0, sundayRest: true, tasks: [] })
     expect(planDay(plan, sunday, [{ ...record, date: sunday }]).spent).toBe(30)
+  })
+  it('carries paused tasks over a rest day and retains them until a real record or a projected slot', () => {
+    const saturday = '2026-11-21'
+    const sunday = '2026-11-22'
+    const monday = '2026-11-23'
+    const tuesday = '2026-11-24'
+    const options = { ...defaultDay, extra: { title: '读论文方法部分', minutes: 30 } }
+    const base = { ...defaultPlan(day), sundayRest: true, days: { [saturday]: options, [monday]: { ...defaultDay, minutes: 60 } } }
+    const review = { ...prior, date: day }
+    const finished: SavedEntry = { ...prior, id: 'web:finished', date: saturday, track: 'project', title: '请求入口与依赖', minutes: 15 }
+    const records = [review, finished]
+    const original = planDay(base, saturday, records)
+    const pause = deferDay(original, options)
+    expect(pause).not.toContainEqual(expect.objectContaining({ id: 'lc-1' }))
+    expect(pause).toContainEqual({ id: 'hw-1', minutes: 60 })
+    const plan = parseStudyPlan({ ...base, pauses: { [saturday]: pause } })!
+    const schedule = planSchedule(plan, saturday, tuesday, saturday, records)
+    expect(schedule.get(saturday)).toMatchObject({ budget: 0, paused: true, tasks: [], completed: [finished] })
+    expect(schedule.get(sunday)).toMatchObject({ sundayRest: true, tasks: [] })
+    expect(schedule.get(monday)!.tasks.slice(0, 2)).toMatchObject([
+      { id: 'lc-1', review: true, minutes: 15 },
+      { title: '读论文方法部分', deferred: true, minutes: 30 },
+    ])
+    expect(schedule.get(tuesday)!.tasks).toContainEqual(expect.objectContaining({ id: 'hw-1', deferred: true, minutes: 60 }))
+    expect(schedule.get(tuesday)!.tasks.some(task => task.title === '读论文方法部分')).toBe(false)
+    const completed: SavedEntry = { ...prior, id: 'web:paper', date: monday, title: '读论文方法部分', track: 'other' }
+    expect(planDay(plan, tuesday, [...records, completed]).tasks.some(task => task.title === completed.title)).toBe(false)
+    expect(planDay(plan, tuesday, records).tasks.some(task => task.title === completed.title)).toBe(true)
+    expect(planDay({ ...plan, pauses: {} }, saturday, records)).toEqual(original)
+  })
+  it('retains a deferred task when a second day is paused', () => {
+    const saturday = '2026-11-21'
+    const sunday = '2026-11-22'
+    const monday = '2026-11-23'
+    const plan = { ...defaultPlan(day), pauses: { [saturday]: [{ id: 'hw-1', minutes: 60 }] } }
+    const after = planDay(plan, sunday, [])
+    const pause = deferDay(after, defaultDay)
+    expect(after.tasks).toContainEqual(expect.objectContaining({ id: 'hw-1', deferred: true }))
+    expect(pause.some(task => task.id === 'hw-1')).toBe(false)
+    const resumed = planDay({ ...plan, pauses: { ...plan.pauses, [sunday]: pause } }, monday, [])
+    expect(resumed.tasks.filter(task => task.id === 'hw-1')).toHaveLength(1)
   })
   it('keeps a usable schedule after the first set of topics has been allocated', () => {
     const schedule = planSchedule(defaultPlan(day), '2026-12-16', '2026-12-18', day, [])

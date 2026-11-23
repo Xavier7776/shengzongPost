@@ -13,6 +13,7 @@ export const weekdayLabel = (date: string) => weekdayFormat.format(atMidnight(da
 export const plannedMinutes = (day: PlannedDay) => day.tasks.reduce((total, task) => total + task.minutes, 0)
 
 function daySummary(day: PlannedDay, date: string, today: string) {
+  if (date >= today && day.paused) return '已暂停'
   if (date >= today && day.sundayRest) return '休息'
   if (date < today || day.spent > 0 && day.tasks.length === 0) return day.spent ? `已学 ${day.spent} 分` : '无记录'
   if (!day.stage) return '未开始'

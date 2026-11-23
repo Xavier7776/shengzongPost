@@ -9,7 +9,7 @@ import { limits, type Entry, type SavedEntry } from '@/features/study-records/mo
 import { chinaDate } from '@/lib/learn/document'
 import { stages } from './curriculum'
 import { addDays, addMonths, defaultDay, defaultPlan, isPlanDate, startOfWeek, type Proposal, type SavedPlan, type StudyPlan } from './model'
-import { getPlanStage, planSchedule, type PlannedTask } from './planner'
+import { deferDay, getPlanStage, planSchedule, type PlannedTask } from './planner'
 import { DayEditor, PlanSettings } from './PlanForms'
 import PlanCalendar, { plannedMinutes, shortDate, weekdayLabel } from './PlanCalendar'
 import PlanDay from './PlanDay'
@@ -180,6 +180,20 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
     clearProposal()
   }
 
+  async function toggleTodayPause() {
+    const currentDate = chinaDate()
+    if (date !== today || today !== currentDate) { setToday(currentDate); return }
+    const pauses = { ...snapshot.pauses }
+    if (daily.paused) delete pauses[date]
+    else pauses[date] = deferDay(daily, selectedDay)
+
+    const message = daily.paused ? '已恢复今日计划，后续安排已更新。' : '今日已暂停，未完成的任务已顺延。'
+    if (await commit({ ...snapshot, pauses }, message)) {
+      setEditDay(false)
+      setRecordDraft(null)
+    }
+  }
+
   function openRecord(task: PlannedTask) {
     recordTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setEditDay(false)
@@ -269,7 +283,8 @@ export default function StudyWorkspace({ initialPlan, initialRecords, today: ini
 
     <div className="mt-5 grid items-start gap-5 sm:mt-6 lg:grid-cols-[minmax(0,1fr)_19.5rem] lg:gap-8">
       <PlanDay date={date} today={today} day={daily} options={selectedDay} busy={disabled} canRecord={Boolean(recordList)}
-        editing={editDay && (date < today || !daily.sundayRest)} activeTaskId={preparing ? recordDraft.id : undefined}
+        editing={editDay && (date < today || (!daily.sundayRest && !daily.paused))} activeTaskId={preparing ? recordDraft.id : undefined}
+        onTogglePause={toggleTodayPause}
         onEdit={() => { setRecordDraft(null); setEditDay(!editDay) }} onRecord={openRecord}
         editor={editDay ? <DayEditor key={date + saved.revision} value={selectedDay} disabled={disabled} onCancel={() => setEditDay(false)}
           onReset={async () => {
