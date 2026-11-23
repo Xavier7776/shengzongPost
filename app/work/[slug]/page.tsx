@@ -3,7 +3,7 @@
 // 布局：单栏沉浸式（Hero 与正文同宽，正文居中可读宽度，目录悬浮右侧）
 import Link from 'next/link'
 import { renderMarkdown as safeMarkdown, renderInlineMarkdown } from '@/shared/markdown/render'
-import { parseFragment } from 'parse5'
+import { parseFragment, serialize } from 'parse5'
 import { ArrowLeft, ExternalLink, Github, Calendar, Layers, CheckCircle2 } from 'lucide-react'
 import ReadingProgressBar from '@/components/sections/ReadingProgressBar'
 import AttachmentList from '@/components/sections/AttachmentList'
@@ -19,47 +19,36 @@ import { breadcrumbs, jsonLdText } from '@/lib/seo'
 // 项目详情内容变更频率低，长缓存
 export const revalidate = 3600
 
-function renderMarkdown(md: string): string {
-  if (!md) return ''
-  try {
-    let html = safeMarkdown(md)
-    // 后处理：给 h2 加 id（用于目录锚点跳转）
-    // 匹配 <h2>...</h2>，提取纯文本生成 id
-    html = html.replace(/<h2([^>]*)>(.*?)<\/h2>/g, (_match, attrs: string, content: string) => {
-      // 提取纯文本（去除标签和 markdown 标记）
-      const fragment = parseFragment(content)
-      const text = (node: typeof fragment.childNodes[number]): string => 'value' in node ? node.value : 'childNodes' in node ? node.childNodes.map(text).join('') : ''
-      const plain = fragment.childNodes.map(text).join('').replace(/[`*_~]/g, '').trim()
-      // 生成锚点 id：移除中英文标点，空格转短横线
-      const id = plain
-        .replace(/[（）()，,。.、：:；;！!？?""''《》【】\[\]{}]/g, '')
-        .replace(/\s+/g, '-')
-        .toLowerCase()
-      return `<h2${attrs} id="${id.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${content}</h2>`
-    })
-    return html
-  } catch {
-    return safeMarkdown(md)
-  }
-}
-
-// 从 Markdown 内容提取所有 h2 标题作为左侧目录
-function extractToc(md: string): { id: string; text: string }[] {
-  const lines = md.split('\n')
+function renderProjectContent(markdown: string) {
+  const fragment = parseFragment(safeMarkdown(markdown))
+  type Child = typeof fragment.childNodes[number]
   const toc: { id: string; text: string }[] = []
-  for (const line of lines) {
-    const m = line.match(/^##\s+(.+)$/)
-    if (m) {
-      const text = m[1].replace(/[`*_]/g, '').trim()
-      // 与 renderMarkdown 后处理中的 id 生成逻辑保持一致
-      const id = text
-        .replace(/[（）()，,。.、：:；;！!？?""''《》【】\[\]{}]/g, '')
-        .replace(/\s+/g, '-')
-        .toLowerCase()
+  const ids = new Set<string>()
+
+  function textOf(node: Child): string {
+    if ('value' in node) return node.value
+    return 'childNodes' in node ? node.childNodes.map(textOf).join('') : ''
+  }
+
+  function visit(node: Child) {
+    if (!('childNodes' in node)) return
+    if (node.tagName === 'h2') {
+      const text = textOf(node).trim()
+      const base = text.replace(/[`*_~（）()，,。.、：:；;！!？?""''《》【】\[\]{}]/g, '')
+        .replace(/\s+/g, '-').toLowerCase() || 'section'
+      let id = base
+      for (let suffix = 2; ids.has(id); suffix++) id = base + '-' + suffix
+      ids.add(id)
+      node.attrs = node.attrs.filter(attr => attr.name !== 'id' && attr.name !== 'tabindex')
+      node.attrs.push({ name: 'id', value: id }, { name: 'tabindex', value: '-1' })
       toc.push({ id, text })
+    } else {
+      node.childNodes.forEach(visit)
     }
   }
-  return toc
+
+  fragment.childNodes.forEach(visit)
+  return { contentHtml: serialize(fragment), toc }
 }
 
 // 解析行内 Markdown（用于核心亮点等短文本，支持 **加粗**、`代码`、[链接](url) 等）
@@ -100,8 +89,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   if (!project) notFound()
 
   const hasContent = !!project.content?.trim()
-  const toc = hasContent ? extractToc(project.content!) : []
-  const contentHtml = hasContent ? renderMarkdown(project.content!) : ''
+  const { contentHtml, toc } = renderProjectContent(project.content ?? '')
   // 自动注入 PDF 附件：有正文内容 或 附件中有 MD 文件时，都注入 PDF 项
   // PDF 内容来源（在 /work/[slug]/pdf 路由处理）：优先 fetch 附件 MD 文件 → 回退 project.content
   // PDF 文件名与 MD 附件文件名一致（去掉 .md 后缀加 .pdf），无 MD 附件时回退到 project.name
@@ -138,7 +126,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8]">
+    <div className="min-h-screen bg-[#FAFAF8] [overflow-wrap:anywhere]">
       {/* JSON-LD 结构化数据注入 */}
       <script
         type="application/ld+json"
@@ -243,12 +231,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       {/* 主体内容：单栏沉浸式正文 + 右侧悬浮目录（fixed 定位，不占布局空间） */}
       {hasContent && (
         <div className="relative max-w-3xl mx-auto px-6 pb-24">
-          {/* 右侧悬浮目录（桌面端，fixed 定位贴在页面右侧中间偏上，不占用文档流） */}
-          {toc.length > 0 && (
-            <div className="hidden xl:block fixed top-32 right-8 w-56 z-30">
-              <WorkTocClient toc={toc} />
-            </div>
-          )}
+          <WorkTocClient toc={toc} />
 
           {/* Markdown 正文（单栏，居中可读宽度） */}
           <article
@@ -292,7 +275,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       {/* Markdown 渲染样式（与 skills 详情页风格统一） */}
       <style dangerouslySetInnerHTML={{ __html: `
         .prose h1 { font-size: 2rem; font-weight: 900; color: #111827; margin: 2rem 0 1rem; letter-spacing: -0.02em; }
-        .prose h2 { font-size: 1.5rem; font-weight: 800; color: #1f2937; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; scroll-margin-top: 1rem; }
+        .prose h2 { font-size: 1.5rem; font-weight: 800; color: #1f2937; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; scroll-margin-top: 4rem; }
         .prose h3 { font-size: 1.2rem; font-weight: 700; color: #374151; margin: 1.5rem 0 0.75rem; }
         .prose p { color: #4b5563; line-height: 1.8; margin: 0.8rem 0; }
         .prose ul { list-style: disc; padding-left: 1.5rem; margin: 0.8rem 0; }

@@ -14,7 +14,7 @@ async function main() {
   assert.notEqual(resolve(snapshotPath).toLowerCase(), resolve(outputPath).toLowerCase(), 'Report cannot overwrite its snapshot')
   assert.notEqual(resolve(sourcePath).toLowerCase(), resolve(outputPath).toLowerCase(), 'Report cannot overwrite its source')
   const raw = await readFile(snapshotPath, 'utf8')
-  const snapshot = JSON.parse(raw) as { snapshot_at: string; posts: Record<string, unknown>[]; skills: Record<string, unknown>[]; gallery: Record<string, unknown>[] }
+  const snapshot = JSON.parse(raw) as { snapshot_at: string; posts: Record<string, unknown>[]; skills: Record<string, unknown>[]; gallery: Record<string, unknown>[]; projects?: Record<string, unknown>[] }
   const suite = JSON.parse(await readFile('__tests__/fixtures/search-relevance-queries.json', 'utf8')) as { snapshotAt: string; counts: Record<string, number>; queries: SearchJudgment[] }
   assert.equal(snapshot.snapshot_at, suite.snapshotAt, 'Judgments belong to another snapshot')
   assert.ok(suite.queries.filter(q => q.relevant.length > 0).length >= 30, 'At least 30 judged queries required')
@@ -25,8 +25,8 @@ async function main() {
   let statement: { query: string; params: unknown[] } | undefined
   try {
     await db.exec(await readFile('scripts/ci/schema.sql', 'utf8'))
-    await db.exec('DELETE FROM posts; DELETE FROM skills; DELETE FROM gallery_images')
-    for (const [table, rows] of [['posts', snapshot.posts], ['skills', snapshot.skills], ['gallery_images', snapshot.gallery]] as const) {
+    await db.exec('DELETE FROM posts; DELETE FROM skills; DELETE FROM gallery_images; DELETE FROM projects')
+    for (const [table, rows] of [['posts', snapshot.posts], ['skills', snapshot.skills], ['gallery_images', snapshot.gallery], ['projects', snapshot.projects ?? []]] as const) {
       for (const row of rows) {
         const seeded = table === 'posts' ? { ...row, published: true } : row
         const columns = Object.keys(seeded)
@@ -55,12 +55,13 @@ async function main() {
       const all = [...full.results]
       for (let page = 2; page <= full.totalPages; page++) all.push(...(await search(`pageSize=50&page=${page}`)).results)
       assert.equal(new Set(all.map(r => `${r.type}:${r.id}`)).size, first.total)
-      const counts = { all: all.length, post: all.filter(r => r.type === 'post').length, skill: all.filter(r => r.type === 'skill').length, gallery: all.filter(r => r.type === 'gallery').length }
-      assert.deepEqual(first.counts, counts)
-      for (const type of ['post', 'skill', 'gallery'] as const) {
+      const counts = { all: all.length, post: all.filter(r => r.type === 'post').length, skill: all.filter(r => r.type === 'skill').length, gallery: all.filter(r => r.type === 'gallery').length, project: all.filter(r => r.type === 'project').length }
+      assert.deepEqual({ ...first.counts, project: first.counts.project ?? 0 }, counts)
+      for (const type of ['post', 'skill', 'gallery', 'project'] as const) {
+        if (type === 'project' && first.counts.project === undefined) continue // Historical search implementations predate projects.
         const filtered = await search(`type=${type}`)
         assert.equal(filtered.total, counts[type])
-        assert.deepEqual(filtered.counts, counts)
+        assert.deepEqual({ ...filtered.counts, project: filtered.counts.project ?? 0 }, counts)
         assert.ok(filtered.results.every(r => r.type === type))
       }
       if (judgment.category === 'zero') assert.equal(first.total, 0)

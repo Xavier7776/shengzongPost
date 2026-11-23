@@ -14,19 +14,24 @@ export const metadata: Metadata = {
 const PAGE_SIZE = 12
 
 // 流式加载：数据获取包在 Suspense 中，骨架屏先行渲染，数据就绪后流式注入
-export default async function BlogPage({ searchParams }: { searchParams: Promise<{ page?: string; tag?: string }> }) {
-  const { page: pageParam, tag: tagParam } = await searchParams
-  const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+type Param = string | string[] | undefined
+const first = (value: Param) => Array.isArray(value) ? value[0] : value
+
+export default async function BlogPage({ searchParams }: { searchParams: Promise<{ page?: Param; tag?: Param; sort?: Param }> }) {
+  const params = await searchParams
+  const tagParam = first(params.tag)
+  const sort = first(params.sort) === 'oldest' ? 'oldest' : 'newest'
+  const page = Math.max(1, parseInt(first(params.page) ?? '1', 10) || 1)
   // 直接 await：配合 revalidate=60，命中缓存时无数据库往返，响应极快
   // Tag filters are executed in Neon across all published posts, not only current page.
   const tag = tagParam?.trim() && tagParam.length <= 100 ? tagParam.trim() : null
   const [result, tagCounts, popularPosts] = await Promise.all([
-    tag ? getPostsPaginatedByTag(page, PAGE_SIZE, tag) : getPostsPaginated(page, PAGE_SIZE),
+    tag ? getPostsPaginatedByTag(page, PAGE_SIZE, tag, sort) : getPostsPaginated(page, PAGE_SIZE, sort),
     getBlogTagCounts(),
     getPopularPosts(8),
   ])
   return <BlogList
     posts={result.posts} total={result.total} page={page} pageSize={PAGE_SIZE}
-    globalTags={tagCounts} popularPostsData={popularPosts} selectedTag={tag}
+    globalTags={tagCounts} popularPostsData={popularPosts} selectedTag={tag} sort={sort}
   />
 }

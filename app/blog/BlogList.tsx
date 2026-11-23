@@ -9,6 +9,7 @@ import {
   ChevronRight, ChevronLeft, Search, X, Clock, Calendar,
   ArrowUpDown, Tag, ArrowRight, Flame, FileText, Hash, Layers,
 } from 'lucide-react'
+import type { BlogSort } from '@/lib/db/posts'
 import SectionHeading from '@/components/ui/SectionHeading'
 import { useReadingHistory } from '@/components/sections/ReadingHistory'
 
@@ -31,10 +32,9 @@ interface BlogListProps {
   pageSize: number
   globalTags: { tag: string; count: number }[]
   popularPostsData: Omit<PostMeta, 'readingMinutes'>[]
+  sort: BlogSort
   selectedTag: string | null
 }
-
-type SortKey = 'newest' | 'oldest'
 
 function isNew(dateStr: string): boolean {
   const date = new Date(dateStr)
@@ -55,9 +55,8 @@ const TAG_COLORS = [
   'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100',
 ]
 
-export default function BlogList({ posts, total, page, pageSize, globalTags, popularPostsData, selectedTag }: BlogListProps) {
+export default function BlogList({ posts, total, page, pageSize, globalTags, popularPostsData, selectedTag, sort }: BlogListProps) {
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<SortKey>('newest')
   const activeTag = selectedTag
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -77,7 +76,7 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
   }
 
   const processed = useMemo(() => {
-    let list = [...posts]
+    let list = posts
 
     if (activeTag) {
       list = list.filter(p => p.tags?.some(t => t.toLowerCase() === activeTag.toLowerCase()))
@@ -92,12 +91,16 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
       )
     }
 
-    if (sort === 'oldest') {
-      list.reverse()
-    }
-
     return list
-  }, [query, posts, sort, activeTag])
+  }, [query, posts, activeTag])
+
+  function toggleSort() {
+    const params = new URLSearchParams(searchParams.toString())
+    if (sort === 'newest') params.set('sort', 'oldest')
+    else params.delete('sort')
+    params.delete('page')
+    router.push('/blog' + (params.size ? '?' + params : ''))
+  }
 
   const goToPage = (p: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -108,7 +111,7 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
 
   const isFiltering = query.trim().length > 0 || activeTag !== null
   // 仅在第一页 + 非筛选时展示混合布局
-  const showMixedLayout = !isFiltering && page === 1
+  const showMixedLayout = !isFiltering && page === 1 && sort === 'newest'
 
   // Latest and popular are independent: popularity comes from whole-site view_count.
   const latestPosts = showMixedLayout ? processed.slice(0, 3) : []
@@ -149,51 +152,49 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
       </div>
 
       {/* 筛选状态下的标签栏 + 排序 */}
-      {!showMixedLayout && (
-        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-          {allTags.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Tag className="w-3.5 h-3.5 text-gray-300 mr-1" />
-              {activeTag && (
-                <button
-                  onClick={() => selectTag(null)}
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-                >
-                  全部
-                </button>
-              )}
-              {allTags.slice(0, 10).map(({ tag }) => (
-                <button
-                  key={tag}
-                  onClick={() => selectTag(activeTag === tag ? null : tag)}
-                  className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest transition-all duration-200 ${
-                    activeTag === tag
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-gray-50 text-gray-400 border border-gray-100 hover:border-blue-300 hover:text-blue-600'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center gap-1 ml-auto">
-            <ArrowUpDown className="w-3.5 h-3.5 text-gray-300" />
-            <button
-              onClick={() => setSort(s => s === 'newest' ? 'oldest' : 'newest')}
-              className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium"
-            >
-              {sort === 'newest' ? '最新优先' : '最早优先'}
-            </button>
+      <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+        {!showMixedLayout && allTags.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Tag className="w-3.5 h-3.5 text-gray-300 mr-1" />
+            {activeTag && (
+              <button
+                onClick={() => selectTag(null)}
+                className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+              >
+                全部
+              </button>
+            )}
+            {allTags.slice(0, 10).map(({ tag }) => (
+              <button
+                key={tag}
+                onClick={() => selectTag(activeTag === tag ? null : tag)}
+                className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest transition-all duration-200 ${
+                  activeTag === tag
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-50 text-gray-400 border border-gray-100 hover:border-blue-300 hover:text-blue-600'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
           </div>
+        )}
+
+        <div className="flex items-center gap-1 ml-auto">
+          <ArrowUpDown className="w-3.5 h-3.5 text-gray-300" />
+          <button
+            onClick={toggleSort}
+            className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium"
+          >
+            {sort === 'newest' ? '最新优先' : '最早优先'}
+          </button>
         </div>
-      )}
+      </div>
 
       {/* 搜索结果提示 */}
       {isFiltering && (
         <p className="text-xs text-gray-400 font-mono mb-6">
-          {processed.length > 0 ? `找到 ${processed.length} 篇文章` : '没有匹配的文章'}
+          {processed.length > 0 ? `找到 ${query.trim() ? processed.length : total} 篇文章` : '没有匹配的文章'}
         </p>
       )}
 
@@ -296,7 +297,7 @@ export default function BlogList({ posts, total, page, pageSize, globalTags, pop
             )}
 
             {/* 标签云（彩色 badge） */}
-            {allTags.length > 0 && (
+            {!showMixedLayout && allTags.length > 0 && (
               <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-50">
                   <h2 className="flex items-center gap-2 text-sm font-black text-gray-900">
@@ -570,8 +571,9 @@ function Pagination({ page, totalPages, goToPage }: { page: number; totalPages: 
   }
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-16">
+    <nav aria-label="文章分页" className="flex items-center justify-center gap-2 mt-16">
       <button
+        aria-label="上一页"
         onClick={() => goToPage(page - 1)}
         disabled={page <= 1}
         className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -585,6 +587,7 @@ function Pagination({ page, totalPages, goToPage }: { page: number; totalPages: 
         ) : (
           <button
             key={p}
+            aria-current={p === page ? 'page' : undefined}
             onClick={() => goToPage(p)}
             className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors ${
               p === page
@@ -598,13 +601,14 @@ function Pagination({ page, totalPages, goToPage }: { page: number; totalPages: 
       )}
 
       <button
+        aria-label="下一页"
         onClick={() => goToPage(page + 1)}
         disabled={page >= totalPages}
         className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
-    </div>
+    </nav>
   )
 }
 

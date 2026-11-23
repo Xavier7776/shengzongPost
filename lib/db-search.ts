@@ -4,7 +4,7 @@ export type { SearchResult } from './search'
 
 export async function searchAll(query: SearchQuery): Promise<SearchResponse> {
   const { q, type, sort, page, pageSize } = query
-  if (!q) return { ...query, results: [], total: 0, totalPages: 0, counts: { all: 0, post: 0, skill: 0, gallery: 0 } }
+  if (!q) return { ...query, results: [], total: 0, totalPages: 0, counts: { all: 0, post: 0, skill: 0, gallery: 0, project: 0 } }
   const literal = q.replace(/[\\%_]/g, '\\$&')
   // One statement keeps facets and the selected page on the same database snapshot.
   const rows = await sql`
@@ -27,9 +27,15 @@ export async function searchAll(query: SearchQuery): Promise<SearchResponse> {
         '/gallery', g.url, COALESCE(g.tags, ARRAY[]::text[]), COALESCE(g.category, ''),
         g.created_at, ''::text, COALESCE(g.category, '')
       FROM gallery_images g
+      UNION ALL
+      SELECT 'project', pr.slug, pr.name, COALESCE(NULLIF(pr.tagline, ''), pr.description, ''),
+        '/work/' || pr.slug, pr.cover_image, COALESCE(pr.tech_stack, ARRAY[]::text[]),
+        ''::text, pr.created_at, COALESCE(pr.description, ''), pr.slug
+      FROM projects pr WHERE pr.enabled = TRUE
     ), matched AS MATERIALIZED (
       SELECT c.type, c.id, c.title, LEFT(c.excerpt, 1000) AS excerpt, c.url, c.image, c.tags, c.meta, c.created_at,
         GREATEST(
+          CASE WHEN c.type = 'project' AND (LOWER(c.id) = LOWER(p.q) OR LOWER(c.title) = LOWER(p.q)) THEN 110 ELSE 0 END,
           CASE WHEN LOWER(c.title) = LOWER(p.q) THEN 100
             WHEN c.title ILIKE p.prefix THEN 80 WHEN c.title ILIKE p.term THEN 60 ELSE 0 END,
           CASE WHEN EXISTS (SELECT 1 FROM unnest(c.tags) t WHERE LOWER(t) = LOWER(p.q)) THEN 50 ELSE 0 END,
@@ -53,11 +59,12 @@ export async function searchAll(query: SearchQuery): Promise<SearchResponse> {
       COUNT(*)::int AS "all",
       COUNT(*) FILTER (WHERE type = 'post')::int AS post,
       COUNT(*) FILTER (WHERE type = 'skill')::int AS skill,
-      COUNT(*) FILTER (WHERE type = 'gallery')::int AS gallery
+      COUNT(*) FILTER (WHERE type = 'gallery')::int AS gallery,
+      COUNT(*) FILTER (WHERE type = 'project')::int AS project
     FROM matched
   `
   const row = rows[0]
-  const counts = { all: Number(row.all), post: Number(row.post), skill: Number(row.skill), gallery: Number(row.gallery) }
+  const counts = { all: Number(row.all), post: Number(row.post), skill: Number(row.skill), gallery: Number(row.gallery), project: Number(row.project) }
   const total = counts[type]
   return { ...query, results: row.results as SearchResponse['results'], total, totalPages: Math.ceil(total / pageSize), counts }
 }

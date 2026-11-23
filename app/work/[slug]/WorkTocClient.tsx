@@ -4,8 +4,8 @@
 // - IntersectionObserver 监听对应 h2 进入视口，active 高亮
 // - 回到顶部按钮（滚动超过 600px 显示）
 // - 接近页脚时淡出隐藏，避免覆盖页脚内容
-import { useEffect, useState } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowUp, ChevronDown, List } from 'lucide-react'
 
 export interface TocItem {
   id: string
@@ -13,6 +13,8 @@ export interface TocItem {
 }
 
 export default function WorkTocClient({ toc }: { toc: TocItem[] }) {
+  const [open, setOpen] = useState(false)
+  const toggleRef = useRef<HTMLButtonElement>(null)
   const [activeId, setActiveId] = useState<string>('')
   const [showTop, setShowTop] = useState(false)
   const [nearFooter, setNearFooter] = useState(false)
@@ -66,15 +68,45 @@ export default function WorkTocClient({ toc }: { toc: TocItem[] }) {
 
   return (
     <div
-      className={`transition-opacity duration-300 ${nearFooter ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      className={`sticky top-0 z-30 mb-4 bg-[#FAFAF8] xl:fixed xl:top-32 xl:right-8 xl:w-56 xl:bg-transparent ${nearFooter ? 'xl:invisible' : ''}`}
+      onKeyDown={event => {
+        if (event.key === 'Escape' && open) {
+          setOpen(false)
+          toggleRef.current?.focus()
+        }
+      }}
+      onBlur={event => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+      }}
     >
-      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">目录</h3>
-      <nav className="space-y-1.5 border-l border-gray-200 max-h-[60vh] overflow-y-auto">
+      <button
+        type="button"
+        ref={toggleRef}
+        aria-expanded={open}
+        aria-controls="work-chapters"
+        onClick={() => setOpen(value => !value)}
+        className="flex min-h-11 w-full items-center gap-2 border-b border-gray-200 text-sm font-bold text-gray-700 xl:hidden"
+      >
+        <List className="h-4 w-4" aria-hidden />章节目录
+        <ChevronDown className={`ml-auto h-4 w-4 ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      <h3 className="hidden xl:block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">目录</h3>
+      <nav
+        id="work-chapters"
+        aria-label="项目章节"
+        className={`${open ? 'block' : 'hidden'} absolute inset-x-0 top-full max-h-[55dvh] overflow-y-auto overscroll-contain rounded-b-lg border border-gray-200 bg-white py-2 shadow-md xl:static xl:block xl:max-h-[60vh] xl:space-y-1.5 xl:rounded-none xl:border-0 xl:border-l xl:bg-transparent xl:py-0 xl:shadow-none`}
+      >
         {toc.map(item => (
           <a
             key={item.id}
             href={`#${item.id}`}
-            className={`block text-sm pl-3 -ml-px border-l-2 transition-colors leading-relaxed ${
+            aria-current={activeId === item.id ? 'location' : undefined}
+            onClick={event => {
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+              setOpen(false)
+              document.getElementById(item.id)?.focus({ preventScroll: true })
+            }}
+            className={`block px-3 py-2 text-sm xl:py-0 xl:pr-0 xl:-ml-px border-l-2 transition-colors leading-relaxed ${
               activeId === item.id
                 ? 'border-blue-500 text-blue-600 font-bold'
                 : 'border-transparent text-gray-500 hover:text-blue-600 hover:border-blue-300'
@@ -88,7 +120,7 @@ export default function WorkTocClient({ toc }: { toc: TocItem[] }) {
       {showTop && (
         <button
           onClick={scrollToTop}
-          className="mt-4 flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 transition-colors"
+          className="mt-4 hidden xl:flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 transition-colors"
           title="回到顶部"
         >
           <ArrowUp className="w-3.5 h-3.5" />

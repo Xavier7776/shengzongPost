@@ -1,4 +1,4 @@
-export type SearchType = 'all' | 'post' | 'skill' | 'gallery'
+export type SearchType = 'all' | 'post' | 'skill' | 'gallery' | 'project'
 export type SearchSort = 'relevance' | 'newest'
 
 export interface SearchQuery {
@@ -33,7 +33,7 @@ export function parseSearchParams(params: URLSearchParams): SearchQuery {
   const type = params.get('type') ?? 'all'
   const sort = params.get('sort') ?? 'relevance'
   if (q.length > 120 || q.includes('\0')) throw new Error('关键词最多 120 字符，且不能包含空字符')
-  if (!['all', 'post', 'skill', 'gallery'].includes(type)) throw new Error('无效的搜索分类')
+  if (!['all', 'post', 'skill', 'gallery', 'project'].includes(type)) throw new Error('无效的搜索分类')
   if (!['relevance', 'newest'].includes(sort)) throw new Error('无效的排序方式')
 
   function integer(value: string, max: number) {

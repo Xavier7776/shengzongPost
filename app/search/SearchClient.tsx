@@ -7,7 +7,7 @@ import { useStoredString, notifyStorageChange } from '@/shared/browser-state'
 import { useJsonResource } from '@/shared/use-json-resource'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, Loader2, FileText, Code2, Image as ImageIcon, X, Clock, TrendingUp } from 'lucide-react'
+import { Search, Loader2, FileText, Code2, Image as ImageIcon, FolderOpen, X, Clock, TrendingUp } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { parseSearchParams } from '@/lib/search'
 import type { SearchResponse, SearchType, SearchSort } from '@/lib/search'
@@ -15,6 +15,7 @@ import type { SearchResponse, SearchType, SearchSort } from '@/lib/search'
 const TYPE_META: Record<string, { label: string; icon: typeof FileText; color: string; bg: string }> = {
   post:    { label: '博客',  icon: FileText,  color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-200' },
   skill:   { label: 'Skill', icon: Code2,     color: 'text-violet-600', bg: 'bg-violet-50 border-violet-200' },
+  project: { label: '项目', icon: FolderOpen, color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200' },
   gallery: { label: '画廊',  icon: ImageIcon, color: 'text-pink-600',   bg: 'bg-pink-50 border-pink-200' },
 }
 
@@ -101,22 +102,22 @@ interface RecommendPost {
 
 export default function SearchClient() {
   const urlState = useSearchParams().toString()
-  return <SearchSession key={urlState} urlState={urlState} />
-}
-
-function SearchSession({ urlState }: { urlState: string }) {
   const router = useRouter()
   const searchParams = new URLSearchParams(urlState)
   let state
   let parameterError = ''
   try {
-    state = parseSearchParams(new URLSearchParams(urlState))
+    state = parseSearchParams(searchParams)
   } catch (err) {
     parameterError = (err as Error).message
     state = { q: (searchParams.get('q') ?? '').slice(0, 120), type: 'all' as const, sort: 'relevance' as const, page: 1, pageSize: 20 }
   }
   const { q, type: activeType, sort, page } = state
   const [query, setQuery] = useState(q)
+  const [previousUrl, setPreviousUrl] = useState(urlState)
+  const [issuedUrl, setIssuedUrl] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const composing = useRef(false)
   const [data, setData] = useState<SearchResponse | null>(null)
   const [loading, setLoading] = useState(Boolean(q) && !parameterError)
   const [error, setError] = useState(parameterError)
@@ -126,15 +127,26 @@ function SearchSession({ urlState }: { urlState: string }) {
   const controllerRef = useRef<AbortController | null>(null)
   const requestRef = useRef(0)
   const rawHistory = useStoredString(HISTORY_KEY)
-  const [historyOverride, setHistory] = useState<string[] | null>(null)
   const history = useMemo(() => {
-    if (historyOverride) return historyOverride
     try {
       const items: unknown = JSON.parse(rawHistory || '[]')
       return Array.isArray(items) ? items.filter(item => typeof item === 'string' && item.length <= 120).slice(0, MAX_HISTORY) : []
     } catch { return [] }
-  }, [rawHistory, historyOverride])
+  }, [rawHistory])
   const [showHistory, setShowHistory] = useState(false)
+
+  if (urlState !== previousUrl) {
+    setPreviousUrl(urlState)
+    if (urlState !== issuedUrl) {
+      setQuery(q)
+      setEditing(false)
+      setData(null)
+      setError(parameterError)
+      setLoading(Boolean(q) && !parameterError)
+      setShowHistory(false)
+    }
+    setIssuedUrl(null)
+  }
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -147,8 +159,7 @@ function SearchSession({ urlState }: { urlState: string }) {
   }
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!q || parameterError) return
+    if (!q || parameterError || editing || issuedUrl !== null) return
     const controller = new AbortController()
     controllerRef.current = controller
     const request = ++requestRef.current
@@ -178,11 +189,12 @@ function SearchSession({ urlState }: { urlState: string }) {
       controller.abort()
       clearTimeout(timeout)
     }
-  }, [urlState, q, parameterError, retry])
+  }, [urlState, q, parameterError, retry, editing, issuedUrl])
 
   function navigate(value: string, next: { type?: SearchType; sort?: SearchSort; page?: number } = {}, replace = false) {
     cancelPending()
     setQuery(value)
+    setEditing(false)
     setShowHistory(false)
     setData(null)
     setError('')
@@ -191,6 +203,8 @@ function SearchSession({ urlState }: { urlState: string }) {
       q: value.trim(), type: next.type ?? activeType,
       sort: next.sort ?? sort, page: String(next.page ?? 1),
     })
+    const nextUrl = value.trim() ? params.toString() : ''
+    setIssuedUrl(nextUrl === urlState ? null : nextUrl)
     const target = value.trim() ? `/search?${params}` : '/search'
     if (target === `/search${urlState ? `?${urlState}` : ''}`) setRetry(n => n + 1)
     // Dispatch even for the current URL to supersede an unfinished navigation.
@@ -200,12 +214,13 @@ function SearchSession({ urlState }: { urlState: string }) {
 
   const handleInput = (value: string) => {
     cancelPending()
+    setEditing(true)
     setQuery(value)
     setShowHistory(false)
     setData(null)
     setError('')
     setLoading(Boolean(value.trim()))
-    debounceRef.current = setTimeout(() => navigate(value, {}, true), 350)
+    if (!composing.current) debounceRef.current = setTimeout(() => navigate(value, {}, true), 350)
   }
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) navigate(query)
@@ -216,12 +231,14 @@ function SearchSession({ urlState }: { urlState: string }) {
   const handleHistoryRemove = (e: React.MouseEvent, item: string) => {
     e.stopPropagation()
     e.preventDefault()
-    setHistory(removeHistoryItem(item))
+    removeHistoryItem(item)
+    notifyStorageChange()
   }
   const handleHistoryClear = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    setHistory(clearHistory())
+    clearHistory()
+    notifyStorageChange()
   }
   const handleFocus = () => { if (!query.trim()) setShowHistory(true) }
   const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
@@ -229,8 +246,13 @@ function SearchSession({ urlState }: { urlState: string }) {
   }
 
   useEffect(() => {
-    return () => {
+    const cancelDebounce = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+    window.addEventListener('popstate', cancelDebounce)
+    return () => {
+      cancelDebounce()
+      window.removeEventListener('popstate', cancelDebounce)
     }
   }, [])
 
@@ -241,13 +263,14 @@ function SearchSession({ urlState }: { urlState: string }) {
   const recommendations = Array.isArray(recommendationData) ? recommendationData : []
 
   const results = data?.results ?? []
-  const counts = data?.counts ?? { all: 0, post: 0, skill: 0, gallery: 0 }
+  const counts = data?.counts ?? { all: 0, post: 0, skill: 0, gallery: 0, project: 0 }
   const searched = Boolean(q)
-  const tabs: Array<{ key: 'all' | 'post' | 'skill' | 'gallery'; label: string; count: number }> = [
+  const tabs: Array<{ key: SearchType; label: string; count: number }> = [
     { key: 'all', label: '全部', count: counts.all },
     { key: 'post', label: '博客', count: counts.post },
     { key: 'skill', label: 'Skills', count: counts.skill },
     { key: 'gallery', label: '画廊', count: counts.gallery },
+    { key: 'project', label: '项目', count: counts.project },
   ]
 
   // 当前用于高亮的关键词
@@ -258,7 +281,7 @@ function SearchSession({ urlState }: { urlState: string }) {
       {/* 标题 */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-2">搜索</h1>
-        <p className="text-sm text-gray-500">在博客、Skills、画廊中搜索内容</p>
+        <p className="text-sm text-gray-500">在博客、Skills、画廊和项目中搜索内容</p>
       </div>
 
       {/* 搜索框 */}
@@ -271,6 +294,8 @@ function SearchSession({ urlState }: { urlState: string }) {
           maxLength={120}
           value={query}
           onChange={e => handleInput(e.target.value)}
+          onCompositionStart={() => { composing.current = true; cancelPending() }}
+          onCompositionEnd={e => { composing.current = false; handleInput(e.currentTarget.value) }}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           placeholder="输入关键词…"
