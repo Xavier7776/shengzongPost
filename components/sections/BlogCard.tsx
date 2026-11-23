@@ -12,6 +12,7 @@ interface Post {
   title: string
   date: string
   excerpt: string
+  readingMinutes: number
   tags: string[]
   cover_image?: string | null
   author_name?: string | null
@@ -22,11 +23,6 @@ interface BlogCardProps {
   post: Post
   index: number
   showNew?: boolean // 是否显示 NEW 标记
-}
-
-function readingTime(excerpt: string) {
-  const mins = Math.max(1, Math.round(excerpt.length / 300 * 3))
-  return `${mins} 分钟阅读`
 }
 
 /** 去掉 Contentful CDN 的强制裁切参数，保留宽度限制 */
@@ -67,9 +63,14 @@ export default function BlogCard({ post, index, showNew = false }: BlogCardProps
       <Card3D className="h-full">
         <Link href={href} className="group block h-full">
           <article className="flex flex-col h-full bg-white rounded-2xl overflow-hidden border border-gray-100/80 shadow-sm">
+            <div className="px-5 pt-5">
+              <h3 className="line-clamp-2 text-base font-black leading-snug text-gray-900 transition-colors group-hover:text-blue-600">
+                {post.title}
+              </h3>
+            </div>
 
             {/* 封面图 */}
-            <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0 bg-gray-50">
+            <div className={`relative mt-3 aspect-[16/9] shrink-0 overflow-hidden bg-gray-50 md:order-first md:mt-0 ${post.cover_image || showNew ? '' : 'hidden md:block'}`}>
               {post.cover_image ? (
                 <Image
                   src={stripCdnCrop(post.cover_image)}
@@ -98,10 +99,7 @@ export default function BlogCard({ post, index, showNew = false }: BlogCardProps
             </div>
 
             {/* 文字内容 */}
-            <div className="flex flex-col flex-1 p-5">
-              <h3 className="text-base font-black text-gray-900 mb-2 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
-                {post.title}
-              </h3>
+            <div className="flex flex-col flex-1 px-5 pb-5 pt-2">
               <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-4 flex-1">
                 {post.excerpt}
               </p>
@@ -128,7 +126,7 @@ export default function BlogCard({ post, index, showNew = false }: BlogCardProps
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  {readingTime(post.excerpt)}
+                  {post.readingMinutes} 分钟阅读
                 </span>
                 {post.author_name && (
                   <span className="flex items-center gap-1.5 ml-auto truncate min-w-0">

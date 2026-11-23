@@ -16,6 +16,7 @@ interface PostMeta {
   slug: string
   title: string
   excerpt: string
+  readingMinutes: number
   tags: string[]
   created_at: string
   cover_image?: string | null
@@ -29,16 +30,11 @@ interface BlogListProps {
   page: number
   pageSize: number
   globalTags: { tag: string; count: number }[]
-  popularPostsData: PostMeta[]
+  popularPostsData: Omit<PostMeta, 'readingMinutes'>[]
   selectedTag: string | null
 }
 
 type SortKey = 'newest' | 'oldest'
-
-function readingTime(excerpt: string) {
-  const mins = Math.max(1, Math.round(excerpt.length / 100))
-  return `${mins} 分钟`
-}
 
 function isNew(dateStr: string): boolean {
   const date = new Date(dateStr)
@@ -393,7 +389,7 @@ function LatestPostRow({ post, rank }: { post: PostMeta; rank: number }) {
             </span>
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {readingTime(post.excerpt)}
+              {post.readingMinutes} 分钟
             </span>
             {post.tags?.[0] && (
               <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
@@ -409,7 +405,7 @@ function LatestPostRow({ post, rank }: { post: PostMeta; rank: number }) {
 }
 
 // ── 热门文章行（带封面缩略图） ────────────────────────────────────
-function PopularPostRow({ post, rank }: { post: PostMeta; rank: number }) {
+function PopularPostRow({ post, rank }: { post: Omit<PostMeta, 'readingMinutes'>; rank: number }) {
   const read = useReadingHistory().some(item => item.slug === post.slug)
 
   return (
@@ -539,7 +535,7 @@ function ArticleListItem({ post, index, highlightQuery }: { post: PostMeta; inde
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {readingTime(post.excerpt)}
+                {post.readingMinutes} 分钟
               </span>
               {post.author_name && (
                 <span className="flex items-center gap-1.5 ml-auto truncate min-w-0">

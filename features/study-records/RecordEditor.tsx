@@ -9,16 +9,28 @@ export const control = 'min-h-12 w-full min-w-0 rounded-lg border border-slate-5
 export const button = action + ' border border-slate-300 bg-white text-slate-700 enabled:hover:border-blue-400 enabled:hover:text-blue-700'
 export const primary = action + ' bg-blue-600 text-white enabled:hover:bg-blue-700'
 
+function recordFields(form: HTMLFormElement) {
+  const fields = new FormData(form)
+  const text = (key: string) => String(fields.get(key) ?? '')
+  return {
+    title: text('title'), date: text('date'), track: text('track'), minutes: text('minutes'),
+    outcome: text('outcome'), note: text('note'), review: fields.has('review'),
+  }
+}
+
+export type TaskRecordDraft = ReturnType<typeof recordFields> & { recordId: string }
+
 type Props = {
   entry: SavedEntry | null
-  draft?: Pick<Entry, 'title' | 'track' | 'date' | 'minutes' | 'review'>
+  draft?: TaskRecordDraft
+  onDraftChange?: (draft: TaskRecordDraft) => void
   today: string
   busy: boolean
   onSave: (value: Entry, id?: string) => Promise<void>
   onCancel: () => void
 }
 
-export default function RecordEditor({ entry, draft, today, busy, onSave, onCancel }: Props) {
+export default function RecordEditor({ entry, draft, onDraftChange, today, busy, onSave, onCancel }: Props) {
   const id = useId()
   const titleRef = useRef<HTMLInputElement>(null)
   const draftId = useRef<string | undefined>(undefined)
@@ -35,8 +47,8 @@ export default function RecordEditor({ entry, draft, today, busy, onSave, onCanc
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy) return
-    const form = new FormData(event.currentTarget)
-    const title = String(form.get('title') ?? '').trim()
+    const fields = recordFields(event.currentTarget)
+    const title = fields.title.trim()
     if (!title) {
       const message = '请输入学习内容。'
       setTitleError(message)
@@ -44,20 +56,19 @@ export default function RecordEditor({ entry, draft, today, busy, onSave, onCanc
       titleRef.current?.reportValidity()
       return
     }
-    const value = parseEntry({
-      title, date: form.get('date'), track: form.get('track'), minutes: Number(form.get('minutes')),
-      outcome: form.get('outcome'), note: form.get('note'), review: form.has('review'),
-    })
+    const value = parseEntry({ ...fields, title, minutes: Number(fields.minutes) })
     if (!value) {
       event.currentTarget.querySelector('input:invalid, select:invalid, textarea:invalid')?.scrollIntoView({ block: 'nearest' })
       return
     }
-    if (!entry) draftId.current ??= 'web:' + globalThis.crypto.randomUUID()
+    if (!entry) draftId.current ??= draft?.recordId ?? 'web:' + globalThis.crypto.randomUUID()
     await onSave(value, draftId.current)
   }
 
   return (
-    <form onSubmit={submit} method="post" aria-labelledby={id + '-heading'} className="mt-7 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+    <form onSubmit={submit} onChange={event => {
+      if (draft && onDraftChange) onDraftChange({ ...recordFields(event.currentTarget), recordId: draft.recordId })
+    }} method="post" aria-labelledby={id + '-heading'} className="mt-7 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
       <h2 id={id + '-heading'} className="mb-5 text-xl font-bold tracking-tight">{entry ? '编辑记录' : '新增记录'}</h2>
       <fieldset disabled={busy} className="min-w-0 space-y-4">
         <div>
@@ -85,7 +96,7 @@ export default function RecordEditor({ entry, draft, today, busy, onSave, onCanc
           </div>
           <div className="min-w-0">
             <label htmlFor={id + '-outcome'} className="mb-1.5 block text-sm font-medium">学习结果</label>
-            <select id={id + '-outcome'} ref={outcomeRef} name="outcome" required className={control} defaultValue={entry?.outcome ?? (draft ? '' : 'independent')}>
+            <select id={id + '-outcome'} ref={outcomeRef} name="outcome" required className={control} defaultValue={entry?.outcome ?? draft?.outcome ?? 'independent'}>
               {draft && <option value="" disabled>选择结果</option>}
               {Object.entries(outcomes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
@@ -93,7 +104,7 @@ export default function RecordEditor({ entry, draft, today, busy, onSave, onCanc
         </div>
         <div>
           <label htmlFor={id + '-note'} className="mb-1.5 block text-sm font-medium">笔记（选填）</label>
-          <textarea id={id + '-note'} name="note" rows={3} className={control} maxLength={limits.note} defaultValue={entry?.note} />
+          <textarea id={id + '-note'} name="note" rows={3} className={control} maxLength={limits.note} defaultValue={entry?.note ?? draft?.note} />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <label className="inline-flex min-h-12 cursor-pointer items-center gap-2 text-sm font-medium">

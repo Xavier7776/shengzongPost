@@ -5,14 +5,25 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 
-function imageVariant(src: string, width: number) {
+function slideImageProps(src: string) {
+  let variant: (width: number) => string
   if (src.startsWith('https://images.unsplash.com/')) {
-    const url = new URL(src)
-    url.searchParams.set('w',String(width))
-    url.searchParams.set('auto','format')
-    return url.href
+    variant = width => {
+      const url = new URL(src)
+      url.searchParams.set('w', String(width))
+      url.searchParams.set('auto', 'format')
+      return url.href
+    }
+  } else if (/^https:\/\/res\.cloudinary\.com\/[\w-]+\/image\/upload\/v\d+\//.test(src)) {
+    variant = width => src.replace('/image/upload/', `/image/upload/c_limit,w_${width},f_auto,q_auto/`)
+  } else {
+    return { src }
   }
-  return src
+  return {
+    src: variant(1152),
+    srcSet: [480, 768, 1152, 1600, 2208].map(width => `${variant(width)} ${width}w`).join(', '),
+    sizes: '(max-width: 1152px) calc(100vw - 48px), 1104px',
+  }
 }
 
 interface Slide {
@@ -55,7 +66,7 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
 
         <div className="flex items-center gap-4 mt-8">
           <Link
-            href="/projects"
+            href="/work"
             className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-blue-600 transition-all duration-300 group"
           >
             查看作品
@@ -79,9 +90,7 @@ export default function HeroClient({ slides }: { slides: Slide[] }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={idx}
-              src={slide.img}
-              srcSet={/^https:\/\/(?:images\.unsplash\.com|res\.cloudinary\.com)\//.test(slide.img) && imageVariant(slide.img,480)!==imageVariant(slide.img,1600) ? [480,768,1152,1600].map(width=>imageVariant(slide.img,width)+' '+width+'w').join(', ') : undefined}
-              sizes="(max-width: 1200px) calc(100vw - 48px), 1104px"
+              {...slideImageProps(slide.img)}
               loading={idx===0 ? 'eager' : 'lazy'}
               fetchPriority={idx===0 ? 'high' : 'low'}
               decoding="async"

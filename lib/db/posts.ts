@@ -4,6 +4,7 @@
 import { sql, serializeRow, serializeRows } from './_core'
 import type { User } from './users'
 import { sanitizePostContent } from '@/lib/html/sanitize-post'
+import { readingStats } from '@/lib/reading-stats'
 import { EditionEditConflict } from '@/lib/learn/edit-conflict'
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
@@ -25,17 +26,31 @@ export async function getAllPosts(): Promise<PostMeta[]> {
     WHERE p.published=true ORDER BY p.created_at DESC`
   return serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[]
 }
-export async function getPostsPaginated(page: number, pageSize: number): Promise<{ posts: PostMeta[]; total: number }> {
-  const offset = (page - 1) * pageSize
-  const countRow = await sql`SELECT COUNT(*)::int as total FROM posts WHERE published=true`
-  const total = (countRow[0] as Record<string, unknown>).total as number
+type PostCardMeta = PostMeta & { readingMinutes: number }
+
+function postCards(rows: Record<string, unknown>[]): PostCardMeta[] {
+  return rows.map(({ content, ...metadata }) => ({
+    ...serializeRow(metadata),
+    readingMinutes: readingStats(String(content ?? ''), String(metadata.slug)).minutes,
+  }) as PostCardMeta)
+}
+
+export async function getRecentPostCards(limit: number, offset = 0): Promise<PostCardMeta[]> {
   const rows = await sql`
-    SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,
+    SELECT p.content,p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,p.updated_at,p.cover_image,
            p.author_id,u.name as author_name,u.avatar as author_avatar
     FROM posts p LEFT JOIN users u ON u.id = p.author_id
-    WHERE p.published=true ORDER BY p.created_at DESC
-    LIMIT ${pageSize} OFFSET ${offset}`
-  return { posts: serializeRows(rows as Record<string, unknown>[]) as unknown as PostMeta[], total }
+    WHERE p.published=true ORDER BY p.created_at DESC,p.id DESC
+    LIMIT ${limit} OFFSET ${offset}`
+  return postCards(rows)
+}
+
+export async function getPostsPaginated(page: number, pageSize: number): Promise<{ posts: PostCardMeta[]; total: number }> {
+  const [count, posts] = await Promise.all([
+    sql`SELECT COUNT(*)::int AS total FROM posts WHERE published=true`,
+    getRecentPostCards(pageSize, (page - 1) * pageSize),
+  ])
+  return { posts, total: Number(count[0].total) }
 }
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   const rows = await sql`
@@ -170,17 +185,17 @@ export async function getBlogTagCounts(): Promise<{tag:string;count:number}[]> {
 /** Page through every published post with a selected tag, including older posts. */
 export async function getPostsPaginatedByTag(
   page: number, pageSize: number, tag: string,
-): Promise<{posts:PostMeta[];total:number}> {
+): Promise<{posts:PostCardMeta[];total:number}> {
   const offset = (page - 1) * pageSize
   const countRows = await sql`SELECT COUNT(*)::int AS total
     FROM posts WHERE published=TRUE AND ${tag}=ANY(tags)`
-  const rows = await sql`SELECT p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,
+  const rows = await sql`SELECT p.content,p.id,p.slug,p.title,p.excerpt,p.tags,p.published,p.created_at,
       p.updated_at,p.cover_image,p.author_id,u.name AS author_name,u.avatar AS author_avatar
     FROM posts p LEFT JOIN users u ON u.id=p.author_id
     WHERE p.published=TRUE AND ${tag}=ANY(p.tags)
     ORDER BY p.created_at DESC,p.id DESC LIMIT ${pageSize} OFFSET ${offset}`
   return {
-    posts:serializeRows(rows as Record<string,unknown>[]) as unknown as PostMeta[],
+    posts:postCards(rows),
     total:Number(countRows[0]?.total ?? 0),
   }
 }

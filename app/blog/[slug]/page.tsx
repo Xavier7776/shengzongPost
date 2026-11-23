@@ -1,3 +1,4 @@
+import { isLearnSlug } from '@/lib/reading-stats'
 // 路径：app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation'
 import { cache, Suspense } from 'react'
@@ -73,7 +74,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     getAdjacentPosts(slug),
   ])
   if (!post) notFound()
-  const isLearnPost = /^daily-learn-\d{4}-\d{2}-\d{2}$/.test(slug)
+  const isLearnPost = isLearnSlug(slug)
 
   // JSON-LD 结构化数据（Article schema）
   const jsonLd = {
